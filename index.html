@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>바람의 대륙</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#f4ecd8;font-size:13px}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#game{position:fixed;inset:0;touch-action:none}
+.hidden{display:none!important}
+.win{background:linear-gradient(#3a2c1c,#241a10);border:3px solid #b8893a;box-shadow:0 0 0 2px #1a1008,0 6px 24px #000a;border-radius:6px;padding:10px}
+.btn{background:linear-gradient(#7a5a2a,#4a3416);border:2px solid #d8a84a;color:#fff3d0;padding:6px 10px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:13px;font-family:inherit}
+.btn:hover{filter:brightness(1.2)}.btn:active{transform:translateY(1px)}
+.btn.sm{padding:3px 7px;font-size:12px}.btn.red{background:linear-gradient(#a03030,#601818);border-color:#ff8a6a}.btn.blue{background:linear-gradient(#305aa0,#182c60);border-color:#7ab4ff}.btn.green{background:linear-gradient(#2a8a4a,#14502a);border-color:#7aff9a}
+.btn:disabled{filter:grayscale(1) brightness(.6);cursor:default}
+input,select{background:#1a120a;border:2px solid #8a6a3a;color:#fff;padding:6px;border-radius:4px;font-family:inherit;font-size:14px}
+h2{margin:0 0 8px;color:#ffd77a;font-size:18px;text-shadow:2px 2px #000}
+h3{margin:8px 0 4px;color:#ffd77a;font-size:14px}
+/* 로그인 */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(#1f3a2a,#050a08);z-index:50;overflow:auto}
+#login .win{width:min(560px,94vw);max-height:96vh;overflow:auto}
+.title{font-size:34px;color:#ffe08a;text-align:center;text-shadow:3px 3px #5a2a00,0 0 18px #ffb00080;letter-spacing:4px;margin:4px 0}
+.sub{text-align:center;color:#cfe8d0;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.opt{border:2px solid #6a4a20;background:#1a120a;border-radius:6px;padding:6px 8px;cursor:pointer;flex:1;min-width:90px;text-align:center}
+.opt.on{border-color:#ffd04a;background:#3a2a10;box-shadow:0 0 8px #ffd04a80}
+.opt b{display:block;color:#ffe08a}.opt small{color:#cbb;font-size:11px}
+#preview{background:#2a3a2a;border:2px solid #6a4a20;border-radius:6px}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+#hud>*{pointer-events:auto}
+#status{position:absolute;left:8px;top:8px;width:230px;padding:7px}
+.bar{height:13px;background:#200;border:1px solid #000;border-radius:3px;position:relative;overflow:hidden;margin-top:3px}
+.bar i{position:absolute;left:0;top:0;bottom:0;display:block}
+.bar span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:12px;color:#fff;text-shadow:1px 1px #000;font-weight:bold}
+#hpb i{background:linear-gradient(#ff6060,#b01010)}#mpb i{background:linear-gradient(#60a0ff,#1030b0)}#xpb i{background:linear-gradient(#ffe070,#b08000)}#xpb{height:8px}#xpb span{font-size:8px;line-height:7px}
+#buffs{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.buff{font-size:10px;background:#000a;border:1px solid #a87;border-radius:3px;padding:1px 4px}
+#mini{position:absolute;right:8px;top:8px;padding:5px;text-align:center}
+#mini canvas{width:150px;height:150px;border:1px solid #000;background:#000}
+#mapname{font-weight:bold;color:#ffe08a;font-size:12px}
+#clock{font-size:11px}
+#target{position:absolute;left:50%;top:8px;transform:translateX(-50%);width:220px;padding:5px 8px;text-align:center}
+#target .bar i{background:linear-gradient(#ff8a3a,#a02a00)}
+#bar{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);display:flex;gap:4px;padding:5px}
+.slot{width:48px;height:48px;background:#120c06;border:2px solid #7a5a2a;border-radius:5px;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;text-align:center;line-height:11px;overflow:hidden}
+.slot .k{position:absolute;left:2px;top:1px;font-size:10px;color:#ffd77a;font-weight:bold;text-shadow:1px 1px #000}
+.slot .n{position:absolute;right:2px;bottom:1px;font-size:10px;color:#fff;text-shadow:1px 1px #000}
+.slot .cd{position:absolute;left:0;right:0;bottom:0;background:#000b}
+.slot.lock{opacity:.35}
+.pot{width:16px;height:22px;border-radius:3px 3px 7px 7px;border:2px solid #000;box-shadow:inset -3px -3px 0 #0005,inset 2px 2px 0 #fff6}
+#chat{position:absolute;left:8px;bottom:8px;width:min(420px,46vw);font-size:12px}
+#log{max-height:150px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;text-shadow:1px 1px 1px #000,0 0 3px #000;pointer-events:none}
+#log div{padding:1px 0}
+#chatin{width:100%;margin-top:4px}
+#menu{position:absolute;right:8px;top:200px;display:flex;flex-direction:column;gap:4px}
+#menu .btn{font-size:12px;padding:5px 8px;text-align:left}
+#announce{position:absolute;left:50%;top:70px;transform:translateX(-50%);font-size:17px;font-weight:bold;text-align:center;text-shadow:2px 2px 0 #000,0 0 8px #000;pointer-events:none;width:90vw}
+#deathbox{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);text-align:center;padding:18px 24px}
+/* 패널 */
+.panel{position:fixed;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%);max-width:96vw;max-height:92vh;overflow:auto;min-width:300px}
+.panel .x{position:absolute;right:6px;top:4px;cursor:pointer;font-size:20px;color:#ffb;font-weight:bold;padding:0 6px}
+.grid{display:grid;grid-template-columns:repeat(6,48px);gap:4px}
+.cell{width:48px;height:48px;background:#120c06;border:2px solid #5a4020;border-radius:4px;position:relative;cursor:pointer;overflow:hidden}
+.cell canvas{width:44px;height:44px}
+.cell .n{position:absolute;right:2px;bottom:0;font-size:10px;text-shadow:1px 1px #000;font-weight:bold}
+.cell .pl{position:absolute;left:2px;top:0;font-size:10px;color:#7dffb0;text-shadow:1px 1px #000;font-weight:bold}
+.cell.sel{border-color:#ffe04a;box-shadow:0 0 8px #ffe04a}
+.cell.r1{border-color:#3aa8e0}.cell.r2{border-color:#a05ae0}.cell.r3{border-color:#ffb020;box-shadow:0 0 6px #ffb020}
+.cell.off{outline:2px solid #4aff7a}
+.eqgrid{display:grid;grid-template-columns:repeat(3,52px);gap:5px;justify-content:center}
+.eqs{width:52px;height:52px}
+.eqs .lbl{position:absolute;left:0;right:0;top:16px;text-align:center;font-size:10px;color:#865}
+#tip{position:fixed;z-index:40;max-width:280px;padding:8px;font-size:12px;pointer-events:auto}
+#tip .nm{font-weight:bold;font-size:14px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:12px;margin:6px 0}
+.list{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;gap:8px;background:#0006;border:1px solid #5a4020;border-radius:4px;padding:5px}
+.li .grow{flex:1}
+.li small{color:#cba}
+.cost{color:#ffd77a;font-weight:bold}
+.dtext{white-space:pre-wrap;background:#0005;border-radius:4px;padding:8px;margin-bottom:8px;line-height:1.5}
+.tabs{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap}
+#atlas canvas{border:2px solid #000;max-width:100%;cursor:pointer}
+.mon{display:flex;gap:6px;align-items:flex-start;border-bottom:1px solid #4a3418;padding:5px 0}
+.mon canvas{flex:0 0 40px;background:#0004;border-radius:4px}
+.mon .dr{font-size:11px;color:#cbb;line-height:1.5}
+/* 모바일 */
+#touch{position:fixed;inset:0;pointer-events:none;z-index:6}
+#touch>*{pointer-events:auto}
+#dpad{position:absolute;left:14px;bottom:14px;width:150px;height:150px}
+#dpad div{position:absolute;width:52px;height:52px;background:#0008;border:2px solid #fff5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fffa}
+#acts{position:absolute;right:6px;bottom:6px;width:240px;height:240px;pointer-events:none}
+#acts div{pointer-events:auto}
+#util{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:6px}
+#util div{width:46px;height:46px;border-radius:10px;background:#000a;border:2px solid #ffd77a88;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ffe;text-align:center;line-height:12px}
+@media (orientation:portrait){#util{bottom:250px}}
+#acts div{position:absolute;border-radius:50%;background:#000a;border:2px solid #ffd77a99;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:#ffe;text-align:center;line-height:11px}
+.touchmode #chat{bottom:auto;top:132px;width:40vw}.touchmode #log{max-height:72px;font-size:11px}
+.touchmode #bar{display:none}
+.touchmode #status{width:180px;padding:5px}.touchmode #mini{padding:3px}.touchmode #mini canvas{width:96px;height:96px}
+.touchmode #menu{flex-direction:row;top:6px;left:50%;right:auto;transform:translateX(-50%)}.touchmode #menu .btn{padding:4px 7px;font-size:17px}
+.touchmode #target{top:auto;bottom:250px;width:180px}
+.touchmode #announce{font-size:13px;top:52px}
+@media (orientation:portrait){.touchmode #menu{flex-direction:column;left:auto;right:6px;top:142px;transform:none}.touchmode #target{bottom:310px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="login">
+  <div class="win">
+    <div class="title">바람의 대륙</div>
+    <div class="sub">같은 와이파이 친구들과 함께하는 도트 RPG</div>
+    <div id="netst" class="sub" style="font-size:12px"></div>
+    <div id="step1">
+      <div class="row"><input id="nm" placeholder="캐릭터 이름 (최대 10자)" maxlength="10" style="flex:1"><button class="btn" id="go">입장</button></div>
+      <div class="sub" style="font-size:12px;margin-top:10px">이름이 있으면 이어서, 없으면 새 캐릭터를 만듭니다.</div>
+    </div>
+    <div id="step2" class="hidden">
+      <h2>캐릭터 만들기 — <span id="cnm"></span></h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <canvas id="preview" width="112" height="160"></canvas>
+        <div style="flex:1;min-width:220px">
+          <h3>성별</h3><div class="row" id="gsel"></div>
+          <h3>머리 모양</h3><div class="row" id="hsel"></div>
+          <h3>머리 색</h3><div class="row" id="hcsel"></div>
+          <h3>피부</h3><div class="row" id="sksel"></div>
+        </div>
+      </div>
+      <h3>직업</h3><div class="row" id="jsel"></div>
+      <div id="jdesc" class="dtext" style="margin-top:6px"></div>
+      <div class="row"><button class="btn" id="back">뒤로</button><div style="flex:1"></div><button class="btn green" id="make">모험 시작!</button></div>
+    </div>
+    <div id="lerr" style="color:#ff8a8a;text-align:center;margin-top:6px"></div>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="status" class="win">
+    <div style="display:flex;justify-content:space-between"><b id="sname"></b><span id="slv"></span></div>
+    <div id="sjob" style="font-size:11px;color:#cba"></div>
+    <div class="bar" id="hpb"><i></i><span></span></div>
+    <div class="bar" id="mpb"><i></i><span></span></div>
+    <div class="bar" id="xpb"><i></i><span></span></div>
+    <div style="margin-top:3px;font-size:12px">💰 <b id="scoin" style="color:#ffd700"></b></div>
+    <div id="buffs"></div>
+  </div>
+  <div id="mini" class="win"><div id="mapname"></div><canvas id="minic" width="150" height="150"></canvas><div id="clock"></div></div>
+  <div id="target" class="win hidden"><div id="tname"></div><div class="bar"><i></i><span></span></div></div>
+  <div id="menu">
+    <button class="btn" data-k="i">🎒 가방 (I)</button>
+    <button class="btn" data-k="m">🗺 지도 (M)</button>
+    <button class="btn" data-k="k">📜 스킬 (K)</button>
+    <button class="btn" data-k="b">⛺ 집짓기 (B)</button>
+    <button class="btn" data-k="r">🐎 탈것 (R)</button>
+    <button class="btn" data-k="h">☠ 보스 (H)</button>
+  </div>
+  <div id="bar" class="win"></div>
+  <div id="chat"><div id="log"></div><input id="chatin" class="hidden" maxlength="80" placeholder="채팅 (Enter)"></div>
+  <div id="announce"></div>
+  <div id="deathbox" class="win hidden"><h2>💀 쓰러졌습니다</h2><p>가까운 마을에서 부활합니다. (경험치 -5%)</p><button class="btn red" id="respawn">마을에서 부활</button></div>
+</div>
+<div id="touch" class="hidden">
+  <div id="dpad"><div data-d="3" style="left:49px;top:0">▲</div><div data-d="1" style="left:0;top:49px">◀</div><div data-d="2" style="left:98px;top:49px">▶</div><div data-d="0" style="left:49px;top:98px">▼</div></div>
+  <div id="acts"></div><div id="util"></div>
+</div>
+<div id="panel" class="panel win hidden"><span class="x" id="px">✕</span><div id="pbody"></div></div>
+<div id="panel2" class="panel win hidden"><span class="x" id="px2">✕</span><div id="pbody2"></div></div>
+<div id="tip" class="win hidden"></div>
+<script>window.BUILD="web";</script>
+<script src="mqtt.min.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="sprites.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
