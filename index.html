@@ -218,6 +218,22 @@ html,body{height:var(--vhp,100%)}
 #nightwarn svg.ic{width:13px;height:13px}
 .tiles{gap:4px!important}
 </style>
+<style id="v9">
+#qs .qut,#qs .qsdiv,.touchmode #qs .qut,.touchmode #qs .qsdiv{display:none!important}
+#skillgrid{grid-template-columns:repeat(3,56px)!important;gap:5px!important}
+.tb{width:56px!important;height:56px!important}.tb .sn{font-size:9.5px!important;max-width:54px!important}.tb svg.ic{width:20px;height:20px}
+.tb.atk{width:112px!important;height:117px!important}.tb.atk svg.ic{width:34px!important;height:34px!important}.tb.atk .sn{font-size:13px!important}
+#utilbar{position:absolute;right:12px;bottom:140px;display:flex;gap:6px;pointer-events:auto}
+#utilbar .ubt{width:69px;height:50px;background:rgba(36,40,47,.82);border:1px solid rgba(255,255,255,.18);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#fff;font-size:11px;font-weight:700;transition:transform .08s,filter .08s;touch-action:none;-webkit-user-select:none;user-select:none}
+#utilbar .ubt svg.ic{width:20px;height:20px}
+#utilbar .ubt.pressed{transform:scale(.88);filter:brightness(1.5)}
+#utilbar{display:none}.touchmode #utilbar{display:flex}
+#bigmap{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+#bigmap .bmwin{width:calc(var(--vwp,100vw) - 40px);height:calc(var(--vhp,100vh) - 24px);max-width:1100px;padding:8px;display:flex;flex-direction:column;gap:6px}
+#bigmap .bmhead{display:flex;align-items:center;gap:8px;height:30px;color:#fff;font-size:14px}#bigmap .bmhead svg.ic{width:16px;height:16px}
+#bigmap canvas{display:block;margin:0 auto;border-radius:4px;image-rendering:pixelated}
+#partybox{top:auto!important;bottom:200px;max-height:none}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>

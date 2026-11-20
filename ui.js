@@ -1121,3 +1121,88 @@ setInterval(() => {
   if (show && !el) { el = document.createElement('div'); el.id = 'nightwarn'; el.innerHTML = `${ic('moon')}밤 — 어둠 추적자 출몰! 텐트·마을로 피하세요`; $('hud').appendChild(el); }
   if (!show && el) el.remove();
 }, 1000);
+
+// ═══════ 조이스틱 v3: 누른 자리가 중심 · 십자 방향 우선 · 흔들림 방지 ═══════
+const _btJ = buildTouch;
+buildTouch = function () {
+  _btJ();
+  const dp = $('dpad'), knob = $('knob'); if (!dp || !knob) return;
+  let active = null, ox = 0, oy = 0, cur = null;
+  const VEC = { E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1], N: [0, -1], NE: [1, -1] };
+  const pickDir = (deg) => { // deg: 0=오른쪽, 90=아래
+    const a = (deg + 360) % 360; const sec = [['E', 0], ['SE', 45], ['S', 90], ['SW', 135], ['W', 180], ['NW', 225], ['N', 270], ['NE', 315]];
+    const half = n => n.length === 1 ? 27 : 18; // 십자 방향 54°, 대각선 36°
+    const diff = (x, y) => Math.abs(((x - y + 540) % 360) - 180);
+    if (cur) { const c = sec.find(s => s[0] === cur); if (diff(a, c[1]) <= half(cur) + 5) return cur; } // 흔들림 방지
+    let best = 'E', bd = 999; for (const [n, c] of sec) { const d = diff(a, c) - half(n); if (d < bd) { bd = d; best = n; } } return best;
+  };
+  const upd = e => {
+    const r = dp.getBoundingClientRect(), sc = 120 / r.width;
+    const dx = (e.clientX - ox) * sc, dy = (e.clientY - oy) * sc, dist = Math.hypot(dx, dy), lim = 38;
+    const k = dist > lim ? lim / dist : 1; knob.style.transform = `translate(${dx * k}px,${dy * k}px)`;
+    if (dist < 13) { if (dist < 9) { cur = null; touchVec = null; touchDir = -1; } return; }
+    if (dist > 70) { ox += (e.clientX - ox) * (1 - 70 / dist); oy += (e.clientY - oy) * (1 - 70 / dist); } // 손가락을 따라 중심 이동
+    cur = pickDir(Math.atan2(dy, dx) * 180 / Math.PI); touchVec = VEC[cur]; touchDir = dirOf(touchVec[0], touchVec[1]);
+  };
+  const end = () => { active = null; cur = null; touchVec = null; touchDir = -1; knob.style.transform = ''; };
+  dp.onpointerdown = e => { active = e.pointerId; dp.setPointerCapture(e.pointerId); ox = e.clientX; oy = e.clientY; cur = null; e.preventDefault(); };
+  dp.onpointermove = e => { if (active === e.pointerId) upd(e); };
+  dp.onpointerup = dp.onpointercancel = end;
+  // 보조 버튼 줄 (공격·스킬 위)
+  let ub = $('utilbar'); if (ub) ub.remove();
+  ub = document.createElement('div'); ub.id = 'utilbar';
+  ub.innerHTML = [['grab', 'grab', '줍기'], ['talk', 'talk', '말걸기'], ['target', 'target', '타겟'], ['chat', 'chat', '채팅']].map(([u, i, t]) => `<div class="ubt" data-u="${u}">${ic(i)}<span>${t}</span></div>`).join('');
+  $('touch').appendChild(ub);
+  ub.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); pressFx(d); const u = d.dataset.u; if (u === 'talk') send({ t: 'interact' }); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
+};
+
+// ═══════ 큰 지도 (미니맵을 누르면 확대) ═══════
+let bigZoom = 0;
+function openBigMap() {
+  if (!S.map || !S.mini) return; closeBigMap();
+  const d = document.createElement('div'); d.id = 'bigmap';
+  d.innerHTML = `<div class="bmwin win"><div class="bmhead"><b>${ic('map')} ${esc(S.map.name || '')}</b><div style="flex:1"></div><button class="btn sm" id="bmzoom">${bigZoom ? '전체 보기' : '내 주변 확대'}</button><button class="xbtn" id="bmx">${ic('x')}</button></div><canvas id="bmc"></canvas></div>`;
+  document.body.appendChild(d);
+  d.addEventListener('pointerdown', e => { if (!e.target.closest('.bmwin')) closeBigMap(); });
+  $('bmx').onclick = closeBigMap; $('bmzoom').onclick = () => { bigZoom = bigZoom ? 0 : 1; openBigMap(); };
+  drawBigMap(); S._bmT = setInterval(drawBigMap, 500);
+}
+function closeBigMap() { const d = $('bigmap'); if (d) d.remove(); clearInterval(S._bmT); }
+function drawBigMap() {
+  const c = $('bmc'); if (!c || !S.map) return; const m = S.map;
+  const box = c.parentElement.getBoundingClientRect(); const Wc = Math.round(box.width - 16), Hc = Math.round(box.height - 46);
+  const dpr = Math.min(2, window.devicePixelRatio || 1); c.width = Wc * dpr; c.height = Hc * dpr; c.style.width = Wc + 'px'; c.style.height = Hc + 'px';
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false; g.fillStyle = '#0c0e12'; g.fillRect(0, 0, Wc, Hc);
+  let sc = Math.min(Wc / m.w, Hc / m.h), vx = 0, vy = 0;
+  if (bigZoom) { sc = Math.max(sc * 3.2, 6); vx = Math.max(0, Math.min(m.w - Wc / sc, pos.x - Wc / sc / 2)); vy = Math.max(0, Math.min(m.h - Hc / sc, pos.y - Hc / sc / 2)); }
+  const offX = bigZoom ? 0 : (Wc - m.w * sc) / 2, offY = bigZoom ? 0 : (Hc - m.h * sc) / 2;
+  const X = x => offX + (x - vx) * sc, Y = y => offY + (y - vy) * sc;
+  g.drawImage(S.mini, vx, vy, Math.min(m.w, Wc / sc), Math.min(m.h, Hc / sc), offX, offY, Math.min(m.w, Wc / sc) * sc, Math.min(m.h, Hc / sc) * sc);
+  const txt = (t, x, y, col, size, bold = true) => { g.font = `${bold ? '800 ' : ''}${size}px sans-serif`; g.textAlign = 'center'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, x, y); g.fillStyle = col; g.fillText(t, x, y); };
+  // 이름표 (겹치면 중요도 낮은 것 생략)
+  const placed = []; const put = (t, x, y, col, size, pri) => { g.font = `800 ${size}px sans-serif`; const w = g.measureText(t).width + 4, h = size + 2; const r = { x: x - w / 2, y: y - h, w, h }; if (x < -w || x > Wc + w || y < 0 || y > Hc + h) return; if (placed.some(q => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y)) return; placed.push(r); txt(t, x, y, col, size); };
+  const items = [];
+  for (const l of m.labels || []) {
+    if (l.roofC) { if (bigZoom) items.push([l.text, l.bx + 2.5, l.by + 1, '#fff3c4', 11, 2]); continue; }
+    const t = l.text.replace(/^☠ /, '');
+    if (/주택가/.test(t)) items.push([t, l.x, l.y, '#e8dcb0', bigZoom ? 12 : 10, 4]);
+    else if (/마을|성$|촌$/.test(t) || l.big) items.push([t, l.x, l.y, '#ffe08a', bigZoom ? 15 : 13, 1]);
+    else if (/낚시터/.test(t)) items.push([bigZoom ? t : t.replace(' · 낚시터', ''), l.x, l.y, '#9fe8ff', bigZoom ? 12 : 10, 5]);
+    else if (/Lv\d/.test(t) && /굴|성|감옥|광산|성채/.test(t)) items.push([t, l.x, l.y, l.c || '#ff9a8a', bigZoom ? 13 : 11, 2]);
+    else if (bigZoom) items.push([t, l.x, l.y, '#e8ffd0', 11, 6]);
+  }
+  if (m.id === 'world' && S.atlas) for (const z of S.atlas.zones || []) items.push([`${z.name} Lv${z.lv}`, (z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 'rgba(232,255,208,.85)', bigZoom ? 12 : 10, 3]);
+  items.sort((a, b) => a[5] - b[5]).forEach(([t, x, y, c, sz]) => put(t, X(x), Y(y), c, sz));
+  // NPC
+  if (bigZoom) for (const n of m.npcs || []) { g.fillStyle = '#ffd000'; g.fillRect(X(n.x) - 2, Y(n.y) - 2, 5, 5); }
+  // 파티원 / 다른 플레이어
+  const dot = (x, y, col, name) => { g.fillStyle = '#000'; g.beginPath(); g.arc(X(x + 0.5), Y(y + 0.5), 6, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(X(x + 0.5), Y(y + 0.5), 4.5, 0, 7); g.fill(); if (name) txt(name, X(x + 0.5), Y(y + 0.5) - 9, col, 11); };
+  for (const p of S.P.values()) if (p.i !== S.myId && !(S.party || []).some(q => q.i === p.i)) dot(p.x, p.y, '#5af0ff', '');
+  for (const q of S.party || []) if (q.i !== S.myId && q.m === m.id && q.x != null) dot(q.x, q.y, '#4ade80', q.n);
+  // 보물 표시
+  const tm = S.me && S.me.tmark; if (tm && tm.map === m.id) { const x = X(tm.x + 0.5), y = Y(tm.y + 0.5); g.strokeStyle = '#ff3a2a'; g.lineWidth = 3; g.beginPath(); g.moveTo(x - 6, y - 6); g.lineTo(x + 6, y + 6); g.moveTo(x + 6, y - 6); g.lineTo(x - 6, y + 6); g.stroke(); txt('보물', x, y - 10, '#ff7a5a', 11); }
+  // 나
+  const t = performance.now(); const r = 6 + Math.sin(t / 200) * 2; g.strokeStyle = '#ffe86a'; g.lineWidth = 2; g.beginPath(); g.arc(X(pos.x + 0.5), Y(pos.y + 0.5), r + 3, 0, 7); g.stroke(); dot(pos.x, pos.y, '#ffe86a', '나');
+}
+$('mini').addEventListener('click', e => { e.stopPropagation(); openBigMap(); });
+$('mini').style.cursor = 'pointer';

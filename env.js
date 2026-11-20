@@ -124,6 +124,24 @@ function drawBridge(A) {
   P(0, 0, 16, 1.5, '#6a4a2a'); P(0, 14.5, 16, 1.5, '#6a4a2a');
 }
 
+function drawTownWall(A, v) {
+  const { P, px } = A; P(0, 0, 16, 16, '#7e786e');
+  const rows = [[0, 5], [5, 5], [10, 6]];
+  rows.forEach(([y, h], i) => { const off = i % 2 ? 4 : 0; for (let x = -off; x < 16; x += 8) { const c = ['#b4ac9c', '#a8a090', '#bcb4a4'][(x + i + v) & 1 ? 0 : (i % 3)]; P(x + 0.5, y + 0.5, 7, h - 1, c); P(x + 0.5, y + 0.5, 7, 0.5, '#d0c8b8'); P(x + 0.5, y + h - 1, 7, 0.5, '#8a8274'); } });
+  if (v % 4 === 1) { P(2, 11, 3, 2, '#6a9a4a'); px(3, 10, '#86b860'); }
+}
+function drawCaveFloor(A, seed, pal) {
+  const r = srand(seed), { P, px } = A; const cp = CAVE_PAL[pal] || CAVE_PAL[0];
+  P(0, 0, 16, 16, cp[0]);
+  for (let i = 0; i < 3; i++) { const x = r() * 13 | 0, y = r() * 13 | 0; P(x, y, 3, 2, shade(cp[0], r() < 0.5 ? -0.12 : 0.08)); }
+  for (let i = 0; i < 3; i++) { const x = 1 + r() * 13 | 0, y = 1 + r() * 13 | 0; px(x, y, shade(cp[0], -0.3)); px(x, y - 1, shade(cp[0], 0.2)); }
+}
+function drawCaveWall(A, seed, pal, v) {
+  const r = srand(seed), { P, px } = A; const cp = CAVE_PAL[pal] || CAVE_PAL[0]; const base = cp[2], hi = shade(cp[1], 0.1);
+  P(0, 0, 16, 16, base);
+  for (let i = 0; i < 4; i++) { const x = r() * 12 | 0, y = r() * 12 | 0, w = 3 + (r() * 3 | 0); P(x, y, w, 3, cp[1]); P(x, y, w, 1, hi); P(x, y + 3, w, 0.5, shade(base, -0.3)); }
+  if (v === 1) { P(4, 5, 2, 2, '#c8c8d0'); px(4, 5, '#fff'); } if (v === 3) { P(10, 9, 2, 2, '#e0b030'); px(10, 9, '#fff4a0'); }
+}
 // 지면 계열(풀이 경계를 덮는 쪽)
 const GRASSY = new Set([T.GRASS, T.FLOWER, T.FOREST, T.TREE, T.FENCE]);
 const SOFT_LOW = new Set([T.ROAD, T.SAND, T.STONE, T.SWAMP, T.SNOW, T.BRIDGE]);
@@ -131,7 +149,7 @@ const TREEISH = new Set([T.TREE, T.PINE, T.DEADTREE, T.CACTUS]);
 
 const _tileImgOld = tileImg;
 tileImg = function (id, v, pal, castle, frame, under) {
-  const NEW = id === T.GRASS || id === T.FLOWER || id === T.FOREST || id === T.SAND || id === T.SNOW || id === T.SWAMP || id === T.ASH || id === T.ROAD || id === T.STONE || id === T.WATER || id === T.FENCE || id === T.ROCK || id === T.HOUSE || id === T.ROOF || id === T.BRIDGE || TREEISH.has(id);
+  const NEW = id === T.WALL || ((id === T.CAVE || id === T.CAVEWALL) && !castle) || id === T.GRASS || id === T.FLOWER || id === T.FOREST || id === T.SAND || id === T.SNOW || id === T.SWAMP || id === T.ASH || id === T.ROAD || id === T.STONE || id === T.WATER || id === T.FENCE || id === T.ROCK || id === T.HOUSE || id === T.ROOF || id === T.BRIDGE || TREEISH.has(id);
   if (id === T.BARS || id === T.RUINWALL) {
     const key2 = 'v2|' + id + '|' + v + '|' + pal + '|' + castle; let c2 = tileCache.get(key2); if (c2) return c2;
     const small2 = lowres(16, 16, A => {
@@ -142,7 +160,7 @@ tileImg = function (id, v, pal, castle, frame, under) {
     c2 = up2(small2); tileCache.set(key2, c2); return c2;
   }
   if (!NEW || castle || (id === T.ROCK && under === 'c')) return _tileImgOld(id, v, pal, castle, frame, under);
-  const key = 'v2|' + id + '|' + v + '|' + frame + '|' + under;
+  const key = 'v2|' + id + '|' + v + '|' + frame + '|' + under + '|' + pal;
   let c = tileCache.get(key); if (c) return c;
   const seed = id * 977 + v * 131 + 7 + frame * 3 + (under ? under.charCodeAt(under.length - 1) * 31 : 0);
   const small = lowres(16, 16, A => {
@@ -154,6 +172,9 @@ tileImg = function (id, v, pal, castle, frame, under) {
       case T.HOUSE: drawHouseWall(A, v); break;
       case T.ROOF: drawRoof(A, under || '#b04030', v); break;
       case T.BRIDGE: drawBridge(A); break;
+      case T.WALL: drawTownWall(A, v); break;
+      case T.CAVE: drawCaveFloor(A, seed, pal); break;
+      case T.CAVEWALL: drawCaveWall(A, seed, pal, v); break;
       default:
         drawGround(A, ug, seed);
         if (id === T.FLOWER) drawFlowers(A, seed);

@@ -5,7 +5,8 @@ const $ = id => document.getElementById(id);
 const DIRS = [[0, 1], [-1, 0], [1, 0], [0, -1]];
 const cv = $('game'), ctx = cv.getContext('2d');
 let W = 0, H = 0;
-function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H; }
+let DPR = 1;
+function resize() { DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1))); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H; }
 const lc = mk(10, 10), lcx = lc.getContext('2d');
 addEventListener('resize', resize); resize();
 // 블록 테마 텍스처 (돌판·흙·하트·물방울)
@@ -596,7 +597,8 @@ const NPC_AP = {
 };
 const AO2 = t => AO_SRC(t) && !TREEISH.has(t) && t !== T.ROCK;
 function biomeChar(x, y) { const b = S.map.biome; return b ? b[y * S.map.w + x] : (S.map.castle ? 'k' : 'c'); }
-function drawText(t, x, y, col, size = 12, bold = true) { ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
+function shadowAt(x, y, rx) { ctx.fillStyle = 'rgba(20,30,10,.28)'; ctx.beginPath(); ctx.ellipse(x, y - 2, rx, rx * 0.32, 0, 0, 7); ctx.fill(); }
+function drawText(t, x, y, col, size = 12, bold = true) { ctx.font = `${bold ? '800 ' : '600 '}${size}px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.32); ctx.strokeStyle = 'rgba(0,0,0,.92)'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
 function frame(nowMs) {
   requestAnimationFrame(frame);
   const now = performance.now();
@@ -686,13 +688,13 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 10); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, -40, -28); ctx.restore(); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
   else {
     const lunge = p.atkT && now - p.atkT < 150 ? 4 : 0; const [dx, dy] = DIRS[dir];
-    ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge));
+    shadowAt(x, y, ap.mt ? 18 : 12); ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge));
   }
   ctx.globalAlpha = 1;
   if (p.bf) { ctx.strokeStyle = `rgba(255,220,120,${0.4 + Math.sin(now / 200) * 0.2})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, 16, 6, 0, 0, 7); ctx.stroke(); }
   const jn = GD.JOBS[ap.job] ? GD.JOBS[ap.job].name : '';
-  drawText(`${p.n}`, x, y + 14, isMe ? '#ffe86a' : '#9fe8ff', 12);
-  ctx.font = '10px sans-serif'; drawText(`Lv${p.lv} ${jn}`, x, y + 26, '#d8d8d8', 10, false);
+  drawText(`${p.n}`, x, y + 15, isMe ? '#ffe86a' : '#9fe8ff', 13);
+  drawText(`Lv${p.lv} ${jn}`, x, y + 29, '#f0f2f5', 11, false);
   if (isMe && !p.dd) {
     const by = y - 84 + (ap.mt ? -12 : 0), bw = 36; const yv = S.you;
     const hr = Math.max(0, Math.min(1, (yv.hp || 0) / (yv.mhp || 1))), mr = Math.max(0, Math.min(1, (yv.mp || 0) / (yv.mmp || 1)));
@@ -704,8 +706,8 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
 }
 function drawNpc(n, sx, sy, now) {
   const x = n.x * TS + 16 - sx, y = n.y * TS + 32 - sy; if (x < -60 || x > W + 60 || y < -80 || y > H + 80) return;
-  ctx.drawImage(charSprite(NPC_AP[n.kind] || NPC_AP.guide, 0, 0), x - 28, y - 76);
-  drawText(n.name, x, y + 14, '#ffe08a', 12);
+  shadowAt(x, y, 12); ctx.drawImage(charSprite(NPC_AP[n.kind] || NPC_AP.guide, 0, 0), x - 28, y - 76);
+  drawText(n.name, x, y + 15, '#ffe08a', 13);
   const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - 76 + bob, '#ffd000', 18);
 }
 function drawMon(mo, sx, sy, now) {
@@ -721,6 +723,7 @@ function drawMon(mo, sx, sy, now) {
     if (def.boss) { ctx.strokeStyle = def.aura; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, img.width * 0.45, img.width * 0.15, 0, 0, 7); ctx.stroke(); for (let i = 0; i < 6; i++) { const a = now / 400 + i * 1.05; ctx.fillStyle = def.aura; ctx.fillRect(x + Math.cos(a) * img.width * 0.45, y - 2 + Math.sin(a) * img.width * 0.15 - ((now / 10 + i * 20) % 40), 3, 3); } }
   }
   ctx.fillStyle = '#0005'; ctx.beginPath(); ctx.ellipse(x, y - 2, img.width * 0.3, 5 * def.size, 0, 0, 7); ctx.fill();
+  if (!def.fly && def.kind !== 'bat' && def.kind !== 'ghost') shadowAt(x, y, Math.max(8, img.width * 0.28)); else shadowAt(x, y + 4, Math.max(6, img.width * 0.2));
   ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height));
   const top = y - img.height - 4;
   if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, img.width * 0.35), 7, 0, 0, 7); ctx.stroke(); }
@@ -800,7 +803,7 @@ function drawLight(sx, sy, now) {
   for (const t of S.tents) { L(t.x + 4, t.y + 3, 3, 0.5); for (const f of t.furn) if (['torch', 'campfire', 'lantern', 'stove'].includes(f.k)) L(t.x + f.x, t.y + f.y, (f.k === 'lantern' ? 6 : f.k === 'campfire' ? 5.5 : 4.5) * fl); }
   for (const mo of S.M.values()) { const d = GD.MONS[mo.t]; if (d && (d.boss || d.fire)) L(mo.rx, mo.ry, d.boss ? 4 : 2.5, 0.8); }
   for (const pl of S.plots) L(pl.sx, pl.sy, 3, 0.6);
-  ctx.drawImage(lc, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(lc, 0, 0, W, H); ctx.imageSmoothingEnabled = false;
   // 횃불 따뜻한 빛
   ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.14 * a;
   for (const t of S.tents) for (const f of t.furn) if (['torch', 'campfire', 'lantern'].includes(f.k)) { const px = (t.x + f.x) * TS + 16 - sx, py = (t.y + f.y) * TS + 16 - sy; const gr = ctx.createRadialGradient(px, py, 0, px, py, 120); gr.addColorStop(0, '#ff9a30'); gr.addColorStop(1, '#ff9a3000'); ctx.fillStyle = gr; ctx.fillRect(px - 120, py - 120, 240, 240); }

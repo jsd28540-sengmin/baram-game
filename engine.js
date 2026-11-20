@@ -1134,7 +1134,7 @@ function handle(p, msg) {
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;
     case 'target': p.target = msg.id; break;
-    case 'pick': for (const d of [...m.drops.values()]) if (Math.abs(d.x - p.x) <= 1 && Math.abs(d.y - p.y) <= 1) pickup(p, m, d); break;
+    case 'pick': { const near = [...m.drops.values()].filter(d => Math.abs(d.x - p.x) <= 1 && Math.abs(d.y - p.y) <= 1); near.forEach(d => pickup(p, m, d)); if (!near.length) { const [dx, dy] = DIRS[p.dir]; const c = m.chests.find(c => c.x === p.x + dx && c.y === p.y + dy) || m.chests.find(c => Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y)) <= 1); if (c) openChest(p, c); else sysMsg(p, '주울 것이 없습니다.', '#aaa'); } break; }
     case 'chat': { const text = String(msg.text || '').slice(0, 80); if (!text) return; broadcast({ t: 'chat', id: p.id, name: p.name, text, map: p.map }); break; }
     case 'use': useItem(p, msg.i | 0); break;
     case 'useId': { const i = p.inv.findIndex(o => o.k === 'use' && o.id === msg.id); if (i >= 0) useItem(p, i); else sysMsg(p, `${D.CONSUMES[msg.id].name}이(가) 없습니다.`, '#bbb'); break; }
@@ -1373,7 +1373,6 @@ function openPlot(p, pl) {
     text: pl.owner ? (mine ? (p.house ? '당신의 집입니다. 문으로 들어가 [B] 집짓기 메뉴에서 가구·창문·문을 배치하세요.' : '당신의 땅입니다. 가진 건축 재료로 집을 지을 수 있습니다.') : `${pl.owner}님의 땅입니다.`) : `${pl.town}의 공터입니다. 땅을 사서 나만의 집을 지어보세요! (1인 1채)` });
 }
 function interact(p) {
-  { const m = MAPS[p.map]; const [dx, dy] = DIRS[p.dir]; const c = m.chests.find(c => c.x === p.x + dx && c.y === p.y + dy) || m.chests.find(c => Math.max(Math.abs(c.x - p.x), Math.abs(c.y - p.y)) <= 1); if (c) return openChest(p, c); }
   { const m = MAPS[p.map]; const [dx, dy] = DIRS[p.dir]; if (gt(m, p.x + dx, p.y + dy) === T.WATER) { const rod = p.inv.find(o => o.k === 'use' && D.CONSUMES[o.id] && D.CONSUMES[o.id].rod); if (rod) return startFishing(p, D.CONSUMES[rod.id].rod); } }
   const n = npcNear(p); if (n) return openNpc(p, n);
   const pl = plotNear(p); if (pl && !furnFront(p)) return openPlot(p, pl);
@@ -1425,7 +1424,7 @@ function tick() {
     for (const mon of m.mons.values()) if (Math.abs(mon.x - p.x) <= VX && Math.abs(mon.y - p.y) <= VY) M.push({ i: mon.id, t: mon.type, x: mon.x, y: mon.y, d: mon.dir, h: Math.round(100 * mon.hp / mon.maxHp), mu: mon.mutant ? 1 : 0, s: mon.summon ? 1 : 0, lv: mon.lv });
     for (const d of m.drops.values()) if (Math.abs(d.x - p.x) <= VX && Math.abs(d.y - p.y) <= VY) { const it = d.item; Dr.push({ i: d.id, x: d.x, y: d.y, k: it.k, id: it.id, tr: it.tier, c: it.k === 'gear' ? D.TIER_COLOR[it.tier] : it.k === 'use' ? D.CONSUMES[it.id].col : it.k === 'mat' ? (D.MATS[it.id] || {}).c : '#ffd700', r: it.rar || 0, sl: it.slot, wt: it.wt, n: it.k === 'gear' ? it.name : it.k === 'coin' ? it.n + '코인' : (it.k === 'use' ? D.CONSUMES[it.id].name : it.id) + (it.n > 1 ? ' x' + it.n : '') }); }
     const fxs = m.fx.filter(f => Math.abs((f.x ?? f.fx) - p.x) <= VX + 2 && Math.abs((f.y ?? f.fy) - p.y) <= VY + 2);
-    const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
+    const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, x: q.x, y: q.y, m: q.map, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
   }
   for (const id of activeMaps) MAPS[id].fx = [];
 }
