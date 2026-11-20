@@ -218,3 +218,43 @@
   // 카메라 흔들기 (월드만, HUD는 그대로)
   window.shakeOff = function () { const e = performance.now() - shkT; if (!shk || e >= shkD) { shk = 0; return null; } const a = shk * (1 - e / shkD); return [Math.round((Math.random() * 2 - 1) * a), Math.round((Math.random() * 2 - 1) * a)]; };
 })();
+// ═══════ 조이스틱 v4: 안드로이드 대응 (터치 이벤트 직접 처리 + 브라우저 제스처 차단) ═══════
+(function () {
+  const st = document.createElement('style'); st.textContent = '#dpad,#dpad *,#touch,#acts,#acts *,#skillgrid,#skillgrid *,#utilbar,#utilbar *{touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}html,body{overscroll-behavior:none}';
+  document.head.appendChild(st);
+  const _bt4 = buildTouch;
+  buildTouch = function () {
+    _bt4();
+    const dp = $('dpad'), knob = $('knob'); if (!dp || !knob) return;
+    let active = null, ox = 0, oy = 0, cur = null;
+    const VEC = { E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1], N: [0, -1], NE: [1, -1] };
+    const sec = [['E', 0], ['SE', 45], ['S', 90], ['SW', 135], ['W', 180], ['NW', 225], ['N', 270], ['NE', 315]];
+    const half = n => n.length === 1 ? 27 : 18, diff = (x, y) => Math.abs(((x - y + 540) % 360) - 180);
+    const pickDir = deg => { const a = (deg + 360) % 360; if (cur) { const c = sec.find(s => s[0] === cur); if (diff(a, c[1]) <= half(cur) + 5) return cur; } let best = 'E', bd = 999; for (const [n, c] of sec) { const d = diff(a, c) - half(n); if (d < bd) { bd = d; best = n; } } return best; };
+    const start = (id, x, y) => { active = id; ox = x; oy = y; cur = null; };
+    const move = (x, y) => {
+      const r = dp.getBoundingClientRect(), sc = 120 / (r.width || 120);
+      const dx = (x - ox) * sc, dy = (y - oy) * sc, dist = Math.hypot(dx, dy), lim = 38;
+      const k = dist > lim ? lim / dist : 1; knob.style.transform = `translate(${dx * k}px,${dy * k}px)`;
+      if (dist < 13) { if (dist < 9) { cur = null; touchVec = null; touchDir = -1; } return; }
+      if (dist > 70) { ox += (x - ox) * (1 - 70 / dist); oy += (y - oy) * (1 - 70 / dist); }
+      cur = pickDir(Math.atan2(dy, dx) * 180 / Math.PI); touchVec = VEC[cur]; touchDir = dirOf(touchVec[0], touchVec[1]);
+    };
+    const end = () => { active = null; cur = null; touchVec = null; touchDir = -1; knob.style.transform = ''; };
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    // 마우스·펜용 포인터 (터치는 아래 터치 이벤트가 담당)
+    dp.onpointerdown = e => { if (e.pointerType === 'touch' && hasTouch) return; active = e.pointerId; try { dp.setPointerCapture(e.pointerId); } catch (_) { } start(e.pointerId, e.clientX, e.clientY); e.preventDefault(); };
+    dp.onpointermove = e => { if (e.pointerType === 'touch' && hasTouch) return; if (active === e.pointerId) move(e.clientX, e.clientY); };
+    dp.onpointerup = dp.onpointercancel = e => { if (e.pointerType === 'touch' && hasTouch) return; end(); };
+    dp._jh = { start, move, end, get active() { return active; } };
+    if (hasTouch && !dp._t4) {
+      dp._t4 = 1; const o = { passive: false }; const H = () => dp._jh;
+      const find = (list) => { const a = H().active; for (const t of list) if (t.identifier === a) return t; return null; };
+      dp.addEventListener('touchstart', e => { e.preventDefault(); if (H().active !== null && find(e.touches)) return; const t = e.changedTouches[0]; H().start(t.identifier, t.clientX, t.clientY); }, o);
+      // 손가락이 조이스틱 밖으로 나가도 계속 따라감
+      window.addEventListener('touchmove', e => { if (H().active === null) return; const t = find(e.changedTouches); if (t) { H().move(t.clientX, t.clientY); if (e.cancelable) e.preventDefault(); } }, o);
+      const fin = e => { if (H().active === null) return; if (find(e.changedTouches)) H().end(); };
+      window.addEventListener('touchend', fin, o); window.addEventListener('touchcancel', fin, o);
+    }
+  };
+})();
