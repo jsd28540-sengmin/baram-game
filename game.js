@@ -594,6 +594,7 @@ const NPC_AP = {
   master: { job: 'mage', g: 'm', h: 2, hc: 4, sk: 0, eq: { helmet: [8, 0, 0, 0], armor: [8, 0, 0, 0], weapon: [8, 0, 0, 'staff'] } },
   guide: { job: 'healer', g: 'f', h: 2, hc: 3, sk: 0, eq: { armor: [6, 0, 0, 0] } },
 };
+const AO2 = t => AO_SRC(t) && !TREEISH.has(t) && t !== T.ROCK;
 function biomeChar(x, y) { const b = S.map.biome; return b ? b[y * S.map.w + x] : (S.map.castle ? 'k' : 'c'); }
 function drawText(t, x, y, col, size = 12, bold = true) { ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
 function frame(nowMs) {
@@ -606,8 +607,10 @@ function frame(nowMs) {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   const x0 = Math.max(0, Math.floor(sx / TS)), y0 = Math.max(0, Math.floor(sy / TS)), x1 = Math.min(m.w - 1, Math.ceil((sx + W) / TS)), y1 = Math.min(m.h - 1, Math.ceil((sy + H) / TS));
   const fr = (now / 600 | 0) % 2;
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const id = m.t[y * m.w + x]; const v = ((x * 7 + y * 13) ^ (x * y)) & 3;
+  const trees = [];
+  for (let y = y0; y <= Math.min(m.h - 1, y1 + 2); y++) for (let x = x0; x <= x1; x++) {
+    const id = m.t[y * m.w + x]; const v = TREEISH.has(id) || id === T.HOUSE || id === T.ROOF ? (((x * 7 + y * 13) ^ (x * y)) & 3) : (((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 12);
+    if (y > y1) { if (TREEISH.has(id)) trees.push([id, x, y, m.biome ? biomeChar(x, y) : '']); continue; }
     let under = '';
     if (id === T.ROOF) under = S.roof.get(x + ',' + y) || '#b04030';
     else if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y);
@@ -615,13 +618,16 @@ function frame(nowMs) {
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
     const X0 = x * TS - sx, Y0 = y * TS - sy;
     ctx.drawImage(tileImg(id, v, m.pal, m.castle, anim, under), X0, Y0);
+    if (TREEISH.has(id) && !m.castle) trees.push([id, x, y, under]);
+    if (!m.castle) drawEdges(id, x, y, X0, Y0);
     const blk = GD.BLOCK.has(id);
-    if (m.biome && !blk) { const n = vnoise(x, y); if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.32).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.38).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
-    if (id === T.WATER) { if (!GD.BLOCK.has(tileAt(x, y - 1)) || tileAt(x, y - 1) === T.TREE) ctx.drawImage(FX_IMG.foam, X0, Y0); }
+    if (m.biome && !blk) { const n = vnoise(x, y); if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.18).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.2).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
+    if (id === T.WATER) { }
     else if (!blk) {
-      if (AO_SRC(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.aoN, X0, Y0);
-      if (AO_SRC(tileAt(x - 1, y))) ctx.drawImage(FX_IMG.aoW, X0, Y0);
-      if (AO_SRC(tileAt(x + 1, y))) ctx.drawImage(FX_IMG.aoE, X0, Y0);
+      if (AO2(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.aoN, X0, Y0);
+      if (AO2(tileAt(x - 1, y))) ctx.drawImage(FX_IMG.aoW, X0, Y0);
+      if (AO2(tileAt(x + 1, y))) ctx.drawImage(FX_IMG.aoE, X0, Y0);
+    } else if (id === T.HOUSE && tileAt(x, y - 1) === T.ROOF) { ctx.drawImage(FX_IMG.aoN, X0, Y0); ctx.drawImage(FX_IMG.aoN, X0, Y0);
     } else if (TALL.has(id)) {
       if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0);
       if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
@@ -653,6 +659,7 @@ function frame(nowMs) {
     const k = Math.min(1, (now - mo.t0) / mo.dur); mo.rx = mo.fx + (mo.x - mo.fx) * k; mo.ry = mo.fy + (mo.y - mo.fy) * k;
     ents.push({ y: mo.ry, f: () => drawMon(mo, sx, sy, now) });
   }
+  for (const [id, x, y, u] of trees) ents.push({ y: y - 0.01, f: () => drawTreeAt(id, x, y, sx, sy, u) });
   ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f());
   drawFx(now, sx, sy, 'mid');
   // 맵 표지
