@@ -732,19 +732,19 @@ function drawMon(mo, sx, sy, now) {
   const def = mo.s ? GD.SUMMONS[mo.t] : GD.MONS[mo.t]; if (!def) return;
   const x = mo.rx * TS + 16 - sx, y = mo.ry * TS + 32 - sy; if (x < -150 || x > W + 150 || y < -150 || y > H + 150) return;
   const walking = now < (mo.walkUntil || 0); const fr = walking ? (now / 140 | 0) % 2 : (now / 500 | 0) % 2;
-  const img = monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null);
+  const img = (!mo.s && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const IW = img.dw || IW, IH = img.dh || IH, OXX = img.ox || 0;
   // 보스/돌연변이 오라
   if (def.boss || mo.mu || mo.s) {
     const ac = def.boss ? def.aura : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;
-    const gr = ctx.createRadialGradient(x, y - img.height / 2, 4, x, y - img.height / 2, img.width * 0.7);
-    gr.addColorStop(0, ac + (def.boss ? 'aa' : '66')); gr.addColorStop(1, ac + '00'); ctx.globalAlpha = pr; ctx.fillStyle = gr; ctx.fillRect(x - img.width, y - img.height * 1.3, img.width * 2, img.height * 1.6); ctx.globalAlpha = 1;
-    if (def.boss) { ctx.strokeStyle = def.aura; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, img.width * 0.45, img.width * 0.15, 0, 0, 7); ctx.stroke(); for (let i = 0; i < 6; i++) { const a = now / 400 + i * 1.05; ctx.fillStyle = def.aura; ctx.fillRect(x + Math.cos(a) * img.width * 0.45, y - 2 + Math.sin(a) * img.width * 0.15 - ((now / 10 + i * 20) % 40), 3, 3); } }
+    const gr = ctx.createRadialGradient(x, y - IH / 2, 4, x, y - IH / 2, IW * 0.7);
+    gr.addColorStop(0, ac + (def.boss ? 'aa' : '66')); gr.addColorStop(1, ac + '00'); ctx.globalAlpha = pr; ctx.fillStyle = gr; ctx.fillRect(x - IW, y - IH * 1.3, IW * 2, IH * 1.6); ctx.globalAlpha = 1;
+    if (def.boss) { ctx.strokeStyle = def.aura; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.45, IW * 0.15, 0, 0, 7); ctx.stroke(); for (let i = 0; i < 6; i++) { const a = now / 400 + i * 1.05; ctx.fillStyle = def.aura; ctx.fillRect(x + Math.cos(a) * IW * 0.45, y - 2 + Math.sin(a) * IW * 0.15 - ((now / 10 + i * 20) % 40), 3, 3); } }
   }
-  ctx.fillStyle = '#0005'; ctx.beginPath(); ctx.ellipse(x, y - 2, img.width * 0.3, 5 * def.size, 0, 0, 7); ctx.fill();
-  if (!def.fly && def.kind !== 'bat' && def.kind !== 'ghost') shadowAt(x, y, Math.max(8, img.width * 0.28)); else shadowAt(x, y + 4, Math.max(6, img.width * 0.2));
-  ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height));
-  const top = y - img.height - 4;
-  if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, img.width * 0.35), 7, 0, 0, 7); ctx.stroke(); }
+  ctx.fillStyle = '#0005'; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.3, 5 * def.size, 0, 0, 7); ctx.fill();
+  if (!def.fly && def.kind !== 'bat' && def.kind !== 'ghost') shadowAt(x, y, Math.max(8, IW * 0.28)); else shadowAt(x, y + 4, Math.max(6, IW * 0.2));
+  ctx.drawImage(img, Math.round(x - IW / 2 + OXX), Math.round(y - IH + (img.bob || 0)), IW, IH);
+  const top = y - IH - 4;
+  if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, IW * 0.35), 7, 0, 0, 7); ctx.stroke(); }
   if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
   else {
     if (mo.h < 100 || S.target === mo.i) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, top, 32, 4); ctx.fillStyle = mo.s ? '#b47cff' : '#ff4a4a'; ctx.fillRect(x - 16, top, 32 * mo.h / 100, 4); }
