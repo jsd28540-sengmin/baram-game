@@ -660,7 +660,9 @@ function frame(nowMs) {
     ents.push({ y: mo.ry, f: () => drawMon(mo, sx, sy, now) });
   }
   for (const [id, x, y, u] of trees) ents.push({ y: y - 0.01, f: () => drawTreeAt(id, x, y, sx, sy, u) });
+  for (const c of (m.chests || [])) if (c.x >= x0 - 1 && c.x <= x1 + 1 && c.y >= y0 - 1 && c.y <= y1 + 2) ents.push({ y: c.y - 0.02, f: () => drawChest(c, sx, sy, now) });
   ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f());
+  for (const c of (m.chests || [])) if (!c.o) drawChestSpark(c, sx, sy, now);
   drawFx(now, sx, sy, 'mid');
   // 맵 표지
   for (const l of m.labels) { const x = l.x * TS + 16 - sx, y = l.y * TS + 20 - sy; if (x < -200 || x > W + 200 || y < -40 || y > H + 40) continue; if (l.roofC) continue; ctx.font = `bold ${l.big ? 18 : 13}px sans-serif`; const w = ctx.measureText(l.text).width + 12; ctx.fillStyle = '#000a'; ctx.fillRect(x - w / 2, y - (l.big ? 18 : 14), w, l.big ? 24 : 19); drawText(l.text, x, y, l.c, l.big ? 18 : 13); }
@@ -884,7 +886,7 @@ function itemDesc(it) {
       Object.entries(st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('') + `<div style="color:#a7b0bf;font-size:11px">착용 레벨: ${Math.max(1, it.lvl - 3)}+</div>`;
   }
   if (it.k === 'use') return `<div class="nm">${GD.CONSUMES[it.id].name} x${it.n}</div><div>${GD.CONSUMES[it.id].desc}</div>`;
-  return `<div class="nm">${esc(it.id)} x${it.n}</div><div>${(GD.MATS[it.id] || {}).desc || ''}</div>`;
+  return `<div class="nm">${esc(it.id)} x${it.n}</div><div>${(GD.MATS[it.id] || {}).desc || ''}</div>${(GD.MATS[it.id] || {}).where ? `<div style="color:#9fe8ff;font-size:11px">얻는 곳: ${esc(GD.MATS[it.id].where)}</div>` : ''}`;
 }
 function showTip(html, ev) { const t = $('tip'); t.innerHTML = html; t.classList.remove('hidden'); const x = Math.min(innerWidth - 290, (ev.clientX || 100) + 10), y = Math.min(innerHeight - t.offsetHeight - 10, (ev.clientY || 100) + 10); t.style.left = Math.max(4, x) + 'px'; t.style.top = Math.max(4, y) + 'px'; }
 function hideTip() { $('tip').classList.add('hidden'); }

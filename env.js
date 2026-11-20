@@ -132,6 +132,15 @@ const TREEISH = new Set([T.TREE, T.PINE, T.DEADTREE, T.CACTUS]);
 const _tileImgOld = tileImg;
 tileImg = function (id, v, pal, castle, frame, under) {
   const NEW = id === T.GRASS || id === T.FLOWER || id === T.FOREST || id === T.SAND || id === T.SNOW || id === T.SWAMP || id === T.ASH || id === T.ROAD || id === T.STONE || id === T.WATER || id === T.FENCE || id === T.ROCK || id === T.HOUSE || id === T.ROOF || id === T.BRIDGE || TREEISH.has(id);
+  if (id === T.BARS || id === T.RUINWALL) {
+    const key2 = 'v2|' + id + '|' + v + '|' + pal + '|' + castle; let c2 = tileCache.get(key2); if (c2) return c2;
+    const small2 = lowres(16, 16, A => {
+      const { P, px } = A;
+      if (id === T.BARS) { const fl = castle ? (CASTLE_PAL[pal] || CASTLE_PAL[0])[0] : '#7a7066'; P(0, 0, 16, 16, fl); P(0, 13, 16, 3, '#0004'); P(0, 1, 16, 2, '#3a3a42'); P(0, 1, 16, 0.5, '#7a7a86'); P(0, 12, 16, 2, '#3a3a42'); for (let x = 1; x < 16; x += 3) { P(x, 0, 1.5, 15, '#4a4a54'); P(x, 0, 0.5, 15, '#9a9aa8'); } }
+      else { const r = srand(v * 31 + 5); P(0, 0, 16, 16, '#8a8478'); for (let y = 0; y < 16; y += 4) { P(0, y + 3, 16, 1, '#5e584e'); for (let x = (y / 4 % 2) * 4; x < 16; x += 8) P(x, y, 1, 3, '#5e584e'); P(0, y, 16, 0.5, '#a49e92'); } for (let i = 0; i < 4; i++) { const x = r() * 14 | 0, y = r() * 14 | 0; P(x, y, 3, 2, '#5e8a3a'); px(x + 1, y - 1, '#78a850'); } if (v % 2) { P(4 + (v & 6), 0, 4, 3, '#6cb043'); P(5 + (v & 6), 3, 2, 2, '#5a4e42'); } P(0, 14, 16, 2, '#0003'); }
+    });
+    c2 = up2(small2); tileCache.set(key2, c2); return c2;
+  }
   if (!NEW || castle || (id === T.ROCK && under === 'c')) return _tileImgOld(id, v, pal, castle, frame, under);
   const key = 'v2|' + id + '|' + v + '|' + frame + '|' + under;
   let c = tileCache.get(key); if (c) return c;
@@ -240,4 +249,36 @@ function treeKindOf(id, under) { return id === T.PINE ? 'pine' : id === T.DEADTR
 function drawTreeAt(id, x, y, sx, sy, under) {
   const v = ((x * 7 + y * 13) ^ (x * y)) & 3; const img = treeSprite(treeKindOf(id, under), v, under || 'g');
   ctx.drawImage(img, x * TS + 16 - 30 - sx, (y + 1) * TS - 82 - sy);
+}
+
+MINI_COL[T.BARS] = '#5a5a66'; MINI_COL[T.RUINWALL] = '#7a7468';
+TALL.add(T.RUINWALL);
+
+// ── 보물상자 ──
+const chestCache = new Map();
+function chestSprite(t, open) {
+  const key = t + '|' + open; let c = chestCache.get(key); if (c) return c;
+  const s = lowres(16, 16, ({ P, px }) => {
+    const wood = t >= 5 ? '#4a2a6a' : t === 4 ? '#8a5a20' : '#8a5a2a', woodl = t >= 5 ? '#6a3a9a' : t === 4 ? '#b07a30' : '#b07a42', band = t >= 5 ? '#ffb84a' : t >= 4 ? '#ffd84a' : t === 3 ? '#9aa4b0' : '#5a3a1a';
+    P(1, 14, 14, 2, '#0003');
+    if (!open) {
+      P(2, 6, 12, 9, wood); P(2, 6, 12, 1, woodl); P(2, 3, 12, 4, woodl); P(3, 2, 10, 1, woodl); P(2, 6.5, 12, 0.5, '#2a1a10');
+      P(2, 3, 1.5, 12, band); P(12.5, 3, 1.5, 12, band); if (t >= 3) P(2, 10, 12, 1, band);
+      P(7, 6, 2, 3, t >= 4 ? '#fff0a0' : '#d8b040'); px(7.5, 8, '#2a1a10');
+    } else {
+      P(2, 8, 12, 7, wood); P(2, 8, 12, 1, '#1a100a'); P(3, 9, 10, 2, '#2a1a10');
+      P(2, 2, 12, 5, woodl); P(2, 2, 12, 1, wood); P(2, 2, 1.5, 5, band); P(12.5, 2, 1.5, 5, band);
+      P(2, 8, 1.5, 7, band); P(12.5, 8, 1.5, 7, band);
+    }
+  });
+  crisp(s); outline1(s, '#1a120c'); c = up2(s); chestCache.set(key, c); return c;
+}
+function drawChest(ch, sx, sy, now) {
+  const x = ch.x * TS - sx, y = ch.y * TS - sy; if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
+  if (ch.L && !ch.o) { const pr = 0.35 + Math.sin(now / 300) * 0.2; const gr = ctx.createRadialGradient(x + 16, y + 18, 2, x + 16, y + 18, 30); gr.addColorStop(0, `rgba(255,120,60,${pr})`); gr.addColorStop(1, 'rgba(255,80,40,0)'); ctx.fillStyle = gr; ctx.fillRect(x - 16, y - 14, 64, 64); }
+  ctx.drawImage(chestSprite(ch.t, ch.o), x, y);
+}
+function drawChestSpark(ch, sx, sy, now) {
+  const x = ch.x * TS - sx, y = ch.y * TS - sy; if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
+  if (!ch.o) { const d = Math.hypot(ch.x - pos.x, ch.y - pos.y); if (d < 7 || ch.t >= 4) { for (let i = 0; i < 3; i++) { const k = ((now / 700) + i / 3) % 1; const a = i * 2.1 + now / 900; const px_ = x + 16 + Math.cos(a) * 12, py_ = y + 10 - k * 18; ctx.globalAlpha = 1 - k; ctx.fillStyle = ch.L ? '#ffb070' : '#fff6c0'; ctx.fillRect(px_ - 1, py_ - 3, 2, 6); ctx.fillRect(px_ - 3, py_ - 1, 6, 2); } ctx.globalAlpha = 1; } }
 }

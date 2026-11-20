@@ -545,7 +545,7 @@ showCode = function (code) {
 };
 
 // ── 가방 클릭 (모든 창 공통) ──
-function sellPrice(it) { return it.k === 'gear' ? Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)) : it.k === 'use' ? Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n : 5 * it.n; }
+function sellPrice(it) { return it.k === 'gear' ? Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)) : it.k === 'use' ? Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((GD.MATS[it.id] && GD.MATS[it.id].sell) || 5) * it.n; }
 function invClick(i, ev, mode) {
   const it = S.me.inv[i]; if (!it) return;
   let btns = '';
@@ -608,7 +608,7 @@ function renderNpc(P) {
   switch (P.kind) {
     case 'shop': {
       T('flask', d.npc || '잡화상'); mode = 'shop';
-      L = npcHeadH(d, 'shop') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + d.items.map(it => `<div class="tile" data-si="${it.id}"><canvas width="32" height="32" data-one='{"k":"use","id":"${it.id}"}'></canvas><div class="nm">${it.name}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">물건을 누르면 구매, 오른쪽 가방의 물건을 누르면 판매</div>`;
+      L = npcHeadH(d, 'shop') + `<div class="tiles" style="grid-template-columns:repeat(5,1fr)">` + d.items.map(it => `<div class="tile" data-si="${it.id}"><canvas width="32" height="32" data-one='{"k":"${it.mat ? 'mat' : 'use'}","id":"${it.id}"}'></canvas><div class="nm">${it.name}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">물건을 누르면 구매, 오른쪽 가방의 물건을 누르면 판매</div>`;
       break;
     }
     case 'gear': {
@@ -1028,3 +1028,96 @@ heldVec = function () {
   const dx = t.x - pos.x, dy = t.y - pos.y; if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return null;
   return [Math.sign(dx), Math.sign(dy)];
 };
+
+// ═══════ 탐험: 보물상자 · 낚시 · 요리책 · 밤 경고 ═══════
+const _onMsgX = onMsg;
+onMsg = function (m) {
+  if (m.t === 'chestUp') { if (S.map && S.map.chests) { const c = S.map.chests.find(c => c.i === m.i); if (c) c.o = m.o; } return; }
+  if (m.t === 'dlg' && m.kind === 'cook') { S.cookAt = m.at; openPanel('cookbook'); return; }
+  return _onMsgX(m);
+};
+const _cwX = canWalk;
+canWalk = function (x, y) { if (S.map && S.map.chests && S.map.chests.some(c => c.x === x && c.y === y)) return false; return _cwX(x, y); };
+cv.addEventListener('pointerdown', e => {
+  if (!S.map || !S.me || S.place) return;
+  const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const tx = Math.floor((e.clientX + camX) / TS), ty = Math.floor((e.clientY + camY) / TS);
+  const c = (S.map.chests || []).find(c => c.x === tx && c.y === ty);
+  if (c) { if (Math.max(Math.abs(c.x - pos.x), Math.abs(c.y - pos.y)) <= 1) send({ t: 'openChest', id: c.i }); else log('보물상자에 가까이 가서 누르세요.', '#ffe08a'); return; }
+  if (tileAt(tx, ty) === T.WATER && Math.abs(tx - pos.x) + Math.abs(ty - pos.y) === 1) {
+    const rod = S.me.inv.find(o => o.k === 'use' && GD.CONSUMES[o.id] && GD.CONSUMES[o.id].rod);
+    if (rod) { const d = tx < pos.x ? 1 : tx > pos.x ? 2 : ty < pos.y ? 3 : 0; send({ t: 'face', d }); send({ t: 'useId', id: rod.id }); }
+    else log('낚싯대가 있으면 물을 눌러 낚시할 수 있어요. (잡화상에서 판매)', '#9fe8ff');
+  }
+});
+// 낚싯줄
+const _dpX = drawPlayer;
+drawPlayer = function (p, rx, ry, dir, walking, sx, sy, now, isMe) {
+  _dpX(p, rx, ry, dir, walking, sx, sy, now, isMe);
+  if (!p.fs) return;
+  const x = rx * TS + 16 - sx, y = ry * TS + 32 - sy; const [dx, dy] = DIRS[dir];
+  const tipX = x + dx * 26 + (dy ? 10 : 0), tipY = y - 52 + dy * 10;
+  const bx = p.fs[0] * TS + 16 - sx, by = p.fs[1] * TS + 18 - sy + Math.sin(now / 300) * 2;
+  ctx.strokeStyle = '#7a4a22'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x + dx * 6, y - 30); ctx.lineTo(tipX, tipY); ctx.stroke();
+  ctx.strokeStyle = 'rgba(240,240,250,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.quadraticCurveTo((tipX + bx) / 2, Math.max(tipY, by) + 10, bx, by); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(bx, by + 4, 7 + Math.sin(now / 300) * 2, 2.5, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#e8302a'; ctx.fillRect(bx - 3, by - 4, 6, 4); ctx.fillStyle = '#fff'; ctx.fillRect(bx - 3, by, 6, 3);
+};
+// 효과음
+const _afX = addFx;
+addFx = function (f) {
+  _afX(f);
+  try { if (f.k === 'chest' && nearMe(f.x, f.y)) { SND.play('door', .7); setTimeout(() => SND.play(f.t >= 4 ? 'rare' : 'coin'), 180); } if (f.k === 'fishc' && nearMe(f.x, f.y)) SND.play('pickup', 1, 0.7); if (f.k === 'cooked' && nearMe(f.x, f.y)) SND.play('potion', 1, 0.8); } catch (e) { }
+};
+// 미니맵 보물 표시
+const _dmX = drawMini;
+drawMini = function () {
+  _dmX();
+  const tm = S.me && S.me.tmark; if (!tm || !S.map || tm.map !== S.map.id || !S.mini) return;
+  const g = $('minic').getContext('2d'), m = S.map; const sc = m.w > 100 ? 2 : 150 / Math.max(m.w, m.h); const span = 150 / sc;
+  const ox = m.w > 100 ? Math.max(0, Math.min(m.w - span, pos.x - span / 2)) : 0, oy = m.w > 100 ? Math.max(0, Math.min(m.h - span, pos.y - span / 2)) : 0;
+  let x = (tm.x - ox) * sc, y = (tm.y - oy) * sc; const inside = x >= 4 && y >= 4 && x <= 146 && y <= 146; x = Math.max(6, Math.min(144, x)); y = Math.max(6, Math.min(144, y));
+  g.strokeStyle = '#ff3a2a'; g.lineWidth = 3; g.beginPath(); g.moveTo(x - 5, y - 5); g.lineTo(x + 5, y + 5); g.moveTo(x + 5, y - 5); g.lineTo(x - 5, y + 5); g.stroke();
+  if (!inside) { g.fillStyle = '#ff3a2a'; g.font = 'bold 10px sans-serif'; g.fillText('보물', Math.min(120, x + 6), Math.max(12, y)); }
+};
+// 요리책
+const STARS = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+function haveN(id) { return S.me ? S.me.inv.filter(o => (o.k === 'mat' || o.k === 'use') && o.id === id).reduce((a, o) => a + o.n, 0) : 0; }
+function iconSpec(id) { return GD.CONSUMES[id] ? { k: 'use', id } : { k: 'mat', id }; }
+const _rpX = renderPanel;
+renderPanel = function () {
+  const P = S.panel; if (!P || P.kind !== 'cookbook' || !S.me) return _rpX();
+  $('panel').classList.remove('full');
+  const ids = Object.keys(GD.RECIPES).sort((a, b) => (GD.RECIPES[a].star || 1) - (GD.RECIPES[b].star || 1));
+  const sel = S.cookSel && GD.RECIPES[S.cookSel] ? S.cookSel : ids[0]; S.cookSel = sel;
+  const r = GD.RECIPES[sel], c = GD.CONSUMES[sel];
+  const can = Object.entries(r.need).every(([k, v]) => haveN(k) >= v);
+  $('ptitle').innerHTML = ic('flame') + '<span>요리책</span><div style="flex:1"></div><span class="mut" style="font-size:11px">마을 안이나 모닥불·조리대 앞에서 요리할 수 있어요</span>';
+  $('pbody').innerHTML = `<div class="row" style="gap:12px;align-items:stretch;height:100%">
+    <div class="grid" style="grid-template-columns:repeat(5,62px);align-content:start">${ids.map(id => { const rr = GD.RECIPES[id]; const ok = Object.entries(rr.need).every(([k, v]) => haveN(k) >= v); return `<div class="cell lab2 ${id === sel ? 'sel' : ''}" data-ck="${id}" style="width:62px;height:66px;${ok ? 'box-shadow:inset 0 0 0 2px #4ade80' : ''}"><canvas width="32" height="32" data-one='${JSON.stringify({ k: 'use', id })}'></canvas><span class="inm">${esc(rr.name)}</span></div>`; }).join('')}</div>
+    <div class="col box" style="flex:1;gap:5px;min-width:0">
+      <div class="row" style="gap:8px"><canvas width="32" height="32" data-one='${JSON.stringify({ k: 'use', id: sel })}' style="width:40px;height:40px"></canvas><div class="col" style="gap:1px"><b style="color:#fff;font-size:15px">${esc(r.name)}</b><span style="color:#fbbf24;font-size:11px">${STARS(r.star || 1)} · ${r.at === 'stove' ? '조리대·마을' : '모닥불·마을'}</span></div></div>
+      <div style="color:#a8e8ff;font-size:12px">${esc(c ? c.desc : '')}</div>
+      <div class="col" style="gap:3px">${Object.entries(r.need).map(([k, v]) => { const h = haveN(k); return `<div class="row" style="gap:6px;font-size:11.5px"><canvas width="32" height="32" data-one='${JSON.stringify(iconSpec(k))}' style="width:22px;height:22px;flex:0 0 22px"></canvas><b style="color:${h >= v ? '#4ade80' : '#f87171'};min-width:96px">${esc(GD.ingName(k))} ${h}/${v}</b><span class="mut" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(GD.ingWhere(k))}</span></div>`; }).join('')}</div>
+      <div style="flex:1"></div>
+      <div class="row"><button class="btn pri" id="docook" ${can ? '' : 'disabled'} style="flex:1">${ic('flame')}요리하기</button><button class="btn" id="cook5" ${can ? '' : 'disabled'}>5번</button></div>
+    </div></div>`;
+  paintOne($('pbody'));
+  $('pbody').querySelectorAll('[data-ck]').forEach(d => d.onclick = () => { S.cookSel = d.dataset.ck; renderPanel(); });
+  $('docook').onclick = () => send({ t: 'cook', id: sel });
+  $('cook5').onclick = () => { for (let i = 0; i < 5; i++) setTimeout(() => send({ t: 'cook', id: sel }), i * 120); };
+};
+(function () {
+  const b = document.createElement('div'); b.className = 'mbtn'; b.innerHTML = `${ic('flame')}<span>요리책</span>`;
+  b.onclick = () => { if (S.panel && S.panel.kind === 'cookbook') closePanel(); else openPanel('cookbook'); };
+  $('menu').insertBefore(b, $('sndbtn'));
+})();
+// 밤 경고
+setInterval(() => {
+  let el = $('nightwarn');
+  const m = S.map; if (!m || !S.me) return;
+  const safe = (m.towns || []).some(t => pos.x >= t.x0 && pos.x <= t.x1 && pos.y >= t.y0 && pos.y <= t.y1) || S.tents.some(t => pos.x >= t.x && pos.x < t.x + GD.TENT_W && pos.y >= t.y && pos.y < t.y + GD.TENT_H);
+  const show = m.id === 'world' && (S.nl || 0) > 0.5 && !safe;
+  if (show && !el) { el = document.createElement('div'); el.id = 'nightwarn'; el.innerHTML = `${ic('moon')}밤 — 어둠 추적자 출몰! 텐트·마을로 피하세요`; $('hud').appendChild(el); }
+  if (!show && el) el.remove();
+}, 1000);

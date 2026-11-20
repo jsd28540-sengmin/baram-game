@@ -168,7 +168,7 @@
     staff: { name: '지팡이', job: 'mage', m: 1.1 }, wand: { name: '마법봉', job: 'mage', m: 0.95, mp: 1 },
     bow: { name: '활', job: 'healer' }, crossbow: { name: '석궁', job: 'healer', m: 1.12 },
   };
-  D.RARITY = [{ n: '일반', c: '#8b93a1' }, { n: '고급', c: '#0ea5e9' }, { n: '희귀', c: '#a855f7' }, { n: '전설', c: '#f59e0b' }];
+  D.RARITY = [{ n: '일반', c: '#8b93a1' }, { n: '고급', c: '#0ea5e9' }, { n: '희귀', c: '#a855f7' }, { n: '영웅', c: '#f59e0b' }, { n: '전설', c: '#ff4d2e' }];
   D.OPT_NAME = { atk: '공격력', def: '방어력', hp: '체력', mp: '마나', crit: '치명타%', luck: '행운%' };
   D.SLOT_DEF_MUL = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4, shield: 0.85 };
 
@@ -258,7 +258,141 @@
   // 타일
   D.T = { GRASS: 0, FLOWER: 1, TREE: 2, WATER: 3, SAND: 4, SNOW: 5, ROAD: 6, STONE: 7, WALL: 8, SWAMP: 9, ROCK: 10, CAVE: 11, CAVEWALL: 12, CASTLE: 13, CASTLEWALL: 14, FOREST: 15, LAVA: 16, BRIDGE: 17, HOUSE: 18, CACTUS: 19, PINE: 20, CARPET: 21, DOWN: 22, UP: 23, CAVEDOOR: 24, GATE: 25, ASH: 26, DEADTREE: 27, FENCE: 28, ROOF: 29 };
   D.TENT_OVER = new Set([1, 2, 10, 19, 20, 27]); // 텐트로 덮을 수 있는 지형(나무·바위 등)
-  D.BLOCK = new Set([2, 3, 8, 10, 12, 14, 16, 18, 19, 20, 27, 28, 29]);
+  D.BLOCK = new Set([2, 3, 8, 10, 12, 14, 16, 18, 19, 20, 27, 28, 29, 30]);
+  D.T.BARS = 30; D.T.RUINWALL = 31; D.BLOCK.add(31);
+
+
+  // ═══════════════ 탐험 콘텐츠 ═══════════════
+  // 고레벨 몬스터 (버려진 성 · 감옥 · 심연 · 밤의 추적자)
+  Object.assign(D.MONS, {
+    ghostKnight: M('망령기사', 56, 'knight', ['#5a6a8a', '#a8c0e0', '#7af0ff'], { size: 1.1, weapon: 'sword', shield: 1, mats: ['돌', '횃불'] }),
+    cursedMaid: M('저주받은 시녀', 58, 'ghost', ['#c8b8d8', '#f0e8ff', '#ff5aa0'], { mats: ['솜', '양털'] }),
+    emptyArmor: M('빈 갑옷', 60, 'knight', ['#8a8a96', '#c8c8d4', '#ffd000'], { size: 1.15, weapon: 'axe', mats: ['돌', '돌'] }),
+    shadowHound: M('그림자 사냥개', 61, 'quad', ['#1a1a24', '#4a4a6a', '#b04aff'], { size: 1.05, meat: 1, mats: ['양털'] }),
+    royalLich: M('왕실 리치', 63, 'mage', ['#4a1a6a', '#ffe08a', '#7aff5a'], { size: 1.1, rng: 5, mats: ['횃불', '솜'] }),
+    prisoner: M('탈옥수', 64, 'humanoid', ['#8a7a5a', '#c8a880', '#ff3030'], { weapon: 'club', mats: ['나무', '솜'] }),
+    jailer: M('간수 망령', 67, 'knight', ['#3a3a3a', '#7a6a4a', '#ffef3b'], { size: 1.1, weapon: 'axe', mats: ['돌', '횃불'] }),
+    chainGhost: M('사슬 망령', 69, 'ghost', ['#6a7a8a', '#c0d0e0', '#ff4040'], { size: 1.05, mats: ['돌'] }),
+    plagueHound: M('역병 사냥개', 70, 'quad', ['#4a5a2a', '#9aaa4a', '#d0ff3a'], { size: 1.05, meat: 1, mats: ['솜'] }),
+    torturer: M('고문관', 72, 'ogre', ['#5a2a2a', '#3a2a1a', '#ff2020'], { size: 1.25, weapon: 'club', mats: ['돌', '횃불'] }),
+    abyssKnight: M('심연기사', 78, 'knight', ['#0a0a1a', '#3a2a6a', '#8a5aff'], { size: 1.2, weapon: 'sword', shield: 1, horns: 1, mats: ['돌', '횃불'] }),
+    voidMage: M('공허술사', 82, 'mage', ['#10102a', '#6a6aff', '#c0f0ff'], { size: 1.1, rng: 5, mats: ['솜', '횃불'] }),
+    boneDragon: M('해골룡', 86, 'dragon', ['#e8e2cc', '#8a8070', '#ff2a2a'], { size: 1.5, mats: ['돌', '돌'] }),
+    abyssDemon: M('심연의 악마', 88, 'demon', ['#1a0010', '#6a0a3a', '#ff4aff'], { size: 1.3, mats: ['횃불', '돌'] }),
+    nightmare: M('나이트메어', 90, 'quad', ['#0a0a10', '#3a1a5a', '#ff1a4a'], { size: 1.3, fire: 1, mats: ['양털'] }),
+    stalker1: M('어둠 추적자', 14, 'ghost', ['#1a1a2a', '#4a3a6a', '#ff2a2a'], { size: 1.0, night: 1 }),
+    stalker2: M('어둠 추적자', 34, 'ghost', ['#14101e', '#4a2a6a', '#ff2a2a'], { size: 1.1, night: 1 }),
+    stalker3: M('어둠 추적자', 54, 'ghost', ['#100a18', '#5a1a6a', '#ff1a1a'], { size: 1.2, night: 1 }),
+    stalker4: M('어둠 추적자', 76, 'ghost', ['#08060e', '#6a0a5a', '#ff0a3a'], { size: 1.3, night: 1 }),
+    fallenKing: B('몰락한 국왕', 72, 'knight', ['#3a3a5a', '#ffd84a', '#7af0ff'], { aura: '#7af0ff', weapon: 'sword', shield: 1, crown: 1 }),
+    prisonLord: B('감옥의 군주', 82, 'ogre', ['#2a1a1a', '#8a8a8a', '#ff3030'], { aura: '#ff5a1a', weapon: 'club', crown: 1 }),
+    abyssKing: B('심연의 왕', 100, 'demon', ['#05000a', '#8a2aff', '#ff2aff'], { aura: '#b04aff', size: 3.0, crown: 1 }),
+  });
+  Object.assign(D.BOSS_LOOT, {
+    fallenKing: { set: '몰락한 왕의', slots: ['helmet', 'armor', 'weapon'], opt: { atk: 1.7, def: 1.5, hp: 1 }, desc: '버려진 왕성의 마지막 왕이 남긴 장비' },
+    prisonLord: { set: '족쇄군주의', slots: ['gloves', 'boots', 'shield', 'weapon'], opt: { atk: 1.8, hp: 1.6 }, desc: '잊혀진 감옥 깊은 곳의 장비' },
+    abyssKing: { set: '심연왕의', slots: ['weapon', 'armor', 'helmet', 'gloves', 'boots', 'shield'], opt: { atk: 2.4, def: 2, crit: 1.4, luck: 1.2 }, desc: '이 대륙에서 가장 강한 장비' },
+  });
+  // 몬스터별 요리 재료 추가
+  const addMats = (ids, mats) => ids.forEach(k => { if (D.MONS[k]) D.MONS[k].mats = (D.MONS[k].mats || []).concat(mats); });
+  addMats(['squirrel', 'rabbit', 'sheep', 'rat'], ['약초', '약초']);
+  addMats(['fox', 'wolf', 'treant', 'boar'], ['버섯', '사과']);
+  addMats(['bear'], ['꿀', '꿀', '사과']);
+  addMats(['toad', 'swampSlime', 'lizardman'], ['버섯', '버섯']);
+  addMats(['scorpion', 'lizard', 'sandGolem'], ['향신료', '향신료']);
+  addMats(['snowWolf', 'iceSlime', 'yeti'], ['얼음꽃', '얼음꽃']);
+  addMats(['fireSlime', 'imp', 'hellhound'], ['용암고추', '용암고추']);
+
+  // 요리 재료 (어디서 얻는지 공개)
+  Object.assign(D.MATS, {
+    '약초': { c: '#5ab84a', ing: 1, desc: '요리 재료', where: '초원 몬스터(다람쥐·토끼·들쥐·양), 보물상자' },
+    '버섯': { c: '#c8763a', ing: 1, desc: '요리 재료', where: '늑대숲·독안개 늪 몬스터, 보물상자' },
+    '사과': { c: '#e0302a', ing: 1, desc: '요리 재료', where: '늑대숲 몬스터(여우·늑대·나무정령·곰)' },
+    '꿀': { c: '#f0b020', ing: 1, desc: '요리 재료', where: '곰, 거대곰왕, 보물상자' },
+    '향신료': { c: '#d86a2a', ing: 1, desc: '요리 재료', where: '남쪽 사막 몬스터(전갈·도마뱀·모래골렘)' },
+    '얼음꽃': { c: '#9ae0ff', ing: 1, desc: '요리 재료', where: '설원 몬스터(설원늑대·얼음슬라임·설인)' },
+    '용암고추': { c: '#ff3a1a', ing: 1, desc: '요리 재료', where: '화산지대 몬스터(화염슬라임·임프·지옥견)' },
+    '밀가루': { c: '#f4ecd8', ing: 1, desc: '요리 재료', where: '잡화상에서 구입', price: 20 },
+    '우유': { c: '#ffffff', ing: 1, desc: '요리 재료', where: '잡화상에서 구입', price: 25 },
+    '달걀': { c: '#f8f0dc', ing: 1, desc: '요리 재료', where: '잡화상에서 구입', price: 15 },
+    '소금': { c: '#e8eef4', ing: 1, desc: '요리 재료', where: '잡화상에서 구입', price: 10 },
+    '진주': { c: '#f4f0ff', desc: '낚시로 드물게 얻는 보석. 상점에 비싸게 팔 수 있다.', where: '낚시', sell: 900 },
+    '낡은 장화': { c: '#6a5a4a', desc: '낚시로 건진 쓰레기...', where: '낚시', sell: 2 },
+    '보물지도 조각': { c: '#d8c090', desc: '4조각을 모아 사용하면 전설의 보물 위치가 드러난다', where: '보물상자, 낚시, 강한 몬스터' },
+  });
+  D.SHOP_MATS = ['밀가루', '우유', '달걀', '소금'];
+  // 물고기 (먹으면 회복) — 낚시로 획득
+  Object.assign(D.CONSUMES, {
+    fCrucian: { name: '붕어', col: '#a8a070', hp: 120, fish: 1, price: 0, desc: '체력 120 회복 · 요리 재료' },
+    fCarp: { name: '잉어', col: '#d08a40', hp: 220, mp: 80, fish: 1, price: 0, desc: '체력 220, 마나 80 회복 · 요리 재료' },
+    fCatfish: { name: '메기', col: '#5a5a48', hp: 330, fish: 1, price: 0, desc: '체력 330 회복 · 요리 재료' },
+    fTrout: { name: '송어', col: '#8ab0c8', hp: 260, mp: 160, fish: 1, price: 0, desc: '체력 260, 마나 160 회복 · 요리 재료' },
+    fSalmon: { name: '연어', col: '#ff8a6a', hp: 400, mp: 220, fish: 1, price: 0, desc: '체력 400, 마나 220 회복 · 요리 재료' },
+    fTropical: { name: '오아시스 열대어', col: '#3ad0e0', mp: 320, fish: 1, price: 0, desc: '마나 320 회복 · 요리 재료' },
+    fEel: { name: '용암장어', col: '#e0502a', hp: 500, buff: { atk: 0.1 }, dur: 60000, fish: 1, price: 0, desc: '체력 500 회복 + 1분간 공격 +10%' },
+    fGold: { name: '황금잉어', col: '#ffd030', hp: 999, mp: 999, buff: { luck: 25 }, dur: 300000, fish: 1, price: 0, desc: '완전 회복 + 5분간 행운 +25% (아주 희귀)' },
+    rod: { name: '낚싯대', col: '#a87a42', tool: 1, rod: 1, price: 2500, desc: '물가에서 물을 바라보고 사용하면 자동 낚시 (움직이면 멈춤)' },
+    rod2: { name: '명인의 낚싯대', col: '#e8b830', tool: 1, rod: 2, price: 30000, desc: '낚시가 1.6배 빠르고 희귀한 것이 잘 잡힌다' },
+    tmap: { name: '보물지도', col: '#e8d8a0', tmap: 1, price: 0, desc: '사용하면 아직 찾지 못한 전설의 보물 위치를 알려준다' },
+    // 요리 (어려울수록 좋은 효과)
+    fishGrill: { name: '생선구이', col: '#c88a4a', hp: 380, mp: 120, price: 0, desc: '체력 380, 마나 120 회복' },
+    mushSkewer: { name: '버섯꼬치', col: '#b8763a', hp: 300, mp: 200, price: 0, desc: '체력 300, 마나 200 회복' },
+    herbTea: { name: '약초차', col: '#7ac85a', mp: 450, buff: { def: 0.1 }, dur: 120000, price: 0, desc: '마나 450 회복 + 2분간 방어 +10%' },
+    mushSoup: { name: '버섯 크림수프', col: '#e8d8b0', hp: 600, mp: 600, price: 0, desc: '체력 600, 마나 600 회복' },
+    applePie: { name: '사과파이', col: '#e09a4a', hp: 700, buff: { exp: 0.2 }, dur: 600000, price: 0, desc: '체력 700 회복 + 10분간 경험치 +20%' },
+    honeyBread: { name: '꿀빵', col: '#f0b85a', hp: 500, mp: 300, buff: { spd: 0.12 }, dur: 300000, price: 0, desc: '회복 + 5분간 이동속도 +12%' },
+    fishStew: { name: '잉어찜', col: '#d8a06a', hp: 900, mp: 400, buff: { def: 0.2 }, dur: 300000, price: 0, desc: '대량 회복 + 5분간 방어 +20%' },
+    iceTea: { name: '얼음꽃 꿀차', col: '#aef0ff', mp: 900, buff: { def: 0.3, crit: 5 }, dur: 300000, price: 0, desc: '마나 900 + 5분간 방어 +30%, 치명타 +5%' },
+    lavaHotpot: { name: '용암 고추전골', col: '#e83a1a', hp: 1200, buff: { atk: 0.3 }, dur: 300000, price: 0, desc: '체력 1200 + 5분간 공격 +30%' },
+    salmonSteak: { name: '연어 스테이크', col: '#ff9a7a', hp: 1500, mp: 800, buff: { atk: 0.15, def: 0.15 }, dur: 300000, price: 0, desc: '대량 회복 + 5분간 공격·방어 +15%' },
+    goldCarpDish: { name: '황금잉어 정식', col: '#ffd84a', hp: 3000, mp: 3000, buff: { atk: 0.25, def: 0.25, luck: 30, exp: 0.3 }, dur: 900000, price: 0, desc: '완전 회복 + 15분간 공격·방어 +25%, 행운 +30%, 경험치 +30%' },
+    kingFeast: { name: '전설의 연회', col: '#ff8ad8', hp: 5000, mp: 5000, buff: { atk: 0.35, def: 0.35, crit: 10, exp: 0.5, spd: 0.15 }, dur: 1200000, price: 0, desc: '20분간 공격·방어 +35%, 치명타 +10%, 경험치 +50%, 이동 +15%' },
+  });
+  D.SHOP_CONSUMES.push('rod', 'rod2');
+  // 레시피 (공개) — 모닥불/조리대/마을 어디서나
+  Object.assign(D.RECIPES, {
+    fishGrill: { name: '생선구이', need: { fCrucian: 1, '소금': 1 }, at: 'campfire', star: 1 },
+    mushSkewer: { name: '버섯꼬치', need: { '버섯': 2, '나무': 1 }, at: 'campfire', star: 1 },
+    herbTea: { name: '약초차', need: { '약초': 3, '꿀': 1 }, at: 'campfire', star: 2 },
+    mushSoup: { name: '버섯 크림수프', need: { '버섯': 3, '우유': 2, '소금': 1 }, at: 'stove', star: 2 },
+    applePie: { name: '사과파이', need: { '사과': 3, '밀가루': 2, '달걀': 1, '꿀': 1 }, at: 'stove', star: 3 },
+    honeyBread: { name: '꿀빵', need: { '밀가루': 2, '꿀': 2, '달걀': 1, '우유': 1 }, at: 'stove', star: 3 },
+    fishStew: { name: '잉어찜', need: { fCarp: 2, '약초': 2, '소금': 1 }, at: 'stove', star: 3 },
+    iceTea: { name: '얼음꽃 꿀차', need: { '얼음꽃': 3, '꿀': 2, '약초': 1 }, at: 'stove', star: 4 },
+    lavaHotpot: { name: '용암 고추전골', need: { '용암고추': 3, '고기': 3, '향신료': 2, '버섯': 2 }, at: 'stove', star: 4 },
+    salmonSteak: { name: '연어 스테이크', need: { fSalmon: 2, '향신료': 1, '소금': 1, '약초': 2 }, at: 'stove', star: 4 },
+    goldCarpDish: { name: '황금잉어 정식', need: { fGold: 1, '꿀': 3, '향신료': 3, '약초': 3, '달걀': 2 }, at: 'stove', star: 5 },
+    kingFeast: { name: '전설의 연회', need: { fSalmon: 3, fEel: 2, '고기': 5, '사과': 4, '꿀': 3, '용암고추': 2, '얼음꽃': 2 }, at: 'stove', star: 5 },
+  });
+  D.RECIPES.meatCooked.star = 1; D.RECIPES.stew.star = 2; D.RECIPES.feast.star = 3;
+  D.ingName = id => D.CONSUMES[id] ? D.CONSUMES[id].name : id;
+  D.ingWhere = id => { if (D.MATS[id] && D.MATS[id].where) return D.MATS[id].where; if (id === '고기') return '토끼·양·여우·늑대·곰 등 동물 몬스터'; if (id === '나무' || id === '돌' || id === '양털' || id === '솜') return '들판 몬스터, 보물상자'; if (D.CONSUMES[id] && D.CONSUMES[id].fish) return D.FISH_WHERE[id] || '낚시'; return '?'; };
+  D.FISH_WHERE = { fCrucian: '초원·늪 연못 낚시', fCarp: '초원·숲 연못 낚시', fCatfish: '늪·숲 연못 낚시', fTrout: '설원 얼음연못 낚시', fSalmon: '설원·숲 연못 낚시 (드묾)', fTropical: '사막 오아시스 낚시', fEel: '화산 온천 낚시', fGold: '모든 연못 (아주 희귀)' };
+  // 낚시 테이블 (지역별)
+  D.FISH = {
+    g: [['fCrucian', 50], ['fCarp', 32], ['fCatfish', 8]],
+    f: [['fCarp', 40], ['fCatfish', 25], ['fSalmon', 10], ['fCrucian', 15]],
+    w: [['fCatfish', 40], ['fCrucian', 40]],
+    s: [['fTrout', 60], ['fSalmon', 20]],
+    d: [['fTropical', 70], ['fCarp', 10]],
+    v: [['fEel', 70], ['fCatfish', 10]],
+  };
+  // 전설의 아이템 (단 하나뿐, 숨겨진 곳에서만)
+  D.LEGENDS = {
+    L_wind: { name: '풍신검 바람가르기', job: 'warrior', slot: 'weapon', wt: 'sword', mul: 1.7, extra: { crit: 12, luck: 10 } },
+    L_quake: { name: '거신도끼 대지분쇄', job: 'warrior', slot: 'weapon', wt: 'axe', mul: 1.85, extra: { hp: 400 } },
+    L_aegis: { name: '불멸의 갑주 아이기스', job: 'warrior', slot: 'armor', mul: 1.8, extra: { hp: 900 } },
+    L_dragonShield: { name: '용린 대방패', job: 'warrior', slot: 'shield', mul: 1.8, extra: { hp: 500, def: 20 } },
+    L_galaxy: { name: '현자의 지팡이 은하수', job: 'mage', slot: 'weapon', wt: 'staff', mul: 1.8, extra: { mp: 600, crit: 8 } },
+    L_star: { name: '별빛 마법봉', job: 'mage', slot: 'weapon', wt: 'wand', mul: 1.7, extra: { mp: 900, luck: 10 } },
+    L_timeRobe: { name: '시간의 로브', job: 'mage', slot: 'armor', mul: 1.8, extra: { mp: 800, hp: 400 } },
+    L_sageHat: { name: '대마법사의 모자', job: 'mage', slot: 'helmet', mul: 1.8, extra: { mp: 500, crit: 8 } },
+    L_dawn: { name: '천궁 해오름', job: 'healer', slot: 'weapon', wt: 'bow', mul: 1.75, extra: { crit: 15 } },
+    L_thunder: { name: '뇌전 석궁', job: 'healer', slot: 'weapon', wt: 'crossbow', mul: 1.8, extra: { crit: 10, luck: 8 } },
+    L_saintHood: { name: '성녀의 두건', job: 'healer', slot: 'helmet', mul: 1.8, extra: { mp: 600, hp: 300 } },
+    L_windBoots: { name: '바람의 장화', job: 'healer', slot: 'boots', mul: 1.8, extra: { luck: 20, hp: 300 } },
+  };
+  D.TREASURE_TIER = ['', '낡은 상자', '나무 보물상자', '철 보물상자', '황금 보물상자', '전설의 보물상자'];
 
   G.GD = D;
   if (typeof module !== 'undefined') module.exports = D;
