@@ -5,7 +5,7 @@ const fail = [];
 const must = (f, s, why) => { if (!src(f).includes(s)) fail.push(`${f}: ${why}`); };
 // 1) 캐릭터 좌우 방향: 시트 줄 = 방향(0아래 1왼쪽 2오른쪽 3위) 그대로, 투구는 왼쪽(1)에서만 뒤집기
 must('chars.js', 'const row = FR[dir] || FR[0];', '캐릭터 시트 줄 순서(좌우) 변경 금지');
-must('chars.js', 'if (dir === 1) { hg.translate(hw, 0); hg.scale(-1, 1); }', '투구 좌우 뒤집기 변경 금지');
+must('chars.js', 'if (dir === 2) { hg.translate(hw, 0); hg.scale(-1, 1); }', '투구·모자 좌우 뒤집기(오른쪽일 때만) 변경 금지');
 if (/\[0,\s*2,\s*1,\s*3\]\[dir\]/.test(src('chars.js'))) fail.push('chars.js: 좌우를 뒤바꾸는 [0,2,1,3] 매핑 금지');
 // 2) 방향 번호: 1=왼쪽, 2=오른쪽
 must('ui.js', 'const dirOf = (dx, dy) => dx < 0 ? 1 : dx > 0 ? 2 : dy < 0 ? 3 : 0;', '방향 번호 규칙 변경 금지');

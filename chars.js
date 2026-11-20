@@ -206,12 +206,12 @@ charSprite = function (ap, dir, frame) {
     const t = eq.helmet[0]; const hk = base === 'warrior' ? 'helm' : base === 'mage' ? 'hat' : 'hood';
     const rowIdx = t === 9 ? 1 : t === 7 ? 2 : 0; const view = dir === 0 ? 0 : dir === 3 ? 4 : 2; const HR = CH3.A.rects[CH3.A.helms[hk][rowIdx][view]];
     const hw = HR[2] * s, hh = HR[3] * s; const hc = mk(Math.ceil(hw), Math.ceil(hh)), hg = hc.getContext('2d'); hg.imageSmoothingEnabled = true;
-    if (dir === 1) { hg.translate(hw, 0); hg.scale(-1, 1); }
+    if (dir === 2) { hg.translate(hw, 0); hg.scale(-1, 1); } // 시트의 투구 옆모습은 원래 왼쪽을 봄 → 오른쪽일 때만 뒤집기
     hg.drawImage(CH3.img, HR[0], HR[1], HR[2], HR[3], 0, 0, hw, hh); hg.setTransform(1, 0, 0, 1, 0, 0);
     if (rowIdx === 0) { const T2 = hex2rgb(GD.TIER_COLOR[t]); const id = hg.getImageData(0, 0, hc.width, hc.height), d = id.data; const bl = hk === 'helm' ? 0.62 : hk === 'hat' ? 0.42 : 0.38;
       for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 30) continue; const [h, sat, l] = rgb2hsl(d[i], d[i + 1], d[i + 2]); if (l < 0.12 || isSkin(h, sat, l)) continue; const hit = hk === 'helm' ? sat < 0.2 && l < 0.97 : hk === 'hat' ? (h > 210 && h < 300) : (h > 55 && h < 140 && sat > 0.15); if (hit) tintPx(d, i, T2, bl); }
       hg.putImageData(id, 0, 0); }
-    g.drawImage(hc, 28 * S2 - hw / 2 + (dir === 1 ? 1 : dir === 2 ? -1 : 0) * S2, dy - 3 * S2);
+    g.drawImage(hc, 28 * S2 - hw / 2 + (dir === 2 ? 1 : dir === 1 ? -1 : 0) * S2, dy - 3 * S2);
   }
   // 영웅·전설 광채
   if (Object.values(eq).some(e => e && (e[1] >= 3 || e[2] >= 7))) { const gc = g.globalCompositeOperation; g.globalCompositeOperation = 'destination-over'; g.fillStyle = Object.values(eq).some(e => e && e[1] >= 4) ? '#ff6a3a38' : '#ffd04a30'; g.beginPath(); g.ellipse(28 * S2, 50 * S2, 19 * S2, 27 * S2, 0, 0, 7); g.fill(); g.globalCompositeOperation = gc; }
