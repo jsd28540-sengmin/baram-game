@@ -945,7 +945,7 @@ updateMove = function (now) {
       if (dx && dy && !tryV(dx, dy)) { if (tryV(dx, 0)) dy = 0; else if (tryV(0, dy)) dx = 0; }
       if (tryV(dx, dy)) {
         const diag = dx && dy; pos.moving = true; pos.fx = pos.x; pos.fy = pos.y; pos.x += dx; pos.y += dy; pos.t0 = now; pos.dur = S.me.st.spd * (diag ? 1.41 : 1); pos.step++;
-        send({ t: 'mv', x: pos.x, y: pos.y, d, ct: Math.round(performance.now()) });
+        send({ t: 'mv', x: pos.x, y: pos.y, d, ct: Math.round(performance.now()), ep: pos.ep || 0 });
       } else if (now - lastFace > 150) { lastFace = now; send({ t: 'face', d }); }
     }
   }

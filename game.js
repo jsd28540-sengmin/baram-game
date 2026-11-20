@@ -346,7 +346,7 @@ function onMsg(m) {
     case 'map': loadMap(m); break;
     case 'tents': if (S.map && m.map === S.map.id) { S.tents = m.list; S.plots = m.plots || []; } break;
     case 'me': S.me = m; refreshHud(true); rerenderPanel(); break;
-    case 'pos': pos.x = m.x; pos.y = m.y; pos.rx = m.x; pos.ry = m.y; pos.moving = false; break;
+    case 'pos': if (m.ep != null) pos.ep = m.ep; if (pos.x === m.x && pos.y === m.y) break; pos.x = m.x; pos.y = m.y; pos.rx = m.x; pos.ry = m.y; pos.moving = false; break;
     case 's': snapshot(m); break;
     case 'msg': log(m.text, m.c); if (m.big) announce(m.text, m.c); break;
     case 'chat': log(`<b>${esc(m.name)}</b>: ${esc(m.text)}`, '#fff', true); S.bubbles.set(m.id, { text: m.text, until: performance.now() + 5000 }); break;
@@ -519,7 +519,7 @@ function updateMove(now) {
     if (d >= 0) {
       if (S.panel && S.panel.kind && ['shop', 'gear', 'smith', 'stable', 'master', 'cook', 'chest', 'plot', 'guide', 'talk'].includes(S.panel.kind)) closePanel();
       pos.dir = d; const nx = pos.x + DIRS[d][0], ny = pos.y + DIRS[d][1];
-      if (canWalk(nx, ny)) { pos.moving = true; pos.fx = pos.x; pos.fy = pos.y; pos.x = nx; pos.y = ny; pos.t0 = now; pos.dur = S.me.st.spd; pos.step++; send({ t: 'mv', x: nx, y: ny, d }); }
+      if (canWalk(nx, ny)) { pos.moving = true; pos.fx = pos.x; pos.fy = pos.y; pos.x = nx; pos.y = ny; pos.t0 = now; pos.dur = S.me.st.spd; pos.step++; send({ t: 'mv', x: nx, y: ny, d, ep: pos.ep || 0 }); }
       else if (now - lastFace > 150) { lastFace = now; send({ t: 'face', d }); }
     }
   }

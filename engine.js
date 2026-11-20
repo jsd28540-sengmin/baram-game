@@ -1163,12 +1163,16 @@ function handle(p, msg) {
     case 'mv': {
       if (p.dead) return;
       const x = msg.x | 0, y = msg.y | 0; calc(p);
-      const timeOk = msg.ct ? (msg.ct < (p.lastCt || 0) - 1000 || msg.ct - (p.lastCt || 0) >= p.st.spd * 0.6) : now - (p.lastMove || 0) >= p.st.spd * 0.45; // 클라 시계 기준: 네트워크 지연으로 몰려 와도 튕기지 않음
+      // 위치 보정 이후에 도착한 '예전 기준' 이동은 조용히 버림 → 되돌림이 연쇄적으로 반복(화면 덜덜)되지 않음
+      if (msg.ep != null && p.ep && msg.ep !== p.ep) return;
+      // 속도 검사: 토큰 방식 (네트워크 지연으로 이동이 몰려 와도 허용, 장기 평균 속도만 제한)
+      { const per = p.st.spd * 0.8; p.mvTok = Math.min(5, (p.mvTok == null ? 5 : p.mvTok) + (now - (p.mvT || now)) / per); p.mvT = now; }
+      const timeOk = p.mvTok >= 1;
       const ddx = x - p.x, ddy = y - p.y, diag = Math.abs(ddx) === 1 && Math.abs(ddy) === 1;
       const ok = (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) && timeOk && walkable(m, x, y) && !m.occ.has(occKey(x, y)) && !bodyAt(m, x, y, p);
       p.dir = clamp(msg.d | 0, 0, 3);
-      if (!ok) { p.ws.send({ t: 'pos', x: p.x, y: p.y }); return; }
-      p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false; if (p.fishing) { p.fishing = null; sysMsg(p, '낚시를 멈췄습니다.', '#ccc'); }
+      if (!ok) { p.ep = (p.ep || 0) + 1; p.ws.send({ t: 'pos', x: p.x, y: p.y, ep: p.ep }); return; }
+      p.mvTok -= 1; p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false; if (p.fishing) { p.fishing = null; sysMsg(p, '낚시를 멈췄습니다.', '#ccc'); }
       // 자동 줍기
       for (const d of [...m.drops.values()]) if (d.x === x && d.y === y) pickup(p, m, d);
       const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
