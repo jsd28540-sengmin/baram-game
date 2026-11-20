@@ -405,3 +405,45 @@
     return _om(m);
   };
 })();
+// ═══════ 화려한 스킬 이펙트: 빛 번짐 · 충격파 고리 · 불꽃 입자 · 투사체 꼬리 ═══════
+(function () {
+  const COL = { slash: '#ffd34d', slash3: '#ffe27a', spin: '#ffffff', ring: '#ffffff', quake: '#ffb060', flame: '#ff7a1a', meteor: '#ff3d00', ice: '#8fe3ff', bolt: '#fff36b', holy: '#fff6c0', bless: '#ffe9a0', heal: '#7dff9a', bigheal: '#7dff9a', buff: '#ff8a5a', rain: '#f0e6b0', pierce: '#fff8c8', summon: '#c98aff' };
+  const rnd = s => { s = Math.sin(s * 12.9898) * 43758.5453; return s - Math.floor(s); };
+  function glow(g, x, y, r, col, a) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(0.35, col + 'aa'); gr.addColorStop(1, col + '00'); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  const _dsf2 = drawSkillFx;
+  drawSkillFx = function (g, f, k, x, y) {
+    const col = f.c && /^#[0-9a-f]{6}$/i.test(f.c) ? f.c : (COL[f.f] || '#ffffff');
+    const R = Math.max(1, f.r || 1) * TS; const big = (f.r || 1) >= 2.5 || f.f === 'meteor';
+    g.save(); g.globalCompositeOperation = 'lighter';
+    // 바닥 빛 + 충격파 고리 2겹
+    glow(g, x, y, R * (0.6 + k * 0.9), col, (1 - k) * 0.55);
+    for (const off of [0, 0.18]) { const kk = k - off; if (kk <= 0) continue; g.globalAlpha = Math.max(0, 1 - kk) * 0.9; g.strokeStyle = col; g.lineWidth = (1 - kk) * (big ? 7 : 4) + 1; g.beginPath(); g.ellipse(x, y + 4, R * (0.3 + kk * 1.1), R * (0.3 + kk * 1.1) * 0.45, 0, 0, 7); g.stroke(); }
+    // 튀는 입자
+    const n = big ? 26 : 14, seed = (f.t0 || 1) * 0.001;
+    for (let i = 0; i < n; i++) {
+      const a = rnd(seed + i) * Math.PI * 2, sp = (0.4 + rnd(seed + i + 50) * 0.9) * R * 1.1, up = (f.f === 'heal' || f.f === 'bigheal' || f.f === 'bless' || f.f === 'buff') ? 1 : 0;
+      const px = x + Math.cos(a) * sp * (up ? 0.35 : k), py = y + (up ? -k * (30 + rnd(seed + i + 9) * 40) + Math.sin(a) * 8 : Math.sin(a) * sp * k * 0.55 - k * k * 10);
+      const s = (1 - k) * (big ? 3.4 : 2.6) + 0.6; g.globalAlpha = (1 - k);
+      g.fillStyle = i % 3 ? col : '#ffffff'; g.fillRect(px - s / 2, py - s / 2, s, s);
+    }
+    // 큰 기술: 순간 섬광
+    if (big && k < 0.18) { g.globalAlpha = (0.18 - k) / 0.18 * 0.35; g.fillStyle = col; g.fillRect(x - W, y - H, W * 2, H * 2); }
+    g.restore();
+    return _dsf2(g, f, k, x, y);
+  };
+  // 투사체: 빛나는 머리 + 꼬리
+  const _dfx2 = drawFx;
+  drawFx = function (now, sx, sy, layer) {
+    if (layer === 'mid') {
+      const g = ctx; g.save(); g.globalCompositeOperation = 'lighter';
+      for (const f of S.fx) {
+        if (f.k !== 'proj') continue; const k = (now - f.t0) / f.dur; if (k < 0 || k > 1) continue;
+        const col = f.c && /^#[0-9a-f]{6}$/i.test(f.c) ? f.c : '#ffd27a';
+        for (let j = 0; j < 7; j++) { const kk = Math.max(0, k - j * 0.035); const X = (f.fx + (f.tx - f.fx) * kk) * TS + 16 - sx, Y = (f.fy + (f.ty - f.fy) * kk) * TS + 16 - sy - 12;
+          glow(g, X, Y, (j ? 9 : 16) - j, col, (1 - j / 7) * 0.7); }
+      }
+      g.restore();
+    }
+    return _dfx2(now, sx, sy, layer);
+  };
+})();

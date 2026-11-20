@@ -666,6 +666,34 @@ function drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr) {
   }
   MAINCTX.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0); MAINCTX.imageSmoothingEnabled = false;
 }
+// 바닥 아이템: 크게 · 그림자 · 테두리 빛 · 등급별 빛기둥 · 반짝임
+const dropOut = new Map();
+function dropIcon(d) {
+  const key = d.k === 'coin' ? 'coin' : [d.k, d.sl, d.wt, d.tr, d.id].join('|'); let c = dropOut.get(key); if (c) return c;
+  const ic = d.k === 'coin' ? (window.ITEM_ATLAS && ITEM_ATLAS['m:coin'] ? itemIcon({ k: 'mat', id: 'coin' }) : null) : itemIcon({ k: d.k, slot: d.sl, wt: d.wt, tier: d.tr, id: d.id });
+  c = document.createElement('canvas'); c.width = c.height = 76; const g = c.getContext('2d');
+  if (ic) { // 흰 테두리 (아이콘을 8방향으로 살짝 밀어 그린 뒤 흰색으로)
+    const t = document.createElement('canvas'); t.width = t.height = 76; const tg = t.getContext('2d');
+    for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3], [-2, -2], [2, 2], [-2, 2], [2, -2]]) tg.drawImage(ic, 6 + dx, 6 + dy, 64, 64);
+    tg.globalCompositeOperation = 'source-in'; tg.fillStyle = '#fff'; tg.fillRect(0, 0, 76, 76);
+    g.globalAlpha = 0.9; g.drawImage(t, 0, 0); g.globalAlpha = 1; g.drawImage(ic, 6, 6, 64, 64);
+  } else { g.fillStyle = '#ffd700'; g.beginPath(); g.arc(38, 40, 18, 0, 7); g.fill(); g.strokeStyle = '#8a6a00'; g.lineWidth = 4; g.stroke(); }
+  dropOut.set(key, c); return c;
+}
+function drawDrop(d, sx, sy, now) {
+  const bx = d.x * TS - sx + 16, by = d.y * TS - sy + 26; if (bx < -60 || by < -80 || bx > W + 60 || by > H + 40) return;
+  const ph = now / 300 + d.x * 1.7 + d.y; const bob = Math.sin(ph) * 3 - 4;
+  const col = d.r ? GD.RARITY[d.r].c : d.k === 'coin' ? '#ffd700' : '#ffffff';
+  // 빛기둥 (고급 이상)
+  if (d.r >= 1) { const hgt = 60 + d.r * 22; const gr = ctx.createLinearGradient(0, by - hgt, 0, by); gr.addColorStop(0, col + '00'); gr.addColorStop(1, col + (d.r >= 3 ? 'dd' : 'aa')); ctx.fillStyle = gr; const w = 14 + d.r * 3 + Math.sin(now / 200) * 3; ctx.fillRect(bx - w / 2, by - hgt, w, hgt); }
+  // 바닥 그림자 + 빛 고리
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(bx, by + 2, 17 - bob * 0.3, 6, 0, 0, 7); ctx.fill();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(ph * 1.3) * 0.15; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(bx, by + 2, 21, 7.5, 0, 0, 7); ctx.stroke(); ctx.restore();
+  // 아이콘 (38px)
+  const sz = d.r >= 3 ? 56 : d.r >= 1 ? 52 : 48; ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d), bx - sz / 2, by - sz + bob, sz, sz); ctx.imageSmoothingEnabled = false;
+  // 반짝임
+  const tw = (now / 700 + d.x * 0.37 + d.y * 0.71) % 1; if (tw < 0.35) { const a = Math.sin(tw / 0.35 * Math.PI); const px = bx + 9, py = by - sz + 8 + bob; ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fillRect(px - 0.75, py - 5, 1.5, 10); ctx.fillRect(px - 5, py - 0.75, 10, 1.5); ctx.restore(); }
+}
 function frame(nowMs) {
   requestAnimationFrame(frame);
   if ((frame._n = (frame._n || 0) + 1) % 30 === 0) { const r = cv.getBoundingClientRect(); if (Math.round(r.width) !== VW || Math.round(r.height) !== VH) resize(); }
@@ -694,12 +722,7 @@ function frame(nowMs) {
   // 배치 모드 하이라이트
   if (S.place) drawPlaceHint(sx, sy);
   // 드랍
-  for (const d of S.D) {
-    const x = d.x * TS - sx, y = d.y * TS - sy + Math.sin(now / 300 + d.x) * 2;
-    if (d.r) { ctx.fillStyle = GD.RARITY[d.r].c + '55'; ctx.beginPath(); ctx.arc(x + 16, y + 18, 14, 0, 7); ctx.fill(); }
-    if (d.k === 'coin') { ctx.fillStyle = '#ffd700'; ctx.fillRect(x + 10, y + 16, 8, 6); ctx.fillRect(x + 14, y + 12, 8, 6); ctx.fillStyle = '#b08a00'; ctx.fillRect(x + 10, y + 21, 8, 1); }
-    else { const ic = itemIcon({ k: d.k, slot: d.sl, wt: d.wt, tier: d.tr, id: d.id }); ctx.drawImage(ic, x + 4, y + 4, 24, 24); }
-  }
+  for (const d of S.D) drawDrop(d, sx, sy, now);
   // 엔티티 y-정렬
   const ents = [];
   for (const n of m.npcs) ents.push({ y: n.y, f: () => drawNpc(n, sx, sy, now) });
