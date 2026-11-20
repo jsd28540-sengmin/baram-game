@@ -166,7 +166,8 @@ function flushRemotes() {
   for (const r of NET.remotes.values()) {
     const z = r.out.splice(0);
     if (r.me && now - r.meT > 450) { z.push(r.me); r.me = null; r.meT = now; }
-    if (r.snap) {
+    const viaRtc = r.dc && r.dc.readyState === 'open'; r._tg = !r._tg;
+    if (r.snap && (viaRtc || r._tg)) {
       const s = r.snap; r.snap = null;
       for (const p of s.P) { const j = JSON.stringify(p.a); if (r.ap[p.i] === j) delete p.a; else r.ap[p.i] = j; }
       if (s.fx.length > 30) s.fx = s.fx.slice(-30);
@@ -243,8 +244,9 @@ function webLobby() {
         if (!d || typeof d.cid !== 'string') return;
         let r = NET.remotes.get(d.cid);
         if (d.bye) { if (r) { NET.remotes.delete(d.cid); if (r.conn.onclose) r.conn.onclose(); } return; }
-        if (!r) { r = makeRemote(d.cid, z => c.publish(TP + code + '/c/' + d.cid, JSON.stringify(z))); NET.remotes.set(d.cid, r); ENGINE.connect(r.conn); }
+        if (!r) { const rr = r = makeRemote(d.cid, z => { if (!(window.rtcSend && rtcSend(rr, z))) c.publish(TP + code + '/c/' + d.cid, JSON.stringify(z)); }); NET.remotes.set(d.cid, r); ENGINE.connect(r.conn); }
         r.seen = Date.now();
+        if (d.rtc && window.rtcHostSignal) { rtcHostSignal(r, d.rtc, o => c.publish(TP + code + '/c/' + d.cid, JSON.stringify(o))); return; }
         if (d.m && r.conn.onmsg) { try { r.conn.onmsg(JSON.stringify(d.m)); } catch (e) { } }
       });
       setInterval(flushRemotes, 100);
@@ -276,13 +278,14 @@ function webLobby() {
         if (!found || (d.sid && NET.hostSid && d.sid !== NET.hostSid)) {
           const re = found; found = true; NET.hostSid = d.sid; setNetStatus(`✅ ${d.n}님의 방(${code})에 연결됨`);
           try { localStorage.setItem('baram_last', JSON.stringify({ role: 'guest', code, name: n })); } catch (e) { }
-          send(loginMsg(n)); if (re) announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff');
+          send(loginMsg(n)); if (re) { announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff'); if (window.rtcClientStart) setTimeout(() => rtcClientStart(o => c.publish(TP + code + '/h', JSON.stringify(Object.assign({ cid }, o)))), 1500); }
         } else NET.hostSid = d.sid;
         return;
       }
-      let z; try { z = JSON.parse(buf.toString()); } catch (e) { return; } z.forEach(m => onMsg(m));
+      let z; try { z = JSON.parse(buf.toString()); } catch (e) { return; } if (!Array.isArray(z)) { if (z && z.rtc && window.rtcClientAnswer) rtcClientAnswer(z.rtc); return; } z.forEach(m => onMsg(m));
     });
-    send = o => { if (!NET.mq) return; if (o.t === 'mv') o.ct = Math.round(performance.now()); c.publish(TP + code + '/h', JSON.stringify({ cid, m: o })); };
+    send = o => { if (o.t === 'mv') o.ct = Math.round(performance.now()); if (window.rtcClientSend && rtcClientSend(o)) return; if (!NET.mq) return; c.publish(TP + code + '/h', JSON.stringify({ cid, m: o })); };
+    if (window.rtcClientStart) setTimeout(() => rtcClientStart(o => c.publish(TP + code + '/h', JSON.stringify(Object.assign({ cid }, o)))), 1500);
     setInterval(() => c.publish(TP + code + '/h', JSON.stringify({ cid })), 5000);
     addEventListener('pagehide', () => { try { c.publish(TP + code + '/h', JSON.stringify({ cid, bye: 1 })); } catch (e) { } });
     setTimeout(() => { if (!found) setNetStatus(`${code}번 방장이 아직 방을 열지 않았어요. 방장이 열면 자동으로 들어갑니다.`, '#ffe08a'); }, 6000);
