@@ -349,8 +349,12 @@
           if (c) { const cv = el.querySelector('canvas'); try { const im = charSprite({ job: c.job, g: c.g || 'm', h: c.h || 0, hc: c.hc || 0, sk: c.sk || 0, eq: {} }, 0, 0); cv.getContext('2d').drawImage(im, 0, 0, 56, 80); } catch (e) { } }
           el.onclick = e => {
             if (e.target.dataset.del != null) {
-              if (!confirm(`'${c.name}' 캐릭터를 목록에서 지울까요?\n(같은 방에 저장된 데이터는 남아 있어 이름을 다시 입력하면 불러올 수 있어요)`)) return;
-              const l = load(); l.splice(k, 1); save(l); sel = -1; render(); return;
+              if (!confirm(`'${c.name}' 캐릭터를 완전히 삭제할까요?\n레벨·아이템·텐트가 모두 사라지고 되돌릴 수 없어요.\n(다음에 방 ${c.code}에 들어갈 때 서버에서도 삭제돼요)`)) return;
+              const l = load(); l.splice(k, 1); save(l);
+              try { const dl = JSON.parse(localStorage.getItem('baram_del') || '[]').filter(d => !(d.name === c.name && d.code === c.code)); dl.push({ name: c.name, code: c.code }); localStorage.setItem('baram_del', JSON.stringify(dl)); } catch (e2) { }
+              try { const mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); if (mem.name === c.name) { delete mem.name; localStorage.setItem('baram_last', JSON.stringify(mem)); } } catch (e2) { }
+              if ($('nm').value === c.name) $('nm').value = '';
+              sel = -1; render(); return;
             }
             sel = k; render();
             if (c) { $('nm').value = c.name; $('lcode').value = c.code; if (c.role === 'host' && $('lhost')) $('lhost').click(); else if ($('ljoin')) $('ljoin').click(); }
@@ -359,6 +363,10 @@
         });
       };
       render();
+      // 예전 [이어하기] 버튼은 캐릭터 칸으로 대체 (서버 기기용만 유지) · 지운 캐릭터 이름이 남지 않게
+      { let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
+        const lc = $('lcont'); if (lc && mem.role !== 'server') lc.remove();
+        const names = load().map(c => c.name); if ($('nm').value && !names.includes($('nm').value)) $('nm').value = ''; }
       // 4번째 캐릭터는 만들 수 없음
       L.addEventListener('click', e => {
         const b = e.target.closest('#lhost,#ljoin,#lsolo'); if (!b) return;
@@ -369,3 +377,6 @@
     };
   }
 })();
+
+// 접속 성공 시: 서버에 보낸 삭제 요청 정리, 삭제했던 이름이 다시 목록에 들어오지 않게
+(function () { const _om = onMsg; onMsg = function (m) { const r = _om(m); if (m && m.t === 'welcome') { try { const dl = JSON.parse(localStorage.getItem('baram_del') || '[]').filter(d => d.code !== NET.code); localStorage.setItem('baram_del', JSON.stringify(dl)); } catch (e) { } } return r; }; })();

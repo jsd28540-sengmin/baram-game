@@ -572,7 +572,7 @@ function partyLeave(p, why) {
   if (pt.members.size <= 1) { for (const id of pt.members) { const q = PLAYERS.get(id); if (q) { q.party = null; sysMsg(q, '파티가 해산되었습니다.', '#ccc'); } } PARTIES.delete(pt.id); }
   else if (pt.leader === p.id) { pt.leader = [...pt.members][0]; const L = PLAYERS.get(pt.leader); if (L) partyMsg(pt, `${L.name}님이 파티장이 되었습니다.`); }
 }
-const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills', 'backPos', 'opened', 'tmapTarget', 'pouches'];
+const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills', 'backPos', 'opened', 'tmapTarget', 'pouches', 'ownKey'];
 let IO = { save() { } };
 function saveAll() {
   for (const p of PLAYERS.values()) SAVES[p.name] = snapshotSave(p);
@@ -1089,12 +1089,27 @@ function tradeExec(tr) {
 }
 
 // ═══════════════ 접속/메시지 ═══════════════
+// 캐릭터 삭제: 만든 기기(ownKey)만 가능. 접속 중이면 불가
+function delChar(name, key, ws) {
+  const sv = SAVES[name]; if (!sv) return;
+  if ([...PLAYERS.values()].some(q => q.name === name)) return ws.send({ t: 'err', text: `${name}: 접속 중이라 삭제할 수 없어요.` });
+  if (sv.ownKey && sv.ownKey !== key) return ws.send({ t: 'err', text: `${name}: 다른 기기에서 만든 캐릭터라 삭제할 수 없어요.` });
+  for (const m of Object.values(MAPS)) {
+    if (m.tents && m.tents.length) { const before = m.tents.length; m.tents = m.tents.filter(t => t.owner !== name || t.inner); if (m.tents.length !== before) sendTents(m); }
+  }
+  for (const pl of PLOTS) if (pl.owner === name) pl.owner = null;
+  {
+  }
+  if (MAPS[tentInId(name)]) delete MAPS[tentInId(name)];
+  delete SAVES[name]; try { saveAll(); } catch (e) { }
+}
 function onConnect(ws) {
   let p = null;
   ws.onmsg = raw => {
     let msg; try { msg = JSON.parse(raw); } catch (e) { return; }
     try {
       if (!p) {
+        if (msg.t === 'delChar' || (msg.del && Array.isArray(msg.del))) { for (const dn of (msg.t === 'delChar' ? [msg.name] : msg.del)) delChar(String(dn || '').slice(0, 10), msg.key, ws); if (msg.t === 'delChar') return; }
         if (msg.t === 'login') {
           const name = String(msg.name || '').trim().slice(0, 10);
           if (!name) return ws.send({ t: 'err', text: '이름을 입력하세요.' });
@@ -1102,11 +1117,12 @@ function onConnect(ws) {
           if (!SAVES[name]) return ws.send({ t: 'needCreate', name });
           p = Object.assign({}, JSON.parse(JSON.stringify(SAVES[name])));
           p.tent = SAVES[name].tent; p.house = SAVES[name].house; // 맵의 구조물 객체 공유
+          if (!p.ownKey && msg.key) p.ownKey = String(msg.key).slice(0, 40); // 예전 캐릭터: 처음 접속한 기기가 주인
           enter(p, ws);
         } else if (msg.t === 'create') {
           const name = String(msg.name || '').trim().slice(0, 10);
           if (!name || SAVES[name] || [...PLAYERS.values()].some(q => q.name === name)) return ws.send({ t: 'err', text: '사용할 수 없는 이름입니다.' });
-          p = newPlayer(Object.assign({}, msg, { name })); calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp;
+          p = newPlayer(Object.assign({}, msg, { name })); p.ownKey = msg.key ? String(msg.key).slice(0, 40) : null; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp;
           SAVES[name] = snapshotSave(p);
           enter(p, ws);
         }

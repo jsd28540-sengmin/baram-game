@@ -209,7 +209,7 @@ function webLobby() {
   const needName = () => { const n = $('nm').value.trim(); if (!n) { $('lerr').textContent = '먼저 캐릭터 이름을 입력하세요.'; return null; } $('lerr').textContent = ''; return n; };
   const lock = () => { $('lobby').querySelectorAll('button').forEach(b => b.disabled = true); };
   const unlock = () => { $('lobby').querySelectorAll('button').forEach(b => b.disabled = false); };
-  $('lsolo').onclick = () => { const n = needName(); if (!n) return; lock(); startHost(null, '🎮 혼자 플레이', () => { NET.hostName = n; send({ t: 'login', name: n }); }); };
+  $('lsolo').onclick = () => { const n = needName(); if (!n) return; lock(); startHost(null, '🎮 혼자 플레이', () => { NET.hostName = n; send(loginMsg(n)); }); };
   // ── 방장: 방 열기 (한 번 만든 방 코드는 계속 유지 → 이어하기) ──
   const hostRoom = async (n, wantCode) => {
     lock(); setNetStatus('중계 서버에 연결하는 중...');
@@ -252,7 +252,7 @@ function webLobby() {
       setInterval(() => ENGINE.saveAll(), 10000);
       const bye = () => { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); }; addEventListener('pagehide', () => { bye(); try { c.publish(TP + code + '/host', '', { retain: true }); } catch (e) { } }); addEventListener('visibilitychange', () => { if (document.hidden) bye(); });
       if (NET.serverOnly) { NET.hostName = '서버'; showServerDash(code, pickB); }
-      else { NET.hostName = n; send({ t: 'login', name: n }); showCode(code); }
+      else { NET.hostName = n; send(loginMsg(n)); showCode(code); }
       if (pickB) log('인터넷 백업에서 저장 데이터를 불러왔어요.', '#9fe8ff');
     });
   };
@@ -276,7 +276,7 @@ function webLobby() {
         if (!found || (d.sid && NET.hostSid && d.sid !== NET.hostSid)) {
           const re = found; found = true; NET.hostSid = d.sid; setNetStatus(`✅ ${d.n}님의 방(${code})에 연결됨`);
           try { localStorage.setItem('baram_last', JSON.stringify({ role: 'guest', code, name: n })); } catch (e) { }
-          send({ t: 'login', name: n }); if (re) announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff');
+          send(loginMsg(n)); if (re) announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff');
         } else NET.hostSid = d.sid;
         return;
       }
@@ -309,10 +309,10 @@ function uiAsk(text, onYes, opt = {}) {
 
 // ═══════ 로그인 / 캐릭터 생성 ═══════
 const CR = { g: 'm', h: 0, hc: 0, sk: 0, job: 'warrior' };
-$('go').onclick = () => { const n = $('nm').value.trim(); if (!n) return; if ((ART || window.BUILD === 'web') && NET.mode !== 'host' && !NET.hostPeer) { $('lerr').textContent = '아직 방장의 게임에 연결되지 않았어요.'; return; } try { localStorage.setItem('baram_name', n); } catch (e) { } if (NET.mode === 'host' && NET.room) NET.room.presence({ host: 1, hn: n }).catch(() => { }); if (NET.mode === 'host') NET.hostName = n; send({ t: 'login', name: n }); };
+$('go').onclick = () => { const n = $('nm').value.trim(); if (!n) return; if ((ART || window.BUILD === 'web') && NET.mode !== 'host' && !NET.hostPeer) { $('lerr').textContent = '아직 방장의 게임에 연결되지 않았어요.'; return; } try { localStorage.setItem('baram_name', n); } catch (e) { } if (NET.mode === 'host' && NET.room) NET.room.presence({ host: 1, hn: n }).catch(() => { }); if (NET.mode === 'host') NET.hostName = n; send(loginMsg(n)); };
 $('nm').onkeydown = e => { if (e.key === 'Enter') $('go').click(); };
 $('back').onclick = () => { $('step2').classList.add('hidden'); $('step1').classList.remove('hidden'); };
-$('make').onclick = () => send({ t: 'create', name: $('nm').value.trim(), gender: CR.g, hair: CR.h, hairColor: CR.hc, skin: CR.sk, job: CR.job });
+$('make').onclick = () => send({ t: 'create', key: devKey(), name: $('nm').value.trim(), gender: CR.g, hair: CR.h, hairColor: CR.hc, skin: CR.sk, job: CR.job });
 function opts(el, list, key) {
   el.innerHTML = list.map((o, i) => `<div class="opt ${CR[key] === o.v ? 'on' : ''}" data-v="${i}">${o.html}</div>`).join('');
   el.querySelectorAll('.opt').forEach(d => d.onclick = () => { CR[key] = list[+d.dataset.v].v; buildCreate(); });
@@ -596,6 +596,9 @@ function drawSkillFx(g, f, k, x, y) {
   }
 }
 
+// 기기 키(캐릭터 주인 확인용) + 삭제 대기 목록을 접속 때 함께 보냄
+function devKey() { let k = null; try { k = localStorage.getItem('baram_dev'); if (!k) { k = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('baram_dev', k); } } catch (e) { k = 'nokey'; } return k; }
+function loginMsg(n) { let del = []; try { del = (JSON.parse(localStorage.getItem('baram_del') || '[]')).filter(d => !NET.code || d.code === NET.code).map(d => d.name); } catch (e) { } return { t: 'login', name: n, key: devKey(), del }; }
 // ═══════ 렌더링 ═══════
 const NPC_AP = {
   shop: { job: 'healer', g: 'f', h: 3, hc: 1, sk: 0, eq: { armor: [1, 0, 0, 0] } },

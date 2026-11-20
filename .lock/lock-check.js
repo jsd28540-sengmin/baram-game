@@ -17,6 +17,8 @@ must('assets.js', "dp.addEventListener('touchstart'", '안드로이드 조이스
 must('game.js', 'drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr);', '바닥 묶음 캐시 유지');
 // 6) 서버 아이패드는 접속자 있을 때 자동 새로고침 금지
 must('ui.js', "NET.serverOnly) { if (typeof serverUpdate === 'function') serverUpdate(); }", '서버 기기 자동 새로고침 방지 유지');
+must('engine.js', 'function delChar(name, key, ws)', '캐릭터 삭제 기능 유지');
+must('game.js', 'function loginMsg(n)', '접속 시 삭제 요청 전달 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
