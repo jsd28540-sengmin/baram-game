@@ -202,19 +202,20 @@ function showTip(html, ev) {
 
 // ── 공통 조각 ──
 const CS = 36;
+function iname(it) { return it.k === 'gear' ? it.name : it.k === 'use' ? (GD.CONSUMES[it.id] || {}).name || it.id : it.id; }
 function cellH(it, i, cls = '', attr = 'data-i') {
   if (!it) return `<div class="cell empty"></div>`;
-  return `<div class="cell ${it.k === 'gear' ? 'r' + it.rar : ''} ${cls}" ${attr}="${i}"><canvas width="22" height="22" data-ic="${attr}:${i}"></canvas>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>`;
+  return `<div class="cell ${it.k === 'gear' ? 'r' + it.rar : ''} ${cls}" ${attr}="${i}"><canvas width="32" height="32" data-ic="${attr}:${i}"></canvas><span class="inm">${esc(iname(it))}</span>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>`;
 }
 function gridH(list, n, cols, cls = '', attr = 'data-i', size = CS, offFn) {
   let h = `<div class="grid" style="grid-template-columns:repeat(${cols},${size}px)">`;
-  for (let i = 0; i < n; i++) h += cellH(list[i], i, offFn && offFn(i) ? 'off' : '', attr).replace('class="cell', `style="width:${size}px;height:${size}px" class="cell`);
+  const hh = size + (size >= 48 ? 10 : 13); for (let i = 0; i < n; i++) h += cellH(list[i], i, offFn && offFn(i) ? 'off' : '', attr).replace('class="cell', `style="width:${size}px;height:${hh}px" class="cell ${size >= 48 ? 'lab2' : 'lab'}`);
   return h + '</div>';
 }
 function paint(root, attr, list) {
-  root.querySelectorAll(`canvas[data-ic^="${attr}:"]`).forEach(c => { const it = list[+c.dataset.ic.split(':')[1]]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 22, 22); g.drawImage(itemIcon(it), 0, 0); });
+  root.querySelectorAll(`canvas[data-ic^="${attr}:"]`).forEach(c => { const it = list[+c.dataset.ic.split(':')[1]]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 32, 32); g.drawImage(itemIcon(it), 0, 0); });
 }
-function iconCanvas(it, size = 26) { return `<canvas width="22" height="22" data-one='${JSON.stringify({ k: it.k, id: it.id, slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}' style="width:${size}px;height:${size}px"></canvas>`; }
+function iconCanvas(it, size = 26) { return `<canvas width="32" height="32" data-one='${JSON.stringify({ k: it.k, id: it.id, slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}' style="width:${size}px;height:${size}px"></canvas>`; }
 function paintOne(root) { root.querySelectorAll('canvas[data-one]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(JSON.parse(c.dataset.one)), 0, 0); }); }
 const coinH = n => `<span class="cost">${ic('coin')}${fmt(n)}</span>`;
 function haveMat(k) { return S.me.inv.filter(o => o.k === 'mat' && o.id === k).reduce((a, o) => a + o.n, 0); }
@@ -233,11 +234,11 @@ function renderPanel() {
       T('bag', '가방과 장비', `<div style="flex:1"></div>${coinH(me.coins)}`);
       const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
       let eq = '<div class="grid" style="grid-template-columns:repeat(3,46px)">';
-      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:46px;height:46px" data-eq="${s}"><canvas width="22" height="22" data-ic="eq:${s}" style="width:38px;height:38px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:46px;height:46px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
+      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:46px;height:46px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:38px;height:38px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:46px;height:46px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
       eq += '</div>';
       const st = me.st;
       h = `<div class="col" style="width:150px">${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
-        <div class="col" style="flex:1">${bagH('inv', 10, 38)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 눌러 착용/사용. 다른 직업 장비는 교환하세요.</div></div>`;
+        <div class="col" style="flex:1">${bagH('inv', 9, 52)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 눌러 착용/사용. 다른 직업 장비는 교환하세요.</div></div>`;
       body.innerHTML = h; bindBag(body, 'inv');
       body.querySelectorAll('canvas[data-ic^="eq:"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.ic.slice(3)]), 0, 0); });
       body.querySelectorAll('[data-eq]').forEach(c => c.onclick = e => { e.stopPropagation(); const it = me.eq[c.dataset.eq]; showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${c.dataset.eq}">해제</button></div>`, e); });
@@ -269,7 +270,7 @@ function renderPanel() {
       if (!S.smithSel || !items.some(o => JSON.stringify(o.ref) === JSON.stringify(S.smithSel))) S.smithSel = items[0] && items[0].ref;
       const sel = items.find(o => JSON.stringify(o.ref) === JSON.stringify(S.smithSel));
       let g = '<div class="grid" style="grid-template-columns:repeat(8,38px)">';
-      items.slice(0, 32).forEach((o, k) => { const on = o === sel; g += `<div class="cell r${o.it.rar} ${on ? 'sel' : ''}" style="width:38px;height:38px" data-sm="${k}"><canvas width="22" height="22" data-sm-ic="${k}"></canvas>${o.it.plus ? `<span class="pl">+${o.it.plus}</span>` : ''}${o.ref.eq ? '<span class="n" style="color:#60a5fa">E</span>' : ''}</div>`; });
+      items.slice(0, 32).forEach((o, k) => { const on = o === sel; g += `<div class="cell r${o.it.rar} ${on ? 'sel' : ''}" style="width:38px;height:38px" data-sm="${k}"><canvas width="32" height="32" data-sm-ic="${k}"></canvas>${o.it.plus ? `<span class="pl">+${o.it.plus}</span>` : ''}${o.ref.eq ? '<span class="n" style="color:#60a5fa">E</span>' : ''}</div>`; });
       g += '</div>';
       let right = '<div class="box txt">강화할 장비가 없습니다.</div>';
       if (sel) {
@@ -512,7 +513,7 @@ function renderQS(force) {
   const key = JSON.stringify(hot.map(id => id ? id + useCount(id) : '-'));
   if (!force && key === S._qsKey) return; S._qsKey = key;
   const q = $('qs');
-  q.innerHTML = hot.map((id, i) => id ? `<div class="qsl ${useCount(id) ? '' : 'zero'}" data-q="${i}" title="${GD.CONSUMES[id].name}"><span class="k">${[7, 8, 9, 0, '-'][i]}</span><canvas width="22" height="22" data-qi="${id}"></canvas><span class="n">${useCount(id)}</span></div>` : `<div class="qsl empty" data-q="${i}" title="가방에서 소모품을 눌러 등록"><span class="k">${[7, 8, 9, 0, '-'][i]}</span>${ic('plus', 14)}</div>`).join('') +
+  q.innerHTML = hot.map((id, i) => id ? `<div class="qsl ${useCount(id) ? '' : 'zero'}" data-q="${i}" title="${GD.CONSUMES[id].name}"><span class="k">${[7, 8, 9, 0, '-'][i]}</span><canvas width="32" height="32" data-qi="${id}"></canvas><span class="n">${useCount(id)}</span></div>` : `<div class="qsl empty" data-q="${i}" title="가방에서 소모품을 눌러 등록"><span class="k">${[7, 8, 9, 0, '-'][i]}</span>${ic('plus', 14)}</div>`).join('') +
     `<div class="qsdiv"></div><div class="qut" data-u="talk" title="대화">${ic('talk')}</div><div class="qut" data-u="grab" title="줍기">${ic('grab')}</div><div class="qut" data-u="target" title="대상">${ic('target')}</div><div class="qut" data-u="chat" title="채팅">${ic('chat')}</div>`;
   q.querySelectorAll('canvas[data-qi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon({ k: 'use', id: c.dataset.qi }), 0, 0); });
   q.querySelectorAll('[data-q]').forEach(d => d.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const id = hot[+d.dataset.q]; if (id) { if (useCount(id)) send({ t: 'useId', id }); else log(`${GD.CONSUMES[id].name}이(가) 없습니다.`, '#bbb'); } else { openPanel('inv'); log('가방에서 물약·음식을 눌러 [퀵슬롯 등록]을 하세요.', '#9fe8ff'); } });
@@ -581,9 +582,9 @@ function npcHeadH(d, kind) {
 }
 function bagColH(mode) {
   const me = S.me; const sel = S.smithSel;
-  const eqr = GD.SLOTS.map(s => { const it = me.eq[s]; const on = mode === 'smith' && sel && sel.eq === s; return it ? `<div class="cell r${it.rar} ${on ? 'sel' : ''}" style="width:42px;height:42px" data-eqs="${s}" title="${GD.SLOT_NAME[s]}"><canvas width="22" height="22" data-ic="eqs:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; }).join('');
+  const eqr = GD.SLOTS.map(s => { const it = me.eq[s]; const on = mode === 'smith' && sel && sel.eq === s; return it ? `<div class="cell r${it.rar} ${on ? 'sel' : ''}" style="width:42px;height:42px" data-eqs="${s}" title="${GD.SLOT_NAME[s]}"><canvas width="32" height="32" data-ic="eqs:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; }).join('');
   let g = '<div class="grid" style="grid-template-columns:repeat(9,40px)">';
-  for (let i = 0; i < 36; i++) { const it = me.inv[i]; const on = (mode === 'smith' && sel && sel.i === i) || (mode === 'trade' && S.trade && S.trade.myIdx.includes(i)); g += it ? `<div class="cell r${it.k === 'gear' ? it.rar : 0} ${on ? (mode === 'trade' ? 'off' : 'sel') : ''}" style="width:40px;height:40px" data-bi="${i}"><canvas width="22" height="22" data-ic="bi:${i}" style="width:32px;height:32px"></canvas>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:40px;height:40px"></div>`; }
+  for (let i = 0; i < 36; i++) { const it = me.inv[i]; const on = (mode === 'smith' && sel && sel.i === i) || (mode === 'trade' && S.trade && S.trade.myIdx.includes(i)); g += it ? `<div class="cell lab r${it.k === 'gear' ? it.rar : 0} ${on ? (mode === 'trade' ? 'off' : 'sel') : ''}" style="width:40px;height:52px" data-bi="${i}"><canvas width="32" height="32" data-ic="bi:${i}" style="width:30px;height:30px"></canvas><span class="inm">${esc(iname(it))}</span>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:40px;height:52px"></div>`; }
   g += '</div>';
   const hint = { shop: '팔 아이템을 누르세요', smith: '강화할 장비를 누르세요', chest: '넣을 아이템을 누르세요', trade: '교환할 아이템을 누르세요' }[mode] || '아이템을 눌러 사용·착용';
   return `<div class="npcr"><div class="row"><b style="color:#fff">${ic('bag')} 내 가방</b><span class="mut">${hint}</span><div style="flex:1"></div>${coinH(me.coins)}</div><div class="eqrow">${eqr}</div>${g}<div class="mut">${me.inv.length}/36칸</div></div>`;
@@ -603,14 +604,14 @@ function renderNpc(P) {
   switch (P.kind) {
     case 'shop': {
       T('flask', d.npc || '잡화상'); mode = 'shop';
-      L = npcHeadH(d, 'shop') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + d.items.map(it => `<div class="tile" data-si="${it.id}"><canvas width="22" height="22" data-one='{"k":"use","id":"${it.id}"}'></canvas><div class="nm">${it.name}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">물건을 누르면 구매, 오른쪽 가방의 물건을 누르면 판매</div>`;
+      L = npcHeadH(d, 'shop') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + d.items.map(it => `<div class="tile" data-si="${it.id}"><canvas width="32" height="32" data-one='{"k":"use","id":"${it.id}"}'></canvas><div class="nm">${it.name}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">물건을 누르면 구매, 오른쪽 가방의 물건을 누르면 판매</div>`;
       break;
     }
     case 'gear': {
       T('sword', d.npc || '장비상');
       const lvs = [...new Set(d.items.map(i => i.lvl))]; S.gearLv = lvs.includes(S.gearLv) ? S.gearLv : lvs[0];
       const list = d.items.filter(i => i.lvl === S.gearLv); S._gearList = list;
-      L = npcHeadH(d, 'gear') + `<div class="tabs">${lvs.map(l => `<div class="tab ${l === S.gearLv ? 'on' : ''}" data-glv="${l}">${l}등급</div>`).join('')}</div><div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + list.map((it, k) => `<div class="tile" data-gi="${k}"><canvas width="22" height="22" data-one='${JSON.stringify({ k: 'gear', slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}'></canvas><div class="nm">${esc(it.name)}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">상점 장비는 옵션이 낮아요. 좋은 옵션은 몬스터가 떨어뜨립니다.</div>`;
+      L = npcHeadH(d, 'gear') + `<div class="tabs">${lvs.map(l => `<div class="tab ${l === S.gearLv ? 'on' : ''}" data-glv="${l}">${l}등급</div>`).join('')}</div><div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + list.map((it, k) => `<div class="tile" data-gi="${k}"><canvas width="32" height="32" data-one='${JSON.stringify({ k: 'gear', slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}'></canvas><div class="nm">${esc(it.name)}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">상점 장비는 옵션이 낮아요. 좋은 옵션은 몬스터가 떨어뜨립니다.</div>`;
       break;
     }
     case 'smith': {
@@ -626,10 +627,10 @@ function renderNpc(P) {
         if (cur.atk) { cur.atk = Math.round(cur.atk * (1 + 0.1 * p) + p * 2); nx.atk = Math.round(nx.atk * (1 + 0.1 * (p + 1)) + (p + 1) * 2); }
         if (cur.def) { cur.def = Math.round(cur.def * (1 + 0.1 * p) + p); nx.def = Math.round(nx.def * (1 + 0.1 * (p + 1)) + p + 1); }
         const ok = have >= c.n && me.coins >= c.coin && p < 10;
-        anvil = `<div class="anvil"><div class="bigslot" style="border-style:solid;border-color:${GD.RARITY[it.rar].c}"><canvas width="22" height="22" id="anvilic"></canvas></div><div class="col" style="flex:1;gap:5px">
+        anvil = `<div class="anvil"><div class="bigslot" style="border-style:solid;border-color:${GD.RARITY[it.rar].c}"><canvas width="32" height="32" id="anvilic"></canvas></div><div class="col" style="flex:1;gap:5px">
           <div class="nm" style="font-size:14px;font-weight:800;color:${GD.RARITY[it.rar].c}">${esc(it.name)} <span style="color:#fff">+${p}</span>${p < 10 ? ` <span class="gl">→ +${p + 1}</span>` : ''}</div>
           ${p >= 10 ? '<div class="yl">최대 강화 완료</div>' : `<div class="row" style="gap:14px">${['atk', 'def'].filter(k => cur[k]).map(k => `<span>${GD.OPT_NAME[k]} <b>${cur[k]}</b> <span class="gl">→ ${nx[k]}</span></span>`).join('')}</div>
-          <div class="row" style="gap:10px"><span class="row" style="gap:4px"><canvas width="22" height="22" data-one='{"k":"mat","id":"${c.mat}"}' style="width:24px;height:24px"></canvas><b class="${have >= c.n ? 'gl' : 'rl'}">${have}/${c.n}</b><span class="mut">${c.mat}</span></span>${coinH(c.coin)}</div>
+          <div class="row" style="gap:10px"><span class="row" style="gap:4px"><canvas width="32" height="32" data-one='{"k":"mat","id":"${c.mat}"}' style="width:24px;height:24px"></canvas><b class="${have >= c.n ? 'gl' : 'rl'}">${have}/${c.n}</b><span class="mut">${c.mat}</span></span>${coinH(c.coin)}</div>
           <div class="row"><span>성공률</span><div style="flex:1;height:8px;background:#1b1f24;border-radius:2px;overflow:hidden"><div style="width:${GD.UPG_RATE[p]}%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div><b class="yl">${GD.UPG_RATE[p]}%</b></div>
           <button class="btn pri" id="doupg" style="height:36px;font-size:14px" ${ok ? '' : 'disabled'}>${ic('hammer')}강화하기</button>`}</div></div>`;
       }
@@ -660,7 +661,7 @@ function renderNpc(P) {
     }
     case 'cook': {
       T('flame', d.at === 'campfire' ? '모닥불 요리' : '조리대 요리');
-      L = `<div class="tiles" style="grid-template-columns:repeat(3,1fr)">` + d.recipes.map(r => `<div class="tile" style="padding:10px"><canvas width="22" height="22" data-one='{"k":"use","id":"${r.id}"}' style="width:44px;height:44px"></canvas><div class="nm">${r.name}</div><small class="mut">${r.desc}</small><small>${needH(r.need)}</small><button class="btn pri sm" data-cook="${r.id}" style="width:100%">${ic('flame')}요리</button></div>`).join('') + `</div><div class="mut">요리한 음식은 가방에서 눌러 퀵슬롯에 등록할 수 있어요.</div>`;
+      L = `<div class="tiles" style="grid-template-columns:repeat(3,1fr)">` + d.recipes.map(r => `<div class="tile" style="padding:10px"><canvas width="32" height="32" data-one='{"k":"use","id":"${r.id}"}' style="width:44px;height:44px"></canvas><div class="nm">${r.name}</div><small class="mut">${r.desc}</small><small>${needH(r.need)}</small><button class="btn pri sm" data-cook="${r.id}" style="width:100%">${ic('flame')}요리</button></div>`).join('') + `</div><div class="mut">요리한 음식은 가방에서 눌러 퀵슬롯에 등록할 수 있어요.</div>`;
       break;
     }
     case 'plot': {
@@ -788,3 +789,6 @@ function showServerDash(code, restored) {
   };
   tick(); setInterval(tick, 2000);
 }
+
+// 아이템 팝업: 팝업 바깥을 누르면 닫힘
+document.addEventListener('pointerdown', e => { const t = $('tip'); if (!t || t.classList.contains('hidden')) return; if (t.contains(e.target)) return; hideTip(); }, true);

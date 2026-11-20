@@ -182,6 +182,16 @@ html,body{height:var(--vhp,100%)}
 #dpad #knob{display:block;position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7b8494,#3a404a);border:2px solid rgba(255,255,255,.35);box-shadow:0 3px 8px rgba(0,0,0,.5);transition:transform .06s}
 .touchmode #qs{left:150px;bottom:12px}
 </style>
+<style id="v5">
+:where(canvas[data-one],canvas[data-sm-ic],canvas[data-ci],canvas[data-qi],canvas[data-icon],canvas[data-eqi],canvas[data-gi]){width:30px;height:30px}
+.cell.lab,.cell.lab2{flex-direction:column;justify-content:flex-start;padding-top:3px}
+.cell .inm{display:block;width:100%;padding:0 1px;text-align:center;color:#d6dbe3;font-weight:600;line-height:1.1;overflow:hidden;word-break:keep-all;letter-spacing:-.3px}
+.cell.lab .inm{font-size:7.5px;white-space:nowrap;text-overflow:ellipsis;margin-top:1px}
+.cell.lab2 .inm{font-size:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;margin-top:2px}
+.cell.lab2 canvas{width:30px;height:30px;flex:0 0 30px}.cell.lab canvas{flex:0 0 auto}
+.cell.lab .n,.cell.lab2 .n{top:1px;bottom:auto;right:2px}
+.cell:not(.lab):not(.lab2) .inm{display:none}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>

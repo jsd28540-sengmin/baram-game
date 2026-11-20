@@ -637,7 +637,7 @@ function frame(nowMs) {
     const x = d.x * TS - sx, y = d.y * TS - sy + Math.sin(now / 300 + d.x) * 2;
     if (d.r) { ctx.fillStyle = GD.RARITY[d.r].c + '55'; ctx.beginPath(); ctx.arc(x + 16, y + 18, 14, 0, 7); ctx.fill(); }
     if (d.k === 'coin') { ctx.fillStyle = '#ffd700'; ctx.fillRect(x + 10, y + 16, 8, 6); ctx.fillRect(x + 14, y + 12, 8, 6); ctx.fillStyle = '#b08a00'; ctx.fillRect(x + 10, y + 21, 8, 1); }
-    else { const ic = itemIcon({ k: d.k, slot: d.sl, wt: d.wt, tier: d.tr, id: d.id }); ctx.drawImage(ic, x + 5, y + 6); }
+    else { const ic = itemIcon({ k: d.k, slot: d.sl, wt: d.wt, tier: d.tr, id: d.id }); ctx.drawImage(ic, x + 4, y + 4, 24, 24); }
   }
   // 엔티티 y-정렬
   const ents = [];
@@ -865,9 +865,9 @@ $('px').onclick = closePanel; $('px2').onclick = closePanel2;
 function rerenderPanel() { if (S.panel) renderPanel(); }
 function openDlg(m) { openPanel(m.kind, m); }
 function cellHTML(it, i, extra = '', cls = '') {
-  return `<div class="cell ${it.k === 'gear' ? 'r' + it.rar : ''} ${cls}" data-i="${i}" ${extra}><canvas width="22" height="22" data-icon="${i}"></canvas>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>`;
+  return `<div class="cell ${it.k === 'gear' ? 'r' + it.rar : ''} ${cls}" data-i="${i}" ${extra}><canvas width="32" height="32" data-icon="${i}"></canvas>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>`;
 }
-function paintIcons(root, list) { root.querySelectorAll('canvas[data-icon]').forEach(c => { const it = list[+c.dataset.icon]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 22, 22); g.drawImage(itemIcon(it), 0, 0); c.style.width = '44px'; c.style.height = '44px'; }); }
+function paintIcons(root, list) { root.querySelectorAll('canvas[data-icon]').forEach(c => { const it = list[+c.dataset.icon]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 32, 32); g.drawImage(itemIcon(it), 0, 0); c.style.width = '44px'; c.style.height = '44px'; }); }
 function itemName(it) { return it.k === 'gear' ? it.name + (it.plus ? ` +${it.plus}` : '') : it.k === 'use' ? GD.CONSUMES[it.id].name : it.id; }
 function itemDesc(it) {
   if (it.k === 'gear') {
@@ -914,17 +914,17 @@ function renderPanel() {
       mode = 'inv';
       h = `<h2>🎒 가방과 장비</h2><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div class="eqgrid">`;
       const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
-      order.forEach(s => { if (!s) { h += '<div></div>'; return; } const it = me.eq[s]; h += it ? `<div class="cell eqs r${it.rar}" data-eq="${s}"><canvas width="22" height="22" data-eqi="${s}"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell eqs" data-eq="${s}"><span class="lbl">${GD.SLOT_NAME[s]}</span></div>`; });
+      order.forEach(s => { if (!s) { h += '<div></div>'; return; } const it = me.eq[s]; h += it ? `<div class="cell eqs r${it.rar}" data-eq="${s}"><canvas width="32" height="32" data-eqi="${s}"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell eqs" data-eq="${s}"><span class="lbl">${GD.SLOT_NAME[s]}</span></div>`; });
       const st = me.st;
       h += `</div><div class="stat" style="min-width:120px"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b><span>처치 수</span><b>${fmt(me.kills || 0)}</b></div></div><div>${invGrid('inv')}<div style="font-size:11px;color:#a7b0bf;margin-top:4px">${me.inv.length}/36칸 · 아이템을 눌러 착용/사용. 다른 직업 장비는 플레이어끼리 교환하세요!</div></div></div>`;
       break;
     }
     case 'shop': mode = 'shop';
-      h = `<h2>🧪 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><div class="list">` + d.items.map(it => `<div class="li"><canvas width="22" height="22" data-ci="${it.id}"></canvas><div class="grow"><b>${it.name}</b><br><small>${it.desc}</small></div><span class="cost">${fmt(it.price)}</span><button class="btn sm" data-buy="${it.id}" data-n="1">1개</button><button class="btn sm" data-buy="${it.id}" data-n="10">10개</button></div>`).join('') + `</div><h3>판매하기 (아이템을 누르세요)</h3>${invGrid('shop')}`;
+      h = `<h2>🧪 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><div class="list">` + d.items.map(it => `<div class="li"><canvas width="32" height="32" data-ci="${it.id}"></canvas><div class="grow"><b>${it.name}</b><br><small>${it.desc}</small></div><span class="cost">${fmt(it.price)}</span><button class="btn sm" data-buy="${it.id}" data-n="1">1개</button><button class="btn sm" data-buy="${it.id}" data-n="10">10개</button></div>`).join('') + `</div><h3>판매하기 (아이템을 누르세요)</h3>${invGrid('shop')}`;
       break;
     case 'gear': {
       const byLv = {}; d.items.forEach(it => (byLv[it.lvl] = byLv[it.lvl] || []).push(it));
-      h = `<h2>⚔ ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div>` + Object.entries(byLv).map(([lv, list]) => `<h3>${lv}등급 장비</h3><div class="list">` + list.map((it, j) => `<div class="li"><canvas width="22" height="22" data-gi="${lv}_${j}"></canvas><div class="grow"><b>${esc(it.name)}</b> <small>(${GD.SLOT_NAME[it.slot]})</small><br><small>${Object.entries(it.st).map(([k, v]) => GD.OPT_NAME[k] + ' +' + v).join(', ')}</small></div><span class="cost">${fmt(it.price)}</span><button class="btn sm" data-gb="${lv}|${it.slot}|${it.wt || ''}">구매</button></div>`).join('') + '</div>').join('');
+      h = `<h2>⚔ ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div>` + Object.entries(byLv).map(([lv, list]) => `<h3>${lv}등급 장비</h3><div class="list">` + list.map((it, j) => `<div class="li"><canvas width="32" height="32" data-gi="${lv}_${j}"></canvas><div class="grow"><b>${esc(it.name)}</b> <small>(${GD.SLOT_NAME[it.slot]})</small><br><small>${Object.entries(it.st).map(([k, v]) => GD.OPT_NAME[k] + ' +' + v).join(', ')}</small></div><span class="cost">${fmt(it.price)}</span><button class="btn sm" data-gb="${lv}|${it.slot}|${it.wt || ''}">구매</button></div>`).join('') + '</div>').join('');
       break;
     }
     case 'smith': {
@@ -947,7 +947,7 @@ function renderPanel() {
       h = `<h2>📦 보관상자</h2><div class="grid" data-grid="store">` + Array.from({ length: 24 }, (_, i) => me.storage[i] ? cellHTML(me.storage[i], i) : '<div class="cell" style="opacity:.4"></div>').join('') + `</div><div style="font-size:11px;color:#a7b0bf;margin:4px 0">상자 아이템을 누르면 꺼냅니다.</div><h3>가방</h3>${invGrid('chest')}`;
       break;
     case 'cook':
-      h = `<h2>🍖 요리 (${d.at === 'campfire' ? '모닥불' : '조리대'})</h2><div class="list">` + d.recipes.map(r => `<div class="li"><canvas width="22" height="22" data-ci="${r.id}"></canvas><div class="grow"><b>${r.name}</b><br><small>${r.desc}</small><br><small>${matLine(r.need)}</small></div><button class="btn sm" data-cook="${r.id}">요리</button></div>`).join('') + '</div><div style="font-size:11px;color:#a7b0bf;margin-top:6px">요리한 음식은 7번(체력) 단축키로 먹거나 다른 플레이어와 교환할 수 있습니다.</div>';
+      h = `<h2>🍖 요리 (${d.at === 'campfire' ? '모닥불' : '조리대'})</h2><div class="list">` + d.recipes.map(r => `<div class="li"><canvas width="32" height="32" data-ci="${r.id}"></canvas><div class="grow"><b>${r.name}</b><br><small>${r.desc}</small><br><small>${matLine(r.need)}</small></div><button class="btn sm" data-cook="${r.id}">요리</button></div>`).join('') + '</div><div style="font-size:11px;color:#a7b0bf;margin-top:6px">요리한 음식은 7번(체력) 단축키로 먹거나 다른 플레이어와 교환할 수 있습니다.</div>';
       break;
     case 'plot':
       h = `<h2>🏡 ${esc(d.town)} 공터</h2><div class="dtext">${esc(d.text)}</div>`;
