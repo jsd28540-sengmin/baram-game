@@ -3,7 +3,7 @@
   const V = '?v=' + (window.BUILDV || 1);
   const L = src => { const i = new Image(); i.onload = () => { i.ok = 1; if (window.S && S.panel && typeof renderPanel === 'function') try { renderPanel(); } catch (e) { } }; i.src = src + V; return i; };
   const IT = L('gfx/items.png'), FXI = L('gfx/fx.png'), HO = L('gfx/horse.png'), TOUT = L('gfx/tent_out.png'), TIN = L('gfx/tent_in.png');
-  const IA = window.ITEM_ATLAS || {}, FA = window.FX_ATLAS || {}, HA = window.HORSE_ATLAS || {};
+  const IA = window.ITEM_ATLAS || {}, FA = window.FX_ATLAS || {}, HA = window.HORSE_ATLAS || {}, NA = window.NPC_ATLAS || {}; const NPI = L('gfx/npcs.png');
   const mkc = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
   // ── 아이템 아이콘 (64px) ──
@@ -14,7 +14,7 @@
       if (it.legend && IA['l_' + it.legend]) return ['l_' + it.legend];
       const t = Math.max(0, Math.min(9, it.tier | 0));
       if (it.slot === 'weapon') return ['w_' + it.wt + '_' + t];
-      if (t < 5) return ['a_' + it.slot + '_' + t];
+      if (IA['a_' + it.slot + '_' + t]) return ['a_' + it.slot + '_' + t];
       return ['a_' + it.slot + '_' + (t >= 7 ? 4 : 3), GD.TIER_COLOR[t]];
     }
     if (it.k === 'use') return ['u:' + it.id];
@@ -104,20 +104,32 @@
   // ── 말 탑승 (갈색 말 / 천리 백마) ──
   const _cs = charSprite, hc = new Map();
   charSprite = function (ap, dir, frame) {
-    if (!ap.mt || !HO.ok || !(ap.mt === 'horse' || ap.mt === 'whiteHorse')) return _cs(ap, dir, frame);
+    const MK = ap.mt === 'whiteHorse' ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
     const rider = _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
-    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[d][col];
+    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = { horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0] }[MK];
     c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
     const hw = r[2] * 1.75, hh = r[3] * 1.75; const hx = 110 - hw / 2, hy = 218 - hh;
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
     if (ap.mt === 'whiteHorse') { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
-    const seatY = hy + hh * (d === 'left' || d === 'right' ? 0.42 : 0.38), seatX = 110 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
+    const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 110 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
     const cut = 96; // 라이더 상체 (112x160 중 위쪽)
     const drawRider = () => g.drawImage(rider, 0, 0, 112, cut, seatX - 56, seatY - cut + 22, 112, cut);
-    if (d === 'down') { const sy2 = hy + hh * 0.12; g.drawImage(rider, 0, 0, 112, cut, seatX - 56, sy2 - cut + 22, 112, cut); g.save(); g.beginPath(); g.rect(hx, hy + hh * 0.18, hw, hh); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); g.save(); g.beginPath(); g.rect(hx, hy, hw, hh * 0.18); g.clip(); g.globalAlpha = 1; g.restore(); }
+    if (d === 'down') { const sy2 = hy + hh * SEAT[1]; g.drawImage(rider, 0, 0, 112, cut, seatX - 56, sy2 - cut + 22, 112, cut); g.save(); g.beginPath(); g.rect(hx, hy + hh * 0.18, hw, hh); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); if (MK === 'ostrich') { g.save(); g.beginPath(); g.rect(hx + hw * 0.3, hy + hh * 0.12, hw * 0.4, hh * 0.3); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); } g.save(); g.beginPath(); g.rect(hx, hy, hw, hh * 0.18); g.clip(); g.globalAlpha = 1; g.restore(); }
     else { g.drawImage(hor, hx, hy, hw, hh); drawRider(); }
     c.dw = 110; c.dh = 110; hc.set(key, c); return c;
+  };
+
+  // ── NPC (GPT 그림, 가까우면 플레이어 쪽을 봄) ──
+  const _dn = drawNpc;
+  drawNpc = function (n, sx, sy, now) {
+    const fr = NA[n.kind] || NA.guide; if (!NPI.ok || !fr) return _dn(n, sx, sy, now);
+    const x = n.x * TS + 16 - sx, y = n.y * TS + 32 - sy; if (x < -60 || x > W + 60 || y < -100 || y > H + 80) return;
+    let d = 0; const dx = pos.x - n.x, dy = pos.y - n.y; if (Math.abs(dx) + Math.abs(dy) <= 5 && (dx || dy)) d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0);
+    const r = fr[d]; const s = 0.47, w = r[2] * s, h = r[3] * s; const br = Math.sin(now / 600 + n.x) > 0.6 ? 1 : 0;
+    shadowAt(x, y, 12); ctx.imageSmoothingEnabled = true; _di.call(ctx, NPI, r[0], r[1], r[2], r[3], Math.round(x - w / 2), Math.round(y - h + 3 - br), w, h + br); ctx.imageSmoothingEnabled = false;
+    drawText(n.name, x, y + 15, '#ffe08a', 13);
+    const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - h - 4 + bob, '#ffd000', 18);
   };
 
   // ── 스킬/공격 버튼 (아트 아이콘) ──
