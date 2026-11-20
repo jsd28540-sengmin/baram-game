@@ -447,3 +447,11 @@
     return _dfx2(now, sx, sy, layer);
   };
 })();
+// ═══════ 닫기(X) 누른 손가락이 아래에 있는 미니맵·화면을 다시 누르는 문제 방지 ═══════
+(function () {
+  let until = 0;
+  const mark = e => { if (e.target.closest && e.target.closest('.xbtn,#bmx,[data-close],.pclose')) until = performance.now() + 500; };
+  document.addEventListener('pointerup', mark, true); document.addEventListener('touchend', mark, true); document.addEventListener('pointerdown', mark, true);
+  const block = e => { if (performance.now() < until && !(e.target.closest && e.target.closest('.xbtn,#bmx'))) { e.stopImmediatePropagation(); e.preventDefault(); } };
+  ['click', 'pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => { if (e.type !== 'click' && e.target.closest && e.target.closest('.xbtn,#bmx')) return; if (e.type === 'click' || (e.target.closest && e.target.closest('#mini,#game'))) block(e); }, true));
+})();

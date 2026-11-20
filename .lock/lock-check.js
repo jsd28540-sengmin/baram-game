@@ -25,6 +25,7 @@ must('assets.js', "if (m && m.t === 'partyAsk') { ask('party', m.from); return; 
 must('engine.js', "if (msg.t === 'tradeOk') { tr.lock[side] = 1; tr.ok[side] = 1;", '간단 교환(교환하기 한 번) 유지');
 must('game.js', 'smoothPos(p, now', '부드러운 움직임(보간) 유지');
 must('net-rtc.js', "createDataChannel('u', { ordered: false, maxRetransmits: 0 })", '위치 정보 비신뢰 채널 유지');
+must('assets.js', '닫기(X) 누른 손가락이 아래에 있는 미니맵', '닫기 후 미니맵 눌림 방지 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
