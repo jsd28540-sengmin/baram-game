@@ -2,6 +2,10 @@
 //  가로 전용 UI (한 화면 고정 · 스크롤 없음 · 아이콘)
 // ═══════════════════════════════════════════
 const ICP = {
+  vol: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+  vol1: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/>',
+  mute: '<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6M21 9l-5 6"/>',
+  scroll: '<path d="M7 4h11a2 2 0 0 1 2 2v1h-4"/><path d="M16 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1h11"/><path d="M7 4a2 2 0 0 0-2 2v11"/>',
   bag: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
   book: '<path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 1 2-2h13v3H6a2 2 0 0 1-2-1z"/>',
@@ -792,3 +796,107 @@ function showServerDash(code, restored) {
 
 // 아이템 팝업: 팝업 바깥을 누르면 닫힘
 document.addEventListener('pointerdown', e => { const t = $('tip'); if (!t || t.classList.contains('hidden')) return; if (t.contains(e.target)) return; hideTip(); }, true);
+
+// ═══════ 사운드 (CC0 음원: sfx/CREDITS.txt) ═══════
+const SND = (() => {
+  let ctx = null, master, sfxG, bgmG; const buf = {}, pend = {}, last = {};
+  let mode = 2; try { const v = localStorage.getItem('baram_snd'); if (v !== null) mode = +v; } catch (e) { } // 2 전체, 1 효과음만, 0 끔
+  let cur = null, curName = null, want = null;
+  const SFX = ['swing', 'shoot', 'hit', 'crit', 'hurt', 'die', 'magic', 'boom', 'heal', 'buff', 'coin', 'potion', 'pickup', 'click', 'open', 'close', 'door', 'anvil', 'error', 'levelup', 'rare', 'bossin', 'dead', 'warp'];
+  const VOL = { swing: .5, shoot: .55, hit: .45, crit: .6, hurt: .6, die: .5, magic: .45, boom: .55, heal: .5, buff: .5, coin: .6, potion: .6, pickup: .55, click: .35, open: .5, close: .45, door: .6, anvil: .6, error: .5, levelup: .7, rare: .7, bossin: .8, dead: .7, warp: .5 };
+  const load = n => { if (buf[n] || pend[n] || !ctx) return pend[n]; pend[n] = fetch('sfx/' + n + '.mp3').then(r => r.arrayBuffer()).then(a => new Promise((ok, no) => ctx.decodeAudioData(a, ok, no))).then(b => { buf[n] = b; return b; }).catch(() => { delete pend[n]; }); return pend[n]; };
+  const unlock = () => {
+    if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; ctx = new AC(); master = ctx.createGain(); master.connect(ctx.destination); sfxG = ctx.createGain(); sfxG.connect(master); bgmG = ctx.createGain(); bgmG.gain.value = .35; bgmG.connect(master); SFX.forEach(load); if (want) setBgm(want, true); }
+    if (ctx.state === 'suspended') ctx.resume();
+    // iOS: 무음 버퍼 한 번 재생으로 잠금 해제
+    try { const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); } catch (e) { }
+  };
+  ['pointerdown', 'touchend', 'keydown'].forEach(ev => addEventListener(ev, unlock, true));
+  document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
+  function play(n, vol = 1, rate) {
+    if (!mode || !ctx || !buf[n]) { if (ctx && !buf[n]) load(n); return; }
+    const now = performance.now(); if (now - (last[n] || 0) < 45) return; last[n] = now;
+    const s = ctx.createBufferSource(); s.buffer = buf[n]; s.playbackRate.value = rate || (0.94 + Math.random() * 0.12);
+    const g = ctx.createGain(); g.gain.value = (VOL[n] || .5) * vol; s.connect(g); g.connect(sfxG); s.start(0);
+  }
+  function setBgm(n, force) {
+    want = n; if (!ctx) return; if (n === curName && !force) return;
+    const old = cur; curName = n; cur = null;
+    if (old) { try { old.g.gain.setTargetAtTime(0, ctx.currentTime, .5); old.s.stop(ctx.currentTime + 2.5); } catch (e) { } }
+    if (!n || mode < 2) return;
+    load(n).then(b => { if (!b || curName !== n || cur) return; const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; const g = ctx.createGain(); g.gain.value = 0; g.gain.setTargetAtTime(1, ctx.currentTime, .8); s.connect(g); g.connect(bgmG); s.start(0); cur = { s, g }; });
+  }
+  function setMode(m) { mode = m; try { localStorage.setItem('baram_snd', m); } catch (e) { } const w = want; curName = null; setBgm(mode === 2 ? w : null, true); want = w; }
+  return { play, bgm: setBgm, mode: () => mode, setMode, unlock };
+})();
+// 화면 근처(12칸)에서 난 소리만
+const nearMe = (x, y) => x == null || Math.hypot(x - pos.x, y - pos.y) <= 12;
+const _addFx = addFx;
+addFx = function (f) {
+  _addFx(f);
+  try {
+    switch (f.k) {
+      case 'swing': if (nearMe(f.x, f.y)) SND.play('swing', f.id === S.myId ? 1 : .5); break;
+      case 'proj': if (!nearMe(f.fx, f.fy)) break; if (f.f === 'arrow' || f.f === 'pierce') SND.play('shoot', .8); else if (f.f === 'mshot') SND.play('shoot', .4, .8); else SND.play('magic', .7); break;
+      case 'dmg': if (!nearMe(f.x, f.y)) break; if (f.p) { if (f.x === pos.x && f.y === pos.y) SND.play('hurt'); } else SND.play(f.c ? 'crit' : 'hit', f.c ? 1 : .8); break;
+      case 'die': if (nearMe(f.x, f.y)) SND.play(f.b ? 'boom' : 'die', f.b ? 1 : .7); break;
+      case 'coin': SND.play('coin', .5); break;
+      case 'lvl': if (f.x === pos.x && f.y === pos.y) SND.play('levelup'); break;
+      case 'skill': {
+        if (!nearMe(f.x, f.y)) break; const k = f.f;
+        if (k === 'meteor' || k === 'flame' || k === 'quake') SND.play('boom'); else if (k === 'heal' || k === 'bigheal' || k === 'holy') SND.play('heal'); else if (k === 'buff' || k === 'bless') SND.play('buff'); else if (k === 'spin' || k === 'slash' || k === 'slash3') SND.play('swing', 1, .8); else if (k === 'rain' || k === 'pierce') SND.play('shoot'); else SND.play('magic');
+        break; }
+    }
+  } catch (e) { }
+};
+const _logS = log;
+log = function (text, c, html) {
+  _logS(text, c, html);
+  const t = String(text || '');
+  if (/강화 성공|강화에 성공/.test(t)) { SND.play('anvil'); setTimeout(() => SND.play('rare'), 250); }
+  else if (/강화 실패|강화에 실패/.test(t)) { SND.play('anvil'); setTimeout(() => SND.play('error'), 250); }
+  else if (/획득|주웠|얻었/.test(t)) SND.play('pickup');
+  else if (/구매|판매/.test(t)) SND.play('coin');
+  else if (/쓰러졌/.test(t)) SND.play('dead');
+  else if (/보스|출현/.test(t) && /☠|출현/.test(t)) SND.play('bossin');
+};
+const _annS = announce; announce = function (t, c) { _annS(t, c); if (/보스|출현/.test(String(t))) SND.play('bossin'); };
+const _opS = openPanel; openPanel = function (k, d) { const was = S.panel; _opS(k, d); if (!was) SND.play('open'); };
+const _clS = closePanel; closePanel = function () { const was = S.panel; _clS(); if (was) SND.play('close'); };
+const _lmS = loadMap; loadMap = function (m) { const first = !S.map; _lmS(m); if (!first) SND.play('warp'); };
+document.addEventListener('pointerdown', e => { if (e.target.closest('.btn,.mbtn,.qut')) SND.play('click'); }, true);
+// 보낸 명령에 맞는 소리 (물약/음식)
+setInterval(() => { if (typeof send !== 'function' || send.__snd) return; const o = send; const w = m => { try { if (m && (m.t === 'useId' || m.t === 'use')) { const id = m.id || (S.me && S.me.inv[m.i] && S.me.inv[m.i].id); const it = m.t === 'use' && S.me ? S.me.inv[m.i] : { k: 'use', id }; if (it && it.k === 'use') SND.play(id === 'recall' || id === 'back' ? 'warp' : 'potion'); } } catch (e) { } return o(m); }; w.__snd = 1; send = w; }, 400);
+// 배경음악: 상황에 맞게 자동 전환
+setInterval(() => {
+  if (!S.map || !S.me) { SND.bgm('bgm_title'); return; }
+  const m = S.map;
+  const boss = [...S.M.values()].some(mo => !mo.s && GD.MONS[mo.t] && GD.MONS[mo.t].boss && Math.hypot(mo.x - pos.x, mo.y - pos.y) < 14);
+  const town = (m.towns || []).some(t => pos.x >= t.x0 && pos.x <= t.x1 && pos.y >= t.y0 && pos.y <= t.y1);
+  SND.bgm(boss ? 'bgm_boss' : m.dark ? 'bgm_cave' : town ? 'bgm_town' : (S.nl || 0) > 0.5 ? 'bgm_night' : 'bgm_field');
+  if (S.you) { if (S.you.dead && !S._wasDead) SND.play('dead'); S._wasDead = S.you.dead; }
+}, 1000);
+// 소리 설정 버튼 (메뉴)
+(function () {
+  const lab = ['소리 끔', '효과음', '소리 켬'], icn = ['mute', 'vol1', 'vol'];
+  const b = document.createElement('div'); b.className = 'mbtn'; b.id = 'sndbtn';
+  const draw = () => { const m = SND.mode(); b.innerHTML = `${ic(icn[m])}<span>${lab[m]}</span>`; };
+  b.onclick = () => { SND.unlock(); SND.setMode((SND.mode() + 2) % 3); draw(); };
+  draw(); $('menu').appendChild(b);
+})();
+
+// ═══════ 스킬 버튼: 이름 표시 + 눌림 효과 ═══════
+function pressFx(d) { d.classList.remove('pressed'); void d.offsetWidth; d.classList.add('pressed'); clearTimeout(d._pt); d._pt = setTimeout(() => d.classList.remove('pressed'), 160); }
+const _btS = buildTouch;
+buildTouch = function () {
+  _btS();
+  (S.touchCd || []).forEach(d => { if (!d.querySelector('.sn')) d.insertAdjacentHTML('beforeend', '<span class="sn"></span>'); d.addEventListener('pointerdown', () => pressFx(d)); });
+  const atk = document.querySelector('#acts .tb.atk');
+  if (atk) { atk.innerHTML = `${ic('sword')}<span class="sn">공격</span>`; atk.addEventListener('pointerdown', () => atk.classList.add('held')); ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => atk.addEventListener(ev, () => atk.classList.remove('held'))); }
+  S._skKey = '';
+};
+const _rhS = refreshHud;
+refreshHud = function (full) {
+  const before = S._skKey; _rhS(full);
+  if (S.touchCd && S.me && (S._skKey !== before || full)) S.touchCd.forEach((d, i) => { const sk = GD.SKILL[S.me.skills[i]]; const sn = d.querySelector('.sn'); if (sn) sn.textContent = sk ? (S.me.lv >= sk.lv ? sk.name : `Lv${sk.lv}`) : ''; });
+};

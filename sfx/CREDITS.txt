@@ -1,0 +1,14 @@
+바람의 대륙 - 사운드 출처 (모두 CC0 1.0 퍼블릭 도메인, 상업적 이용·수정·재배포 자유, 출처 표기 의무 없음)
+
+배경음악 — Komiku (CC0, Free Music Archive)
+  bgm_town   : Le Grand Village
+  bgm_field  : The adventure
+  bgm_night  : The night before the fight of our life
+  bgm_cave   : Cave of time
+  bgm_boss   : Boss 1 : The first challenge
+  bgm_title  : Introduction to your adventure
+
+징글 — Beatscribe "Homebrew Free Jingle and Fanfare" (CC0)
+  levelup(victory), rare(treasure), bossin(boss_appears), dead(failure)
+
+효과음 — Kenney (kenney.nl, CC0): RPG Audio, Impact Sounds, Interface Sounds, Sci-fi Sounds, Digital Audio
