@@ -737,3 +737,54 @@ buildTouch = function () {
   dp.onpointermove = e => { if (active === e.pointerId) upd(e); };
   dp.onpointerup = dp.onpointercancel = end;
 };
+
+// ═══════ 방장 전용(서버) 모드: 캐릭터 없이 방만 열어 둠 ═══════
+const _webLobby3 = webLobby;
+webLobby = function () {
+  _webLobby3();
+  const L = $('lobby'); if (!L) return;
+  const sv = document.createElement('button'); sv.className = 'btn'; sv.id = 'lserver'; sv.style.cssText = 'flex:1;height:30px';
+  sv.innerHTML = `${ic('castle')}방만 열기 (서버 기기)`;
+  const row = $('lsolo').parentElement; row.insertBefore(sv, $('lsolo')); row.style.gap = '6px';
+  sv.onclick = () => { const typed = $('lcode').value.trim(); NET.serverOnly = true; NET.hostRoom(null, /^\d{4}$/.test(typed) ? typed : null); };
+  // 이어하기 버튼이 서버 기록이면 서버 모드로
+  let mem = null; try { mem = JSON.parse(localStorage.getItem('baram_last') || 'null'); } catch (e) { }
+  const cont = $('lcont');
+  if (mem && mem.role === 'server') {
+    if (cont) { cont.innerHTML = `${ic('castle')}이어하기 · 서버 기기 · 방 ${mem.code}`; cont.onclick = () => { NET.serverOnly = true; NET.hostRoom(null, mem.code); }; }
+    else { const c2 = document.createElement('button'); c2.className = 'btn pri'; c2.id = 'lcont'; c2.style.cssText = 'width:100%;height:42px;font-size:14px;margin-bottom:4px;background:#16a34a;border-color:#16a34a'; c2.innerHTML = `${ic('castle')}이어하기 · 서버 기기 · 방 ${mem.code}`; L.insertBefore(c2, L.firstChild); c2.onclick = () => { NET.serverOnly = true; NET.hostRoom(null, mem.code); }; }
+    $('nm').value = '';
+  }
+};
+let wakeLock = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { } }
+function showServerDash(code, restored) {
+  $('login').classList.add('hidden');
+  keepAwake(); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+  const d = document.createElement('div'); d.id = 'srvdash';
+  d.style.cssText = 'position:fixed;inset:0;z-index:70;background:linear-gradient(160deg,#1a1e24,#262b33);display:flex;align-items:center;justify-content:center';
+  d.innerHTML = `<div class="win lcard" style="width:780px;height:340px;padding:18px 22px;display:flex;gap:20px">
+    <div class="col" style="width:300px;gap:10px">
+      <div class="row" style="gap:8px;color:var(--gold)">${ic('castle', 22)}<b style="font-size:18px;color:#fff">서버 기기 (방장 전용)</b></div>
+      <div class="mut">이 기기는 게임 세계만 돌려요. 화면을 켠 채로 두세요.</div>
+      <div class="box" style="text-align:center;padding:14px"><div class="mut">방 코드</div><div style="font-size:54px;font-weight:900;letter-spacing:8px;color:#fff;line-height:1.1">${code}</div><div class="mut" style="margin-top:4px">친구들은 이 코드로 [참가하기]</div></div>
+      <div class="row"><button class="btn" id="svcopy" style="flex:1">${ic('key')}참가 링크 복사</button><button class="btn" id="svsave" style="flex:1">${ic('check')}지금 백업</button></div>
+      <div class="mut" id="svmsg">${restored ? '인터넷 백업에서 저장 데이터를 불러왔어요.' : '저장: 10초마다 이 기기 + 인터넷 백업'}</div>
+    </div>
+    <div class="col" style="flex:1;gap:8px;min-width:0">
+      <div class="row"><b style="color:#fff">${ic('users')} 접속 중</b><span class="mut" id="svcount"></span><div style="flex:1"></div><span class="mut" id="svup"></span></div>
+      <div id="svlist" class="box" style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:4px"></div>
+      <div class="box mut" style="font-size:11px;line-height:1.5">본인도 플레이하려면 아이폰에서 같은 방 코드로 [참가하기] 하세요.\n홈 화면 앱으로 실행하면 주소창 없이 켜 둘 수 있어요. 자동 잠금은 [설정 › 디스플레이 › 자동 잠금 › 안 함] 권장.</div>
+    </div></div>`;
+  document.body.appendChild(d);
+  $('svcopy').onclick = () => { const url = location.href.split('#')[0] + '#' + code; try { navigator.clipboard.writeText(url).then(() => { $('svmsg').textContent = '참가 링크를 복사했어요: ' + url; }); } catch (e) { $('svmsg').textContent = url; } };
+  $('svsave').onclick = () => { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); $('svmsg').textContent = '백업 완료 · ' + new Date().toLocaleTimeString('ko-KR'); };
+  const t0 = Date.now();
+  const tick = () => {
+    const names = ENGINE.online();
+    $('svcount').textContent = `${names.length}명`;
+    $('svlist').innerHTML = names.length ? names.map(n => `<div class="row" style="gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#4ade80;display:inline-block"></span><b>${esc(n)}</b></div>`).join('') : '<div class="mut">아직 접속한 사람이 없어요.</div>';
+    const m = Math.floor((Date.now() - t0) / 60000); $('svup').textContent = `켜진 지 ${Math.floor(m / 60)}시간 ${m % 60}분`;
+  };
+  tick(); setInterval(tick, 2000);
+}

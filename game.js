@@ -206,7 +206,7 @@ function webLobby() {
   const hostRoom = async (n, wantCode) => {
     lock(); setNetStatus('중계 서버에 연결하는 중...');
     let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
-    const code = wantCode || (mem.role === 'host' && mem.code) || String(1000 + Math.floor(Math.random() * 9000));
+    const code = wantCode || ((mem.role === 'host' || mem.role === 'server') && mem.code) || String(1000 + Math.floor(Math.random() * 9000));
     NET.code = code; NET.will = { topic: TP + code + '/host', payload: '', retain: true, qos: 0 };
     let c; try { c = await mqConnect(); } catch (e) { unlock(); setNetStatus('⚠ 중계 서버 연결 실패. 인터넷을 확인하거나 [혼자 하기]를 이용하세요.', '#ff8a8a'); return; }
     // 같은 코드로 이미 방장이 있으면 참가로 전환
@@ -223,10 +223,10 @@ function webLobby() {
     const pickB = backup && backup.saves && (!local || (backup.t || 0) > (local.t || 0));
     NET.preSaves = (pickB ? backup.saves : local && local.saves) || {};
     NET.mq = c; NET.sid = NET.sid || Math.random().toString(36).slice(2, 9);
-    try { localStorage.setItem('baram_last', JSON.stringify({ role: 'host', code, name: n })); } catch (e) { }
+    try { localStorage.setItem('baram_last', JSON.stringify(NET.serverOnly ? { role: 'server', code, name: '서버' } : { role: 'host', code, name: n })); } catch (e) { }
     startHost(null, '', () => {
       c.subscribe(TP + code + '/h');
-      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n, t: Date.now(), sid: NET.sid }), { retain: true });
+      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n || '서버', t: Date.now(), sid: NET.sid }), { retain: true });
       pubHost(); setInterval(pubHost, 5000);
       c.on('connect', () => { c.subscribe(TP + code + '/h'); pubHost(); });
       c.on('message', (topic, buf) => {
@@ -243,8 +243,8 @@ function webLobby() {
       setInterval(() => { const now = Date.now(); for (const [k, r] of NET.remotes) if (now - r.seen > 25000) { NET.remotes.delete(k); if (r.conn.onclose) r.conn.onclose(); } }, 5000);
       setInterval(() => ENGINE.saveAll(), 10000);
       const bye = () => { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); }; addEventListener('pagehide', () => { bye(); try { c.publish(TP + code + '/host', '', { retain: true }); } catch (e) { } }); addEventListener('visibilitychange', () => { if (document.hidden) bye(); });
-      NET.hostName = n; send({ t: 'login', name: n });
-      showCode(code);
+      if (NET.serverOnly) { NET.hostName = '서버'; showServerDash(code, pickB); }
+      else { NET.hostName = n; send({ t: 'login', name: n }); showCode(code); }
       if (pickB) log('인터넷 백업에서 저장 데이터를 불러왔어요.', '#9fe8ff');
     });
   };
