@@ -617,7 +617,7 @@ function renderNpc(P) {
       break;
     }
     case 'gear': {
-      T('sword', d.npc || '장비상');
+      T('sword', d.npc || '장비상'); mode = 'shop';
       const lvs = [...new Set(d.items.map(i => i.lvl))]; S.gearLv = lvs.includes(S.gearLv) ? S.gearLv : lvs[0];
       const list = d.items.filter(i => i.lvl === S.gearLv); S._gearList = list;
       L = npcHeadH(d, 'gear') + `<div class="tabs">${lvs.map(l => `<div class="tab ${l === S.gearLv ? 'on' : ''}" data-glv="${l}">${l}등급</div>`).join('')}</div><div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + list.map((it, k) => `<div class="tile" data-gi="${k}"><canvas width="32" height="32" data-one='${JSON.stringify({ k: 'gear', slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}'></canvas><div class="nm">${esc(it.name)}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">상점 장비는 옵션이 낮아요. 좋은 옵션은 몬스터가 떨어뜨립니다.</div>`;

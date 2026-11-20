@@ -185,7 +185,7 @@ charSprite = function (ap, dir, frame) {
   c = mk(56 * S2, 80 * S2); const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   const ri = row[Math.min(col, n - 1)], AX = CH3.A.ax ? CH3.A.ax[ri] : R[2] / 2;
   const dw = R[2] * s, dh = R[3] * s, dx = 28 * S2 - AX * s, dy = 77 * S2 - dh;
-  g.drawImage(CH3.img, R[0], R[1], R[2], R[3], dx, dy, dw, dh);
+  { const cc = cleanCrop(R); g.drawImage(cc, 2, 2, R[2], R[3], dx, dy, dw, dh); }
   // 머리색 · 갑옷 색
   const eq = ap.eq || {}; const hairPal = CH3.A.hairpal[bk]; const hairT = hex2rgb(HAIRC[ap.hc || 0]);
   const armorT = eq.armor ? hex2rgb(GD.TIER_COLOR[eq.armor[0]]) : null;
@@ -207,7 +207,7 @@ charSprite = function (ap, dir, frame) {
     const rowIdx = t === 9 ? 1 : t === 7 ? 2 : 0; const view = dir === 0 ? 0 : dir === 3 ? 4 : 2; const HR = CH3.A.rects[CH3.A.helms[hk][rowIdx][view]];
     const hw = HR[2] * s, hh = HR[3] * s; const hc = mk(Math.ceil(hw), Math.ceil(hh)), hg = hc.getContext('2d'); hg.imageSmoothingEnabled = true;
     if (dir === 2) { hg.translate(hw, 0); hg.scale(-1, 1); } // 시트의 투구 옆모습은 원래 왼쪽을 봄 → 오른쪽일 때만 뒤집기
-    hg.drawImage(CH3.img, HR[0], HR[1], HR[2], HR[3], 0, 0, hw, hh); hg.setTransform(1, 0, 0, 1, 0, 0);
+    { const cc = cleanCrop(HR); hg.drawImage(cc, 2, 2, HR[2], HR[3], 0, 0, hw, hh); } hg.setTransform(1, 0, 0, 1, 0, 0);
     if (rowIdx === 0) { const T2 = hex2rgb(GD.TIER_COLOR[t]); const id = hg.getImageData(0, 0, hc.width, hc.height), d = id.data; const bl = hk === 'helm' ? 0.62 : hk === 'hat' ? 0.42 : 0.38;
       for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 30) continue; const [h, sat, l] = rgb2hsl(d[i], d[i + 1], d[i + 2]); if (l < 0.12 || isSkin(h, sat, l)) continue; const hit = hk === 'helm' ? sat < 0.2 && l < 0.97 : hk === 'hat' ? (h > 210 && h < 300) : (h > 55 && h < 140 && sat > 0.15); if (hit) tintPx(d, i, T2, bl); }
       hg.putImageData(id, 0, 0); }
@@ -219,3 +219,22 @@ charSprite = function (ap, dir, frame) {
   c.dispW = 56; c.dispH = 80;
   charCache3.set(key, c); return c;
 };
+
+// 시트에서 잘라낸 조각: 옆 그림 부스러기(잘린 선) 제거 + 투명 여백 → 확대해도 주변에 선이 안 생김
+const _ccCache = new Map();
+function cleanCrop(R) {
+  const key = R.join(','); let c = _ccCache.get(key); if (c) return c;
+  const w = R[2], h = R[3]; c = document.createElement('canvas'); c.width = w + 4; c.height = h + 4; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(CH3.img, R[0], R[1], w, h, 2, 2, w, h);
+  try {
+    const id = g.getImageData(0, 0, c.width, c.height), d = id.data, W2 = c.width, H2 = c.height, N = W2 * H2;
+    const lab = new Int32Array(N); let best = 0, bestN = 0, cur = 0; const stack = []; const sizes = [0];
+    for (let i = 0; i < N; i++) { if (lab[i] || d[i * 4 + 3] < 40) continue; cur++; let n = 0; stack.push(i); lab[i] = cur;
+      while (stack.length) { const k = stack.pop(); n++; const x = k % W2, y = (k / W2) | 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W2 || yy >= H2) continue; const j = yy * W2 + xx; if (!lab[j] && d[j * 4 + 3] >= 40) { lab[j] = cur; stack.push(j); } } }
+      sizes.push(n); if (n > bestN) { bestN = n; best = cur; } }
+    for (let i = 0; i < N; i++) { const L = lab[i]; if (d[i * 4 + 3] < 40) { d[i * 4 + 3] = 0; continue; } if (L !== best && sizes[L] < bestN * 0.06) d[i * 4 + 3] = 0; }
+    g.putImageData(id, 0, 0);
+  } catch (e) { }
+  _ccCache.set(key, c); return c;
+}

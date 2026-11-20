@@ -1196,7 +1196,7 @@ function handle(p, msg) {
     case 'openChest': openChest(p, CHESTS.get(msg.id)); break;
     case 'npc': { const n = npcNear(p); if (n) openNpc(p, n); break; }
     case 'buy': buy(p, msg); break;
-    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || n.kind !== 'shop') return; const price = it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
+    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || !['shop', 'gear'].includes(n.kind)) return; const price = it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
     case 'upgrade': upgrade(p, msg); break;
     case 'promote': {
       const n = npcNear(p); if (!n || n.kind !== 'master') return;

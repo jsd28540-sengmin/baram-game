@@ -455,3 +455,15 @@
   const block = e => { if (performance.now() < until && !(e.target.closest && e.target.closest('.xbtn,#bmx'))) { e.stopImmediatePropagation(); e.preventDefault(); } };
   ['click', 'pointerdown', 'touchstart'].forEach(ev => document.addEventListener(ev, e => { if (e.type !== 'click' && e.target.closest && e.target.closest('.xbtn,#bmx')) return; if (e.type === 'click' || (e.target.closest && e.target.closest('#mini,#game'))) block(e); }, true));
 })();
+// ═══════ 판매: 희귀 이상은 한 번 더 확인 ═══════
+(function () {
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-a="sell"]'); if (!b || b._ok) return;
+    const it = S.me && S.me.inv[+b.dataset.i]; if (!it) return;
+    const rare = it.k === 'gear' && (it.rar >= 2 || it.legend);
+    if (!rare) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    const nm = (GD.RARITY[it.rar] || {}).n || '희귀'; const idx = +b.dataset.i; try { hideTip(); } catch (x) { }
+    uiAsk(`[${nm}] ${it.name}\n정말 판매할까요? 판매하면 되돌릴 수 없어요.\n판매가: ${fmt(sellPrice(it))} 코인`, () => send({ t: 'sell', i: idx }));
+  }, true);
+})();
