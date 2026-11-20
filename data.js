@@ -168,7 +168,7 @@
     staff: { name: '지팡이', job: 'mage', m: 1.1 }, wand: { name: '마법봉', job: 'mage', m: 0.95, mp: 1 },
     bow: { name: '활', job: 'healer' }, crossbow: { name: '석궁', job: 'healer', m: 1.12 },
   };
-  D.RARITY = [{ n: '일반', c: '#e6e6e6' }, { n: '고급', c: '#5ad1ff' }, { n: '희귀', c: '#c77dff' }, { n: '전설', c: '#ffb020' }];
+  D.RARITY = [{ n: '일반', c: '#8b93a1' }, { n: '고급', c: '#0ea5e9' }, { n: '희귀', c: '#a855f7' }, { n: '전설', c: '#f59e0b' }];
   D.OPT_NAME = { atk: '공격력', def: '방어력', hp: '체력', mp: '마나', crit: '치명타%', luck: '행운%' };
   D.SLOT_DEF_MUL = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4, shield: 0.85 };
 

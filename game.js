@@ -32,7 +32,7 @@ const fmt = n => Math.floor(n).toLocaleString();
 const NET = { mode: null, room: null, myPeer: null, hostPeer: null, seq: 0, q: [], chunks: new Map(), remotes: new Map() };
 let send = () => { };
 const ART = window.BUILD === 'artifact';
-function setNetStatus(t, c) { const e = $('netst'); if (e) { e.textContent = t; e.style.color = c || '#cfe8d0'; } }
+function setNetStatus(t, c) { const e = $('netst'); if (e) { e.textContent = t; e.style.setProperty('color', c && /8a8a|f99|ff8/.test(c) ? '#dc2626' : c && /e08a|d77a/.test(c) ? '#b7791f' : '#2f6bff', 'important'); } }
 function connect() {
   if (window.BUILD === 'web') { webLobby(); return; }
   if (!ART) {
@@ -282,7 +282,7 @@ function buildCreate() {
   opts($('sksel'), SKIN.map((c, i) => ({ v: i, html: `<span style="display:inline-block;width:16px;height:16px;background:${c};border:1px solid #000"></span>` })), 'sk');
   opts($('jsel'), ['warrior', 'mage', 'healer'].map(j => ({ v: j, html: `<b>${GD.JOBS[j].name}</b><small>${j === 'warrior' ? '근접·탱커' : j === 'mage' ? '마법·광역' : '치유·원거리'}</small>` })), 'job');
   const J = GD.JOBS[CR.job];
-  $('jdesc').innerHTML = `<b>${J.name}</b> — ${J.desc}<br><br>Lv${GD.PROMO_LEVEL} 전직: ` + GD.PROMOS[CR.job].map(p => `<b style="color:#e0a8ff">${GD.JOBS[p].name}</b> (${GD.JOBS[p].desc})`).join(' / ');
+  $('jdesc').innerHTML = `<b>${J.name}</b> — ${J.desc}<br><br>Lv${GD.PROMO_LEVEL} 전직: ` + GD.PROMOS[CR.job].map(p => `<b style="color:#7c3aed">${GD.JOBS[p].name}</b> (${GD.JOBS[p].desc})`).join(' / ');
   const pc = $('preview').getContext('2d'); pc.imageSmoothingEnabled = false; pc.clearRect(0, 0, 112, 160);
   const ap = { job: CR.job, g: CR.g, h: CR.h, hc: CR.hc, sk: CR.sk, eq: { weapon: [0, 0, 0, { warrior: 'sword', mage: 'staff', healer: 'bow' }[CR.job]] } };
   pc.drawImage(charSprite(ap, 0, 0), 0, 0, 112, 160);
@@ -760,7 +760,7 @@ function refreshHud(full) {
   const di = S.nl; $('clock').textContent = (S.map && S.map.dark ? '🕯 어두운 던전' : di > 0.5 ? '🌙 밤 (몬스터 강화)' : di > 0 ? '🌆 해질녘' : '☀ 낮') + `  (${pos.x},${pos.y})`;
   // 타겟
   const tg = S.target && S.M.get(S.target);
-  if (tg) { const d = GD.MONS[tg.t]; $('target').classList.remove('hidden'); $('tname').innerHTML = `<b style="color:${d.boss ? '#ff5a5a' : tg.mu ? '#d08aff' : '#fff'}">${tg.mu ? '돌연변이 ' : ''}${d.name}</b> Lv${tg.lv}`; $('target').querySelector('i').style.width = tg.h + '%'; $('target').querySelector('span').textContent = tg.h + '%'; }
+  if (tg) { const d = GD.MONS[tg.t]; $('target').classList.remove('hidden'); $('tname').innerHTML = `<b style="color:${d.boss ? '#dc2626' : tg.mu ? '#7c3aed' : '#111827'}">${tg.mu ? '돌연변이 ' : ''}${d.name}</b> Lv${tg.lv}`; $('target').querySelector('i').style.width = tg.h + '%'; $('target').querySelector('span').textContent = tg.h + '%'; }
   else $('target').classList.add('hidden');
   // 스킬바
   const key = me.skills.join() + me.lv + me.job + JSON.stringify(me.inv.filter(o => o.k === 'use').map(o => o.id + o.n));
@@ -818,8 +818,8 @@ function itemDesc(it) {
   if (it.k === 'gear') {
     const p = it.plus || 0; const st = Object.assign({}, it.st); if (st.atk) st.atk = Math.round(st.atk * (1 + 0.1 * p) + p * 2); if (st.def) st.def = Math.round(st.def * (1 + 0.1 * p) + p);
     const job = GD.JOBS[it.job].name; const can = S.me && (it.slot === 'shield' ? GD.JOBS[S.me.job].base === 'warrior' : GD.JOBS[S.me.job].base === it.job);
-    return `<div class="nm" style="color:${GD.RARITY[it.rar].c}">${esc(itemName(it))}</div><div style="color:#cba">${it.boss ? '👑 보스 전용 · ' : ''}${GD.RARITY[it.rar].n} · ${it.lvl}등급 · <span style="color:${can ? '#9f9' : '#f99'}">${it.slot === 'shield' ? '전사' : job} 전용</span> ${GD.SLOT_NAME[it.slot]}${it.shop ? ' (상점)' : ''}</div>` +
-      Object.entries(st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('') + `<div style="color:#888;font-size:11px">착용 레벨: ${Math.max(1, it.lvl - 3)}+</div>`;
+    return `<div class="nm" style="color:${GD.RARITY[it.rar].c}">${esc(itemName(it))}</div><div style="color:#6b7280">${it.boss ? '👑 보스 전용 · ' : ''}${GD.RARITY[it.rar].n} · ${it.lvl}등급 · <span style="color:${can ? '#15803d' : '#dc2626'}">${it.slot === 'shield' ? '전사' : job} 전용</span> ${GD.SLOT_NAME[it.slot]}${it.shop ? ' (상점)' : ''}</div>` +
+      Object.entries(st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('') + `<div style="color:#6b7280;font-size:11px">착용 레벨: ${Math.max(1, it.lvl - 3)}+</div>`;
   }
   if (it.k === 'use') return `<div class="nm">${GD.CONSUMES[it.id].name} x${it.n}</div><div>${GD.CONSUMES[it.id].desc}</div>`;
   return `<div class="nm">${esc(it.id)} x${it.n}</div><div>${(GD.MATS[it.id] || {}).desc || ''}</div>`;
@@ -841,7 +841,7 @@ function invClick(i, ev, mode) {
   else if (mode === 'chest') btns += `<button class="btn sm" data-a="store" data-i="${i}">보관상자에 넣기</button> `;
   else if (mode === 'trade') btns += S.trade && S.trade.myIdx.includes(i) ? `<button class="btn sm red" data-a="untrade" data-i="${i}">교환에서 빼기</button>` : `<button class="btn sm green" data-a="trade" data-i="${i}">교환에 올리기</button>`;
   else { if (it.k !== 'mat') btns += `<button class="btn sm green" data-a="use" data-i="${i}">${it.k === 'gear' ? '착용' : '사용'}</button> `; btns += `<button class="btn sm red" data-a="drop" data-i="${i}">버리기</button>`; }
-  const sell = mode === 'shop' ? `<div style="color:#ffd77a">판매가: ${it.k === 'gear' ? fmt(Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1))) : it.k === 'use' ? fmt(Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n) : fmt(5 * it.n)} 코인</div>` : '';
+  const sell = mode === 'shop' ? `<div style="color:#b7791f">판매가: ${it.k === 'gear' ? fmt(Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1))) : it.k === 'use' ? fmt(Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n) : fmt(5 * it.n)} 코인</div>` : '';
   showTip(itemDesc(it) + sell + `<div style="margin-top:6px">${btns}</div>`, ev);
 }
 function invGrid(mode) {
@@ -850,7 +850,7 @@ function invGrid(mode) {
   return h + '</div>';
 }
 function bindInv(root, mode) { const g = root.querySelector(`[data-grid="${mode}"]`); if (!g) return; paintIcons(g, S.me.inv); g.querySelectorAll('.cell[data-i]').forEach(c => c.onclick = e => { e.stopPropagation(); invClick(+c.dataset.i, e, mode); }); }
-function matLine(need) { return Object.entries(need).map(([k, v]) => { const have = S.me.inv.filter(o => o.k === 'mat' && o.id === k).reduce((a, o) => a + o.n, 0); return `<span style="color:${have >= v ? '#9f9' : '#f99'}">${k} ${v}(${have})</span>`; }).join(' · '); }
+function matLine(need) { return Object.entries(need).map(([k, v]) => { const have = S.me.inv.filter(o => o.k === 'mat' && o.id === k).reduce((a, o) => a + o.n, 0); return `<span style="color:${have >= v ? '#15803d' : '#dc2626'}">${k} ${v}(${have})</span>`; }).join(' · '); }
 function renderPanel() {
   const P = S.panel; if (!P || !S.me) return; const me = S.me; const d = P.data || {}; const body = $('pbody');
   let h = ''; let mode = null;
@@ -861,7 +861,7 @@ function renderPanel() {
       const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
       order.forEach(s => { if (!s) { h += '<div></div>'; return; } const it = me.eq[s]; h += it ? `<div class="cell eqs r${it.rar}" data-eq="${s}"><canvas width="22" height="22" data-eqi="${s}"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell eqs" data-eq="${s}"><span class="lbl">${GD.SLOT_NAME[s]}</span></div>`; });
       const st = me.st;
-      h += `</div><div class="stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b><span>처치 수</span><b>${fmt(me.kills || 0)}</b></div></div><div>${invGrid('inv')}<div style="font-size:11px;color:#cba;margin-top:4px">${me.inv.length}/36칸 · 아이템을 눌러 착용/사용. 다른 직업 장비는 플레이어끼리 교환하세요!</div></div></div>`;
+      h += `</div><div class="stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b><span>처치 수</span><b>${fmt(me.kills || 0)}</b></div></div><div>${invGrid('inv')}<div style="font-size:11px;color:#6b7280;margin-top:4px">${me.inv.length}/36칸 · 아이템을 눌러 착용/사용. 다른 직업 장비는 플레이어끼리 교환하세요!</div></div></div>`;
       break;
     }
     case 'shop': mode = 'shop';
@@ -874,7 +874,7 @@ function renderPanel() {
     }
     case 'smith': {
       mode = 'smith';
-      const row = (it, attr) => { const c = GD.upgradeCost(it); const have = me.inv.filter(o => o.k === 'mat' && o.id === c.mat).reduce((a, o) => a + o.n, 0); return `<div class="li"><div class="grow"><b style="color:${GD.RARITY[it.rar].c}">${esc(itemName(it))}</b><br><small>${it.plus >= 10 ? '최대 강화' : `필요: <span style="color:${have >= c.n ? '#9f9' : '#f99'}">${c.mat} ${c.n}개 (보유 ${have})</span> + ${fmt(c.coin)}코인 · 성공률 ${GD.UPG_RATE[it.plus]}%`}</small></div>${it.plus < 10 ? `<button class="btn sm" ${attr}>강화 +${it.plus + 1}</button>` : ''}</div>`; };
+      const row = (it, attr) => { const c = GD.upgradeCost(it); const have = me.inv.filter(o => o.k === 'mat' && o.id === c.mat).reduce((a, o) => a + o.n, 0); return `<div class="li"><div class="grow"><b style="color:${GD.RARITY[it.rar].c}">${esc(itemName(it))}</b><br><small>${it.plus >= 10 ? '최대 강화' : `필요: <span style="color:${have >= c.n ? '#15803d' : '#dc2626'}">${c.mat} ${c.n}개 (보유 ${have})</span> + ${fmt(c.coin)}코인 · 성공률 ${GD.UPG_RATE[it.plus]}%`}</small></div>${it.plus < 10 ? `<button class="btn sm" ${attr}>강화 +${it.plus + 1}</button>` : ''}</div>`; };
       h = `<h2>🔨 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><h3>착용 장비</h3><div class="list">` + GD.SLOTS.filter(s => me.eq[s]).map(s => row(me.eq[s], `data-ue="${s}"`)).join('') + `</div><h3>가방 속 장비</h3><div class="list">` + me.inv.map((it, i) => it.k === 'gear' ? row(it, `data-ui="${i}"`) : '').join('') + '</div>';
       break;
     }
@@ -882,17 +882,17 @@ function renderPanel() {
       h = `<h2>🐎 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><div class="list">` + Object.entries(GD.MOUNTS).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="li"><canvas width="56" height="80" data-mt="${id}" style="width:42px;height:60px"></canvas><div class="grow"><b>${mt.name}</b><br><small>이동속도 x${mt.spd}</small></div><span class="cost">${fmt(mt.price)}</span>${own ? `<button class="btn sm green" data-ride="${id}">타기</button>` : `<button class="btn sm" data-bm="${id}" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div>';
       break;
     case 'master':
-      h = `<h2>🎖 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><div class="list">` + d.opts.map(o => `<div class="li"><div class="grow"><b style="color:#e0a8ff;font-size:15px">${o.name}</b><br>${o.desc}<br><small>전용 스킬: ${o.skills.join(', ')}</small></div>${d.can ? `<button class="btn" data-pro="${o.id}">전직</button>` : ''}</div>`).join('') + '</div>';
+      h = `<h2>🎖 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div><div class="list">` + d.opts.map(o => `<div class="li"><div class="grow"><b style="color:#7c3aed;font-size:15px">${o.name}</b><br>${o.desc}<br><small>전용 스킬: ${o.skills.join(', ')}</small></div>${d.can ? `<button class="btn" data-pro="${o.id}">전직</button>` : ''}</div>`).join('') + '</div>';
       break;
     case 'guide': case 'talk':
       h = `<h2>💬 ${esc(d.npc)}</h2><div class="dtext">${esc(d.text)}</div>` + (d.bosses ? bossTable(d.bosses) : '');
       break;
     case 'boss': h = `<h2>☠ 보스 출현 시간표</h2><div class="dtext">보스는 정해진 시간에만 나타납니다. 혼자서는 어렵습니다 — 친구들과 협력하세요!\n협력한 모두가 각자 직업에 맞는 보스 전용 장비를 받습니다.</div>` + (S.bossList ? bossTable(S.bossList) : '불러오는 중...'); break;
     case 'chest': mode = 'chest';
-      h = `<h2>📦 보관상자</h2><div class="grid" data-grid="store">` + Array.from({ length: 24 }, (_, i) => me.storage[i] ? cellHTML(me.storage[i], i) : '<div class="cell" style="opacity:.4"></div>').join('') + `</div><div style="font-size:11px;color:#cba;margin:4px 0">상자 아이템을 누르면 꺼냅니다.</div><h3>가방</h3>${invGrid('chest')}`;
+      h = `<h2>📦 보관상자</h2><div class="grid" data-grid="store">` + Array.from({ length: 24 }, (_, i) => me.storage[i] ? cellHTML(me.storage[i], i) : '<div class="cell" style="opacity:.4"></div>').join('') + `</div><div style="font-size:11px;color:#6b7280;margin:4px 0">상자 아이템을 누르면 꺼냅니다.</div><h3>가방</h3>${invGrid('chest')}`;
       break;
     case 'cook':
-      h = `<h2>🍖 요리 (${d.at === 'campfire' ? '모닥불' : '조리대'})</h2><div class="list">` + d.recipes.map(r => `<div class="li"><canvas width="22" height="22" data-ci="${r.id}"></canvas><div class="grow"><b>${r.name}</b><br><small>${r.desc}</small><br><small>${matLine(r.need)}</small></div><button class="btn sm" data-cook="${r.id}">요리</button></div>`).join('') + '</div><div style="font-size:11px;color:#cba;margin-top:6px">요리한 음식은 7번(체력) 단축키로 먹거나 다른 플레이어와 교환할 수 있습니다.</div>';
+      h = `<h2>🍖 요리 (${d.at === 'campfire' ? '모닥불' : '조리대'})</h2><div class="list">` + d.recipes.map(r => `<div class="li"><canvas width="22" height="22" data-ci="${r.id}"></canvas><div class="grow"><b>${r.name}</b><br><small>${r.desc}</small><br><small>${matLine(r.need)}</small></div><button class="btn sm" data-cook="${r.id}">요리</button></div>`).join('') + '</div><div style="font-size:11px;color:#6b7280;margin-top:6px">요리한 음식은 7번(체력) 단축키로 먹거나 다른 플레이어와 교환할 수 있습니다.</div>';
       break;
     case 'plot':
       h = `<h2>🏡 ${esc(d.town)} 공터</h2><div class="dtext">${esc(d.text)}</div>`;
@@ -901,8 +901,8 @@ function renderPanel() {
       break;
     case 'trade': mode = 'trade'; {
       const tr = S.trade; if (!tr) { h = '...'; break; }
-      const side = (v, mine) => `<div style="flex:1;min-width:150px;background:#0005;border-radius:5px;padding:6px;${v.lock ? 'outline:2px solid #ffd04a' : ''}"><b>${mine ? '내 제안' : esc(tr.with) + '의 제안'}</b> ${v.ok ? '✅' : v.lock ? '🔒' : ''}<div class="grid" style="grid-template-columns:repeat(4,48px);margin:6px 0" data-tg="${mine ? 'm' : 't'}">${v.items.map((it, i) => cellHTML(it, i)).join('') || '<small>없음</small>'}</div>💰 ${mine ? `<input type="number" id="tcoin" value="${v.coins}" min="0" style="width:100px" ${v.lock ? 'disabled' : ''}>` : fmt(v.coins)}</div>`;
-      h = `<h2>🤝 교환 — ${esc(tr.with)}</h2><div style="display:flex;gap:8px;flex-wrap:wrap">${side(tr.mine, 1)}${side(tr.theirs, 0)}</div><div class="row"><button class="btn" data-tr="lock" ${tr.mine.lock ? 'disabled' : ''}>🔒 확정</button><button class="btn green" data-tr="ok" ${!(tr.mine.lock && tr.theirs.lock) || tr.mine.ok ? 'disabled' : ''}>✅ 교환하기</button><button class="btn red" data-tr="cancel">취소</button></div><div style="font-size:11px;color:#cba">모든 아이템(장비·재료·요리·물약)을 교환할 수 있어요. 아이템을 눌러 올리세요 → 둘 다 확정 → 교환하기</div><h3>내 가방</h3>${invGrid('trade')}`;
+      const side = (v, mine) => `<div style="flex:1;min-width:150px;background:#f5f7fb;border-radius:12px;padding:8px;${v.lock ? 'outline:2px solid #2f6bff' : ''}"><b>${mine ? '내 제안' : esc(tr.with) + '의 제안'}</b> ${v.ok ? '✅' : v.lock ? '🔒' : ''}<div class="grid" style="grid-template-columns:repeat(4,48px);margin:6px 0" data-tg="${mine ? 'm' : 't'}">${v.items.map((it, i) => cellHTML(it, i)).join('') || '<small>없음</small>'}</div>💰 ${mine ? `<input type="number" id="tcoin" value="${v.coins}" min="0" style="width:100px" ${v.lock ? 'disabled' : ''}>` : fmt(v.coins)}</div>`;
+      h = `<h2>🤝 교환 — ${esc(tr.with)}</h2><div style="display:flex;gap:8px;flex-wrap:wrap">${side(tr.mine, 1)}${side(tr.theirs, 0)}</div><div class="row"><button class="btn" data-tr="lock" ${tr.mine.lock ? 'disabled' : ''}>🔒 확정</button><button class="btn green" data-tr="ok" ${!(tr.mine.lock && tr.theirs.lock) || tr.mine.ok ? 'disabled' : ''}>✅ 교환하기</button><button class="btn red" data-tr="cancel">취소</button></div><div style="font-size:11px;color:#6b7280">모든 아이템(장비·재료·요리·물약)을 교환할 수 있어요. 아이템을 눌러 올리세요 → 둘 다 확정 → 교환하기</div><h3>내 가방</h3>${invGrid('trade')}`;
       break;
     }
     case 'skills': {
@@ -938,7 +938,7 @@ function renderPanel() {
   if (P.kind === 'map') bindAtlas(body);
   if (P.kind === 'build') bindBuild(body);
 }
-function bossTable(list) { return '<div class="list">' + list.map(b => `<div class="li"><div class="grow"><b style="color:#ff7a7a">☠ ${b.name}</b> <small>Lv${b.lv}</small><br><small>${b.where}</small></div>${b.alive ? '<b style="color:#ff4a4a">출현 중!</b>' : `<span>${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div>`).join('') + '</div>'; }
+function bossTable(list) { return '<div class="list">' + list.map(b => `<div class="li"><div class="grow"><b style="color:#dc2626">☠ ${b.name}</b> <small>Lv${b.lv}</small><br><small>${b.where}</small></div>${b.alive ? '<b style="color:#dc2626">출현 중!</b>' : `<span>${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div>`).join('') + '</div>'; }
 function openPlayerMenu(p) {
   $('pbody2').innerHTML = `<h2>${esc(p.n)}</h2><div>Lv${p.lv} ${GD.JOBS[p.a.job].name}</div><div class="row" style="margin-top:8px"><button class="btn green" id="treq">🤝 교환 신청</button></div>`;
   $('panel2').classList.remove('hidden'); $('treq').onclick = () => { send({ t: 'tradeReq', id: p.i }); closePanel2(); };
@@ -958,10 +958,10 @@ function buildHTML() {
   if (s === 'tent') {
     h += `<div class="dtext">사냥터 어디서든 텐트를 칠 수 있습니다 (마을 근처 제외). 내 위치가 텐트 문이 되고, 위쪽으로 9x7칸이 필요합니다.\n텐트 안은 몬스터가 들어오지 못하는 안전지대! 밤을 보내거나 쉬어가세요.</div>`;
     h += `<div class="row"><button class="btn green" data-bb="tent">⛺ ${me.tent ? '여기로 텐트 옮겨 짓기' : '여기에 텐트 짓기'}</button><span>${matLine(GD.TENT_COST)}</span></div>`;
-    if (me.tent) h += `<div style="font-size:12px;color:#cba">현재 텐트: ${me.tent.map === 'world' ? '바깥 세계' : '던전'} (${me.tent.x},${me.tent.y}) <button class="btn sm red" data-bb="tentDel">철거</button></div>`;
+    if (me.tent) h += `<div style="font-size:12px;color:#6b7280">현재 텐트: ${me.tent.map === 'world' ? '바깥 세계' : '던전'} (${me.tent.x},${me.tent.y}) <button class="btn sm red" data-bb="tentDel">철거</button></div>`;
   } else {
     h += `<div class="dtext">마을 주택가의 공터 표지판에서 땅을 사고, 건축 재료로 집을 지으세요.\n집에는 문·창문·그림(벽)과 침대·탁자·횃불·책장 등을 자유롭게 배치할 수 있습니다.</div>`;
-    if (!me.house) h += `<div style="color:#f99">아직 집이 없습니다. 마을 서쪽 주택가로 가보세요!</div>`;
+    if (!me.house) h += `<div style="color:#dc2626">아직 집이 없습니다. 마을 서쪽 주택가로 가보세요!</div>`;
   }
   const have = s === 'tent' ? me.tent : me.house;
   if (have) {
@@ -987,10 +987,10 @@ function buildAtlasBase() {
   g.putImageData(id, 0, 0); atlasBase = c;
 }
 function lvRange(s) { const [a, b] = String(s).split('~').map(Number); return [a, b || a]; }
-function diffColor(lvMin) { const d = lvMin - S.me.lv; return d <= -8 ? '#9a9a9a' : d <= 2 ? '#4aff7a' : d <= 8 ? '#ffd04a' : '#ff4a4a'; }
+function diffColor(lvMin) { const d = lvMin - S.me.lv; return d <= -8 ? '#9a9a9a' : d <= 2 ? '#22c55e' : d <= 8 ? '#eab308' : '#ef4444'; }
 function atlasHTML() {
   const sz = Math.min(480, innerWidth - 40);
-  return `<h2>🗺 바람의 대륙 지도</h2><div style="font-size:11px;margin-bottom:4px"><span style="color:#4aff7a">■ 적정</span> <span style="color:#ffd04a">■ 도전</span> <span style="color:#ff4a4a">■ 위험</span> <span style="color:#9a9a9a">■ 쉬움</span> · ⌂ 마을 · ▲ 동굴 · ♜ 성 · ☠ 필드보스 · 지역을 누르면 몬스터와 드랍 아이템을 볼 수 있습니다</div>
+  return `<h2>🗺 바람의 대륙 지도</h2><div style="font-size:11px;margin-bottom:4px"><span style="color:#15803d">■ 적정</span> <span style="color:#ffd04a">■ 도전</span> <span style="color:#dc2626">■ 위험</span> <span style="color:#9a9a9a">■ 쉬움</span> · ⌂ 마을 · ▲ 동굴 · ♜ 성 · ☠ 필드보스 · 지역을 누르면 몬스터와 드랍 아이템을 볼 수 있습니다</div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><div id="atlas"><canvas id="atc" width="480" height="480" style="width:${sz}px;height:${sz}px"></canvas></div><div id="atinfo" style="flex:1;min-width:260px;max-height:70vh;overflow:auto">${atlasInfo()}</div></div>`;
 }
 function bindAtlas(body) {
@@ -1022,20 +1022,20 @@ function monEntry(key) {
   let dr = [`💰 코인 (항상)`];
   if (d.boss) {
     const L = GD.BOSS_LOOT[key];
-    dr.push(`<b style="color:#ffb020">👑 보스 전용 [${L.set}] 장비</b> — ${L.desc}`, `부위: ${L.slots.map(s => GD.SLOT_NAME[s]).join('/')} · 전설 등급 · <b>협력한 모두에게 각자 직업에 맞게 1개씩</b>`, `🛡 무작위 장비 2~4개 (Lv${Math.max(1, lv - 2)}~${Math.min(50, lv + 2)})`, `⛏ ${GD.oreFor(lv)} 4~8개${lv >= 30 ? ' · 용의비늘' : ''} · 건축재료 다수`);
+    dr.push(`<b style="color:#d97706">👑 보스 전용 [${L.set}] 장비</b> — ${L.desc}`, `부위: ${L.slots.map(s => GD.SLOT_NAME[s]).join('/')} · 전설 등급 · <b>협력한 모두에게 각자 직업에 맞게 1개씩</b>`, `🛡 무작위 장비 2~4개 (Lv${Math.max(1, lv - 2)}~${Math.min(50, lv + 2)})`, `⛏ ${GD.oreFor(lv)} 4~8개${lv >= 30 ? ' · 용의비늘' : ''} · 건축재료 다수`);
   } else {
     dr.push(`🛡 장비: 무작위 직업·부위 Lv${Math.max(1, lv - 2)}~${Math.min(50, lv + 2)} (낮은 확률 약 4%, 돌연변이 12%)`, `⛏ 강화재료: ${GD.oreFor(lv)} (7.5%)${lv >= 45 ? ' · 용의비늘 (4%)' : ''}`);
     if (d.mats) dr.push(`🪵 건축재료: ${[...new Set(d.mats)].join(', ')} (32%)`);
     if (d.meat) dr.push(`🍖 고기 (40%)`);
     dr.push(`🧪 물약 (5%)`);
   }
-  return `<div class="mon"><canvas width="40" height="40" data-mon="${key}"></canvas><div><b style="color:${d.boss ? '#ff6a6a' : '#fff'}">${d.name}</b> <small>Lv${lv}${d.p ? ' · 비선공' : ' · 선공'}${d.rng ? ' · 원거리' : ''}</small><div class="dr">${dr.join('<br>')}</div></div></div>`;
+  return `<div class="mon"><canvas width="40" height="40" data-mon="${key}"></canvas><div><b style="color:${d.boss ? '#dc2626' : '#111827'}">${d.name}</b> <small>Lv${lv}${d.p ? ' · 비선공' : ' · 선공'}${d.rng ? ' · 원거리' : ''}</small><div class="dr">${dr.join('<br>')}</div></div></div>`;
 }
 function atlasInfo() {
   const sel = atlasSel; const A = S.atlas;
   if (!sel) return `<div class="dtext">지도에서 사냥터·던전·보스(☠)를 눌러보세요.\n\n현재 내 레벨: ${S.me.lv} (최대 ${GD.MAX_LEVEL})\n\n· 일반 몬스터는 직업과 상관없이 무작위 장비를 떨어뜨립니다 → 다른 직업 장비는 친구와 교환!\n· 보스는 정해진 시간에만 출현하며, 협력한 모두가 각자 직업용 보스 전용 장비를 받습니다.\n· 밤에는 돌연변이 몬스터가 나와 더 좋은 장비를 떨어뜨립니다.</div>` +
     '<h3>추천 사냥터</h3>' + [...A.zones.map(z => ({ n: z.name, lv: z.lv })), ...A.dungeons.map(d => ({ n: d.name, lv: d.lv }))].sort((a, b) => lvRange(a.lv)[0] - lvRange(b.lv)[0]).map(o => `<div style="color:${diffColor(lvRange(o.lv)[0])}">· ${o.n} — Lv${o.lv}</div>`).join('');
   if (sel.z) { const z = sel.z; return `<h3>${z.name} <small>Lv${z.lv}</small></h3>` + z.mons.map(monEntry).join(''); }
-  if (sel.d) { const d = sel.d; return `<h3>${d.type === 'cave' ? '▲' : '♜'} ${d.name} <small>Lv${d.lv} · ${d.floors.length}층</small></h3>` + d.floors.map((f, i) => `<div style="color:#ffd77a;margin-top:6px">${i + 1}층</div>` + f.map(monEntry).join('')).join('') + `<div style="color:#ff7a7a;margin-top:8px">☠ ${d.floors.length}층 보스 — ${minutesStr(d.every, d.off)} 출현</div>` + monEntry(d.boss); }
+  if (sel.d) { const d = sel.d; return `<h3>${d.type === 'cave' ? '▲' : '♜'} ${d.name} <small>Lv${d.lv} · ${d.floors.length}층</small></h3>` + d.floors.map((f, i) => `<div style="color:#b7791f;margin-top:6px">${i + 1}층</div>` + f.map(monEntry).join('')).join('') + `<div style="color:#dc2626;margin-top:8px">☠ ${d.floors.length}층 보스 — ${minutesStr(d.every, d.off)} 출현</div>` + monEntry(d.boss); }
   if (sel.b) { const b = sel.b; return `<h3>☠ 필드 보스 — ${b.where}</h3><div>${minutesStr(b.every, b.off)} 출현</div>` + monEntry(b.mon); }
 }
