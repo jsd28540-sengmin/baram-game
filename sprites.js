@@ -15,44 +15,44 @@ function tileImg(id, v, pal, castle, frame, under) {
   c = mk(TS, TS); const g = c.getContext('2d'); const r = srand(id * 977 + v * 131 + pal * 17 + 7 + frame * 3);
   const P = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x * 2, y * 2, w * 2, h * 2); };
   const base = (col, spk, n) => { P(0, 0, 16, 16, col); for (let i = 0; i < n; i++) P(r() * 16 | 0, r() * 16 | 0, 1 + (r() < 0.3 ? 1 : 0), 1, spk[i % spk.length]); };
+  const nz = (pal, x0 = 0, y0 = 0, w = 16, h = 16) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) P(x, y, 1, 1, pal[r() * pal.length | 0]); };
+  const GP = { g: ['#5fa13b', '#559533', '#6aad44', '#4f8c30', '#63a63f'], f: ['#3f7a2a', '#386f25', '#478532', '#326522'], d: ['#dbd097', '#d2c68a', '#e4daa5', '#cbbd80'], s: ['#f4f8fa', '#e6eef2', '#ffffff', '#dde7ec'], w: ['#4a5a30', '#3f4e28', '#566838', '#344222', '#4d6a3a'], v: ['#4a3c38', '#3e322e', '#574843', '#5a2a1a'], t: ['#8a8a8a', '#7c7c7c', '#969696', '#6e6e6e'] };
   const ground = u => {
-    if (u === 'f') base('#2f6a2a', ['#255a22', '#3a7a32'], 18);
-    else if (u === 'd') base('#e0c27a', ['#cfae64', '#ecd294'], 14);
-    else if (u === 's') base('#eef3f8', ['#d6e2ee', '#ffffff'], 12);
-    else if (u === 'w') base('#4a5a32', ['#3a4826', '#5a6a3a', '#2e3a20'], 18);
-    else if (u === 'v') base('#4a3a36', ['#3a2c28', '#5a4842', '#6a2a1a'], 16);
-    else if (u === 'c') { const p = CAVE_PAL[pal]; base(p[0], [p[1], p[3]], 14); }
-    else if (u === 'k') { const p = CASTLE_PAL[pal]; P(0, 0, 16, 16, p[0]); P(0, 0, 16, 1, p[1]); P(0, 8, 16, 1, p[1]); P(0, 0, 1, 16, p[1]); P(8, 0, 1, 8, p[1]); P(4, 8, 1, 8, p[1]); P(12, 8, 1, 8, p[1]); }
-    else if (u === 't') { base('#9a948a', ['#8a847a', '#aaa49a'], 6); }
-    else base('#4c9a3c', ['#3f8a32', '#5aaa48', '#448f36'], 20);
+    if (GP[u]) nz(GP[u]);
+    else if (u === 'c') { const p = CAVE_PAL[pal]; nz([p[0], p[1], p[3], p[0]]); }
+    else if (u === 'k') { const p = CASTLE_PAL[pal]; nz([p[0], p[1], p[0], shade(p[0], 0.08)]); P(0, 0, 16, 1, p[2]); P(0, 8, 16, 1, p[2]); P(0, 0, 1, 16, p[2]); P(8, 0, 1, 8, p[2]); P(4, 8, 1, 8, p[2]); P(12, 8, 1, 8, p[2]); }
+    else nz(GP.g);
   };
+  const cobble = (base) => { nz([shade(base, -0.45), shade(base, -0.4)]); for (const [x, y, w, h] of [[1, 1, 5, 4], [7, 0, 4, 3], [12, 1, 4, 5], [0, 6, 4, 4], [5, 5, 6, 5], [12, 7, 4, 3], [1, 11, 5, 4], [7, 11, 4, 5], [12, 11, 4, 4]]) { nz([base, shade(base, 0.1), shade(base, -0.08)], x, y, w, h); P(x, y, w, 1, shade(base, 0.25)); } };
+  const planks = (base) => { for (let i = 0; i < 4; i++) { nz([base, shade(base, -0.06), shade(base, 0.06)], 0, i * 4, 16, 4); P(0, i * 4 + 3, 16, 1, shade(base, -0.35)); P((i % 2) * 8 + 3, i * 4, 1, 3, shade(base, -0.35)); } };
+  const leaves = (pal, x0, y0, w, h) => { nz(pal, x0, y0, w, h); P(x0, y0 + h - 1, w, 1, shade(pal[0], -0.35)); P(x0 + w - 1, y0, 1, h, shade(pal[0], -0.25)); P(x0, y0, w, 1, shade(pal[0], 0.25)); };
   const cv = CAVE_PAL[pal], kv = CASTLE_PAL[pal] || CASTLE_PAL[0];
   switch (id) {
     case T.GRASS: ground('g'); break;
     case T.FLOWER: ground(under || 'g'); { const fc = ['#ffef5a', '#ff7aa8', '#ffffff', '#b07aff']; for (let i = 0; i < 4; i++) { const x = 2 + r() * 12 | 0, y = 2 + r() * 12 | 0; P(x, y + 1, 1, 1, '#2a6a20'); P(x, y, 1, 1, fc[(v + i) % 4]); } } break;
     case T.FOREST: ground('f'); break;
-    case T.TREE: ground(under || 'g'); P(7, 10, 2, 5, '#5a3a1a'); P(6, 14, 4, 1, '#3a2510'); P(3, 2, 10, 9, '#2a6a22'); P(2, 4, 12, 5, '#2a6a22'); P(4, 1, 8, 1, '#2a6a22'); P(4, 3, 4, 3, '#3a8a2e'); P(9, 6, 3, 2, '#22581c'); P(5, 9, 6, 1, '#1e4e18'); P(5, 3, 1, 1, '#5aaa48'); break;
-    case T.PINE: ground('s'); P(7, 12, 2, 3, '#5a3a1a'); for (let i = 0; i < 4; i++) P(7 - i - 1, 2 + i * 2.5, 4 + i * 2, 3, '#1f5a3a'); P(5, 4, 2, 1, '#fff'); P(3, 9, 3, 1, '#fff'); P(9, 7, 2, 1, '#fff'); P(7, 1, 2, 2, '#1f5a3a'); break;
+    case T.TREE: ground(under || 'g'); P(6, 11, 4, 5, '#6b5132'); P(7, 11, 1, 5, '#4f3a22'); P(2, 15, 12, 1, '#0003'); leaves(['#3c8a26', '#357c22', '#45972e', '#2f6e1c', '#4fa236'], 1, 0, 14, 12); break;
+    case T.PINE: ground('s'); P(6, 12, 4, 4, '#4a3420'); leaves(['#2a5a3a', '#244f33', '#306444', '#1f4630'], 2, 1, 12, 11); P(3, 1, 4, 1, '#fff'); P(9, 4, 3, 1, '#fff'); P(4, 7, 3, 1, '#fff'); break;
     case T.DEADTREE: ground('w'); P(7, 5, 2, 10, '#4a3a2a'); P(4, 4, 3, 1, '#4a3a2a'); P(4, 2, 1, 2, '#4a3a2a'); P(9, 6, 4, 1, '#4a3a2a'); P(12, 3, 1, 3, '#4a3a2a'); break;
-    case T.CACTUS: ground('d'); P(7, 3, 3, 12, '#3a8a3a'); P(4, 6, 2, 4, '#3a8a3a'); P(4, 9, 3, 2, '#3a8a3a'); P(11, 5, 2, 4, '#3a8a3a'); P(10, 8, 2, 2, '#3a8a3a'); P(8, 3, 1, 12, '#5aaa4a'); P(8, 2, 1, 1, '#ff7aa8'); break;
-    case T.WATER: { P(0, 0, 16, 16, '#2f6fc0'); for (let i = 0; i < 5; i++) { const x = r() * 13 | 0, y = (r() * 15 + frame * 2) % 15 | 0; P(x, y, 3, 1, '#6aa8ff'); } P(0, 0, 16, 1, '#2a62aa'); break; }
-    case T.LAVA: { P(0, 0, 16, 16, '#d8400a'); for (let i = 0; i < 7; i++) P(r() * 14 | 0, (r() * 15 + frame * 3) % 15 | 0, 2, 1, i % 2 ? '#ffb020' : '#ff7a10'); P(r() * 12 | 0, r() * 12 | 0, 3, 3, '#8a1a00'); break; }
+    case T.CACTUS: ground('d'); nz(['#2f7a2f', '#287028', '#358535'], 3, 1, 10, 14); for (let y = 2; y < 15; y += 3) { P(3, y, 1, 1, '#111'); P(12, y + 1, 1, 1, '#111'); } P(3, 1, 10, 1, '#4a9a4a'); P(3, 14, 10, 1, '#1a4a1a'); break;
+    case T.WATER: { nz(['#3f76e4', '#3a6bd6', '#4580ee', '#3568cc']); for (let i = 0; i < 4; i++) { const x = r() * 12 | 0, y = (r() * 15 + frame * 3) % 15 | 0; P(x, y, 4, 1, '#7aa8ff'); } break; }
+    case T.LAVA: { nz(['#e0560e', '#d84a0a', '#f06a14', '#ffa020', '#c43a06']); for (let i = 0; i < 4; i++) P(r() * 13 | 0, (r() * 14 + frame * 3) % 14 | 0, 3, 2, '#ffd040'); break; }
     case T.SAND: ground('d'); break;
     case T.SNOW: ground('s'); break;
     case T.SWAMP: ground('w'); if (v === 1) { P(4, 6, 6, 3, '#2a3a2a'); P(5, 6, 3, 1, '#4a6a5a'); } break;
     case T.ASH: ground('v'); break;
-    case T.ROAD: base('#a8865a', ['#987650', '#b8966a', '#8a6a46'], 16); break;
-    case T.STONE: { P(0, 0, 16, 16, '#b8b0a0'); P(0, 0, 16, 1, '#8a8478'); P(0, 8, 16, 1, '#8a8478'); P(0, 0, 1, 8, '#8a8478'); P(8, 8, 1, 8, '#8a8478'); P(1, 1, 6, 1, '#d0c8b8'); P(9, 9, 6, 1, '#d0c8b8'); break; }
-    case T.WALL: { P(0, 0, 16, 16, '#8a7a66'); for (let y = 0; y < 16; y += 4) { P(0, y, 16, 1, '#5a4c3e'); for (let x = (y / 4 % 2) * 4; x < 16; x += 8) P(x, y, 1, 4, '#5a4c3e'); } P(0, 0, 16, 2, '#b8a890'); break; }
+    case T.ROAD: nz(['#9b7653', '#8a6845', '#a8835e', '#7d5d3c', '#94704d']); break;
+    case T.STONE: cobble('#8f8f8f'); break;
+    case T.WALL: { nz(['#7f7f7f', '#767676', '#888888']); for (let yy = 0; yy < 16; yy += 4) { P(0, yy + 3, 16, 1, '#4a4a4a'); for (let xx = (yy / 4 % 2) * 4; xx < 16; xx += 8) P(xx, yy, 1, 3, '#4a4a4a'); } P(0, 0, 16, 1, '#a8a8a8'); break; }
     case T.FENCE: { ground(under || 'g'); P(0, 6, 16, 2, '#8a5a2a'); P(0, 11, 16, 2, '#8a5a2a'); P(2, 3, 2, 12, '#a06a32'); P(12, 3, 2, 12, '#a06a32'); P(2, 3, 2, 1, '#c8904a'); P(12, 3, 2, 1, '#c8904a'); break; }
-    case T.ROCK: { ground(under || 'g'); P(2, 4, 12, 10, '#7a7a80'); P(3, 3, 9, 2, '#8a8a90'); P(4, 5, 4, 3, '#a0a0a8'); P(2, 12, 12, 2, '#55555a'); P(10, 7, 3, 5, '#66666c'); break; }
-    case T.CAVE: { base(cv[0], [cv[1], cv[3]], 14); if (v === 2) { P(4, 9, 2, 1, cv[3]); P(10, 4, 1, 1, cv[3]); } break; }
-    case T.CAVEWALL: { P(0, 0, 16, 16, cv[2]); for (let i = 0; i < 6; i++) { const x = r() * 12 | 0, y = r() * 12 | 0; P(x, y, 4, 3, cv[1]); P(x, y, 2, 1, cv[3]); } break; }
+    case T.ROCK: { ground(under || 'g'); nz(['#8a8a8a', '#7e7e7e', '#949494', '#747474'], 1, 1, 14, 9); P(1, 1, 14, 1, '#a8a8a8'); nz(['#5e5e5e', '#555555', '#666666'], 1, 10, 14, 5); P(1, 15, 14, 1, '#0004'); break; }
+    case T.CAVE: nz([cv[0], cv[1], cv[0], cv[3], shade(cv[0], 0.06)]); break;
+    case T.CAVEWALL: { nz([cv[2], cv[1], cv[2], shade(cv[2], -0.2)]); if (v === 1) { P(4, 5, 2, 2, '#c8c8d0'); P(9, 9, 2, 1, '#c8c8d0'); } if (v === 3) { P(6, 3, 2, 2, '#e0b030'); P(11, 10, 1, 2, '#e0b030'); } P(0, 15, 16, 1, '#0006'); break; }
     case T.CASTLE: ground('k'); break;
     case T.CASTLEWALL: { P(0, 0, 16, 16, kv[2]); for (let y = 0; y < 16; y += 4) { P(0, y + 3, 16, 1, '#000'); for (let x = (y / 4 % 2) * 4; x < 16; x += 8) P(x, y, 1, 3, '#000'); } P(0, 0, 16, 1, kv[3]); P(0, 14, 16, 2, '#0008'); break; }
     case T.CARPET: { P(0, 0, 16, 16, kv[4]); P(1, 0, 1, 16, '#d8b040'); P(14, 0, 1, 16, '#d8b040'); P(6, 6, 4, 4, shade(kv[4], 0.25)); break; }
-    case T.BRIDGE: { P(0, 0, 16, 16, '#2f6fc0'); P(0, 1, 16, 14, '#8a5a2a'); for (let y = 1; y < 15; y += 3) P(0, y, 16, 1, '#5a3a1a'); P(0, 1, 16, 1, '#a87a42'); break; }
-    case T.HOUSE: { P(0, 0, 16, 16, '#e8dcc0'); P(0, 0, 1, 16, '#7a5a3a'); P(15, 0, 1, 16, '#7a5a3a'); P(0, 15, 16, 1, '#7a5a3a'); if (v % 3 === 0) { P(5, 4, 6, 5, '#4a7ab0'); P(5, 4, 6, 1, '#7a5a3a'); P(7, 4, 1, 5, '#7a5a3a'); P(5, 6, 6, 1, '#7a5a3a'); } else if (v % 3 === 1) { P(5, 5, 6, 11, '#6a4020'); P(6, 6, 4, 9, '#8a5a30'); P(9, 10, 1, 1, '#ffd040'); } break; }
+    case T.BRIDGE: planks('#a2824e'); break;
+    case T.HOUSE: { planks('#b8945a'); P(0, 0, 1, 16, '#5a3e22'); P(15, 0, 1, 16, '#5a3e22'); if (v % 3 === 0) { P(5, 4, 6, 5, '#4a7ab0'); P(5, 4, 6, 1, '#7a5a3a'); P(7, 4, 1, 5, '#7a5a3a'); P(5, 6, 6, 1, '#7a5a3a'); } else if (v % 3 === 1) { P(5, 5, 6, 11, '#6a4020'); P(6, 6, 4, 9, '#8a5a30'); P(9, 10, 1, 1, '#ffd040'); } break; }
     case T.ROOF: { const rc = under || '#b04030'; P(0, 0, 16, 16, rc); for (let y = 1; y < 16; y += 3) P(0, y, 16, 1, shade(rc, -0.3)); for (let y = 0; y < 16; y += 3) for (let x = (y % 2) * 3; x < 16; x += 6) P(x, y, 1, 2, shade(rc, -0.2)); P(0, 0, 16, 1, shade(rc, 0.3)); break; }
     case T.UP: case T.DOWN: { const castle2 = castle; const fl = castle2 ? kv[0] : cv[0]; P(0, 0, 16, 16, fl); for (let i = 0; i < 5; i++) { const w = id === T.DOWN ? 14 - i * 2 : 6 + i * 2; P(8 - w / 2, 2 + i * 3, w, 2, id === T.DOWN ? shade(fl, -0.2 - i * 0.15) : shade(fl, 0.4 - i * 0.07)); } P(6, 0, 4, 2, id === T.DOWN ? '#000' : '#ffe88a'); break; }
     case T.CAVEDOOR: { P(0, 0, 16, 16, '#7a7a80'); P(2, 2, 12, 14, '#111'); P(3, 1, 10, 2, '#111'); P(2, 2, 1, 14, '#55555a'); P(13, 2, 1, 14, '#55555a'); P(5, 6, 1, 1, '#ff3030'); P(10, 6, 1, 1, '#ff3030'); break; }
@@ -133,34 +133,30 @@ function charSprite(ap, dir, frame) {
   // 팔
   if (d === 2) { P(X(11), Y(14), 3, 5, clothD); P(X(11), Y(19), 3, 2, gloves); }
   else { P(X(6), Y(14), 2, 5, clothD); P(X(16), Y(14), 2, 5, clothD); P(X(6), Y(19), 2, 2, gloves); P(X(16), Y(19), 2, 2, gloves); }
-  // 머리 (애니풍 SD: 큰 얼굴 + 큰 눈)
-  const hx0 = d === 2 ? 9 : 8;
-  const skD = shade(skin, -0.18);
-  P(X(hx0 - 1), Y(3), 10, 10, skin); P(X(hx0), Y(13), 8, 1, skin); P(X(hx0 - 1), Y(11), 1, 2, skD); P(X(hx0 + 8), Y(11), 1, 2, skD);
-  const eyeC = ['#3a4ab0', '#6a3a1a', '#2a7a5a', '#8a2a5a', '#3a3a3a', '#b0402a', '#2a5ad0', '#7a3ab0'][ap.hc || 0];
-  const eye = (ex, ey) => { P(X(ex), Y(ey), 2, 1, '#1a1018'); P(X(ex), Y(ey + 1), 2, 2, eyeC); P(X(ex), Y(ey + 1), 1, 1, '#ffffff'); P(X(ex + 1), Y(ey + 2), 1, 1, shade(eyeC, -0.4)); };
+  // 머리 (블록형 네모 머리)
+  const hx0 = d === 2 ? 8 : 7;
+  const skD = shade(skin, -0.15), skL = shade(skin, 0.08);
+  P(X(hx0), Y(3), 10, 10, skin); P(X(hx0), Y(3), 10, 1, skL); P(X(hx0 + 9), Y(4), 1, 9, skD); P(X(hx0), Y(12), 10, 1, skD);
+  const eyeC = ['#3a4ab0', '#5a3418', '#2a7a5a', '#7a2a5a', '#3a3a3a', '#a03a2a', '#2a5ad0', '#6a2ab0'][ap.hc || 0];
   if (d === 0) {
-    eye(hx0 + 1, 7); eye(hx0 + 5, 7);
-    if (fem) { P(X(hx0), Y(7), 1, 1, '#1a1018'); P(X(hx0 + 7), Y(7), 1, 1, '#1a1018'); }
-    P(X(hx0 + 3), Y(11), 2, 1, fem ? '#e06a6a' : '#b06050');
-    P(X(hx0), Y(10), 1, 1, '#ffaaaa'); P(X(hx0 + 7), Y(10), 1, 1, '#ffaaaa');
+    P(X(hx0 + 1), Y(8), 2, 1, '#ffffff'); P(X(hx0 + 3), Y(8), 1, 1, eyeC);
+    P(X(hx0 + 6), Y(8), 1, 1, eyeC); P(X(hx0 + 7), Y(8), 2, 1, '#ffffff');
+    P(X(hx0 + 4), Y(9), 2, 1, skD);
+    P(X(hx0 + 3), Y(11), 4, 1, fem ? '#c05050' : shade(skin, -0.35));
+    if (fem) { P(X(hx0 + 1), Y(10), 1, 1, '#f0a0a0'); P(X(hx0 + 8), Y(10), 1, 1, '#f0a0a0'); }
   }
-  if (d === 2) { eye(hx0 + 5, 7); P(X(hx0 + 8), Y(9), 1, 2, skin); P(X(hx0 + 6), Y(11), 1, 1, '#b06050'); P(X(hx0 + 2), Y(8), 1, 2, skD); }
-  // 머리카락 (앞머리·광택)
-  const hs = ap.h || 0; const hl = shade(hair, 0.35), hd = shade(hair, -0.3);
+  if (d === 2) { P(X(hx0 + 7), Y(8), 1, 1, '#ffffff'); P(X(hx0 + 8), Y(8), 1, 1, eyeC); P(X(hx0 + 9), Y(9), 1, 1, skD); P(X(hx0 + 7), Y(11), 2, 1, shade(skin, -0.35)); P(X(hx0 + 3), Y(8), 2, 2, skD); }
+  // 머리카락 (블록형)
+  const hs = ap.h || 0; const hl = shade(hair, 0.18), hd = shade(hair, -0.25);
   const helm = eq.helmet;
   if (!helm || base === 'healer') {
-    P(X(hx0 - 2), Y(2), 12, 4, hair); P(X(hx0 - 1), Y(1), 10, 1, hair); P(X(hx0 + 1), Y(0), 6, 1, hair);
-    P(X(hx0 + 1), Y(2), 4, 1, hl); P(X(hx0), Y(3), 2, 1, hl);
-    if (d === 3) { P(X(hx0 - 2), Y(2), 12, 11, hair); P(X(hx0 + 1), Y(4), 6, 1, hl); P(X(hx0 - 2), Y(11), 12, 1, hd); }
-    if (d === 0) { // 앞머리 지그재그
-      for (let i = 0; i < 10; i += 2) P(X(hx0 - 1 + i), Y(6), 1, hs === 1 ? 2 : 1, hair);
-      P(X(hx0 - 2), Y(5), 2, 6, hair); P(X(hx0 + 8), Y(5), 2, 6, hair); P(X(hx0 - 2), Y(10), 1, 1, hd); P(X(hx0 + 9), Y(10), 1, 1, hd);
-    }
-    if (d === 2) { P(X(hx0 - 2), Y(3), 4, 8, hair); P(X(hx0 + 4), Y(6), 4, 1, hair); P(X(hx0 + 7), Y(6), 1, 2, hair); P(X(hx0 - 1), Y(5), 1, 3, hl); }
-    if (hs === 1) { P(X(hx0 - 1), Y(-1), 2, 2, hair); P(X(hx0 + 3), Y(-2), 2, 3, hair); P(X(hx0 + 7), Y(-1), 2, 2, hair); P(X(hx0 + 3), Y(-2), 1, 1, hl); }
-    if (hs === 2 || (fem && hs === 0)) { if (d === 0) { P(X(hx0 - 2), Y(5), 2, 11, hair); P(X(hx0 + 8), Y(5), 2, 11, hair); P(X(hx0 - 2), Y(15), 2, 1, hd); P(X(hx0 + 8), Y(15), 2, 1, hd); } else if (d === 2) { P(X(hx0 - 2), Y(3), 4, 13, hair); P(X(hx0 - 2), Y(15), 4, 1, hd); } else { P(X(hx0 - 2), Y(10), 12, 6, hair); P(X(hx0 - 2), Y(15), 12, 1, hd); } }
-    if (hs === 3) { const rb = '#e03a4a'; if (d === 0) { P(X(hx0 + 2), Y(-2), 4, 3, hair); P(X(hx0 + 1), Y(0), 1, 1, rb); P(X(hx0 + 6), Y(0), 1, 1, rb); } else if (d === 2) { P(X(hx0 - 4), Y(3), 3, 3, hair); P(X(hx0 - 4), Y(6), 2, 7, hair); P(X(hx0 - 2), Y(3), 1, 2, rb); } else { P(X(hx0 + 2), Y(-1), 4, 3, hair); P(X(hx0 + 3), Y(2), 2, 12, hair); P(X(hx0 + 2), Y(2), 4, 1, rb); } }
+    P(X(hx0), Y(2), 10, 4, hair); P(X(hx0), Y(2), 10, 1, hl); P(X(hx0 + 2), Y(3), 3, 1, hl);
+    if (d === 0) { P(X(hx0), Y(6), 1, 3, hair); P(X(hx0 + 9), Y(6), 1, 3, hair); P(X(hx0 + 1), Y(6), 2, 1, hair); P(X(hx0 + 6), Y(6), 3, 1, hair); if (hs === 1) { P(X(hx0 + 4), Y(6), 1, 1, hair); P(X(hx0 + 1), Y(1), 2, 1, hair); P(X(hx0 + 5), Y(1), 3, 1, hair); } }
+    if (d === 2) { P(X(hx0), Y(2), 5, 9, hair); P(X(hx0 + 5), Y(6), 4, 1, hair); P(X(hx0), Y(10), 5, 1, hd); }
+    if (d === 3) { P(X(hx0), Y(2), 10, 11, hair); P(X(hx0), Y(12), 10, 1, hd); P(X(hx0 + 9), Y(3), 1, 9, hd); }
+    if (hs === 1 && d !== 0) { P(X(hx0 + 1), Y(1), 2, 1, hair); P(X(hx0 + 5), Y(1), 3, 1, hair); }
+    if (hs === 2 || (fem && hs === 0)) { if (d === 0) { P(X(hx0 - 1), Y(4), 2, 12, hair); P(X(hx0 + 9), Y(4), 2, 12, hair); P(X(hx0 - 1), Y(15), 2, 1, hd); P(X(hx0 + 9), Y(15), 2, 1, hd); } else if (d === 2) { P(X(hx0), Y(2), 5, 14, hair); P(X(hx0), Y(15), 5, 1, hd); } else { P(X(hx0), Y(2), 10, 14, hair); P(X(hx0), Y(15), 10, 1, hd); } }
+    if (hs === 3) { const rb = '#d03040'; if (d === 0) { P(X(hx0 + 3), Y(0), 4, 2, hair); P(X(hx0 + 2), Y(1), 1, 1, rb); P(X(hx0 + 7), Y(1), 1, 1, rb); } else if (d === 2) { P(X(hx0 - 3), Y(4), 3, 3, hair); P(X(hx0 - 3), Y(7), 2, 7, hair); P(X(hx0 - 1), Y(4), 1, 2, rb); } else { P(X(hx0 + 3), Y(0), 4, 2, hair); P(X(hx0 + 4), Y(2), 2, 12, hd); P(X(hx0 + 3), Y(2), 4, 1, rb); } }
   }
   // 투구 (직업·등급별 외형)
   if (helm) {

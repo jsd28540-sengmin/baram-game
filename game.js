@@ -8,6 +8,20 @@ let W = 0, H = 0;
 function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H; }
 const lc = mk(10, 10), lcx = lc.getContext('2d');
 addEventListener('resize', resize); resize();
+// 블록 테마 텍스처 (돌판·흙·하트·물방울)
+(function blockTextures() {
+  const tex = (w, pal, fn) => { const c = document.createElement('canvas'); c.width = c.height = w; const g = c.getContext('2d'); for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { g.fillStyle = fn ? fn(x, y) : pal[Math.random() * pal.length | 0]; g.fillRect(x, y, 1, 1); } return 'url(' + c.toDataURL() + ')'; };
+  const root = document.documentElement.style;
+  root.setProperty('--stone', tex(16, ['#7a7a7a', '#727272', '#6b6b6b', '#808080', '#666666']));
+  root.setProperty('--dirt', tex(16, ['#866043', '#79553a', '#966c4a', '#6c4b30', '#9a7350']));
+  const icon = (rows, map) => { const c = document.createElement('canvas'); c.width = c.height = 9; const g = c.getContext('2d'); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (map[ch]) { g.fillStyle = map[ch]; g.fillRect(x, y, 1, 1); } })); const b = document.createElement('canvas'); b.width = b.height = 16; const bg = b.getContext('2d'); bg.imageSmoothingEnabled = false; bg.drawImage(c, 0, 0, 9, 9, 1, 1, 14, 14); return 'url(' + b.toDataURL() + ')'; };
+  const H = ['.kk...kk.', 'krrk.krwk', 'krrrkrrwk', 'krrrrrrrk', '.krrrrrk.', '..krrrk..', '...krk...', '....k....', '.........'];
+  const Dp = ['....k....', '...kbk...', '..kbbwk..', '.kbbbwbk.', '.kbbbbbk.', '.kbbbbbk.', '..kbbbk..', '...kkk...', '.........'];
+  root.setProperty('--heart1', icon(H, { k: '#1a0000', r: '#e01818', w: '#ffb0b0' }));
+  root.setProperty('--heart0', icon(H, { k: '#1a0000', r: '#3a1010', w: '#3a1010' }));
+  root.setProperty('--drop1', icon(Dp, { k: '#000a20', b: '#2a6aff', w: '#b0d0ff' }));
+  root.setProperty('--drop0', icon(Dp, { k: '#000a20', b: '#16203a', w: '#16203a' }));
+})();
 const TOUCH = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 const S = { myId: null, me: null, map: null, P: new Map(), M: new Map(), D: [], tents: [], plots: [], fx: [], nl: 0, you: {}, atlas: null, target: null, bubbles: new Map(), off: 0, panel: null, place: null, trade: null, roof: new Map(), mini: null };
