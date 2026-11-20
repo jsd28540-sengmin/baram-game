@@ -1280,6 +1280,13 @@ document.addEventListener('pointerup', e => {
 // ═══════ 새 버전 자동 적용: 캐시된 옛 화면이면 새로고침 ═══════
 (function () {
   if (!window.BUILDV) return;
-  const check = () => fetch('index.html?ts=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/window\.BUILDV="(\d+)"/); if (m && m[1] !== window.BUILDV && NET.serverOnly) { if (typeof serverUpdate === 'function') serverUpdate(); } else if (m && m[1] !== window.BUILDV && !S.me) location.reload(); else if (m && m[1] !== window.BUILDV) { if (!$('newver')) { const d = document.createElement('div'); d.id = 'newver'; d.className = 'win'; d.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:80;padding:6px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;background:#16a34a'; d.textContent = '새 버전이 있어요 — 눌러서 적용'; d.onclick = () => location.reload(); document.body.appendChild(d); } } }).catch(() => { });
+  const check = () => fetch('index.html?ts=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/window\.BUILDV="(\d+)"/); if (m && m[1] !== window.BUILDV && S.me && !NET.serverOnly && !(window.ENGINE && NET.remotes && NET.remotes.size)) { window.__newVer = 1; } if (m && m[1] !== window.BUILDV && NET.serverOnly) { if (typeof serverUpdate === 'function') serverUpdate(); } else if (m && m[1] !== window.BUILDV && !S.me) location.reload(); else if (m && m[1] !== window.BUILDV) { if (!$('newver')) { const d = document.createElement('div'); d.id = 'newver'; d.className = 'win'; d.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:80;padding:6px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;background:#16a34a'; d.textContent = '새 버전이 있어요 — 눌러서 적용'; d.onclick = () => location.reload(); document.body.appendChild(d); } } }).catch(() => { });
   check(); setInterval(check, 120000);
+})();
+
+// 게임 중 새 버전: 앱을 다시 열 때나 맵 이동 순간 자동 적용 (방장 기기는 제외)
+(function () {
+  const apply = () => { if (!window.__newVer || NET.serverOnly || (NET.remotes && NET.remotes.size)) return; try { if (window.ENGINE && ENGINE.saveAll) ENGINE.saveAll(); } catch (e) { } location.reload(); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') apply(); });
+  let lastMap = null; setInterval(() => { const id = S.map && S.map.id; if (lastMap && id && id !== lastMap) apply(); lastMap = id; }, 500);
 })();
