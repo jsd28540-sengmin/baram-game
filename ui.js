@@ -717,9 +717,11 @@ $('menu').innerHTML = MENU.map(([k, i, t]) => `<div class="mbtn" data-k="${k}">$
 $('menu').querySelectorAll('.mbtn').forEach(b => b.onclick = () => hotkey(b.dataset.k));
 // 알림: 진한 배경 + 12초 뒤 사라짐
 log = function (text, c = '#fff', html) {
-  const d = document.createElement('div'); d.style.color = c; if (html) d.innerHTML = text; else d.textContent = strip(text);
-  const L = $('log'); L.appendChild(d); while (L.children.length > 5) L.removeChild(L.firstChild);
-  setTimeout(() => { d.style.transition = 'opacity .6s'; d.style.opacity = 0; setTimeout(() => d.remove(), 600); }, 12000);
+  const L = $('log'); const key = (html ? 'h' : 't') + text; const last = L.lastChild;
+  const fade = d => { clearTimeout(d._ft); d.style.transition = ''; d.style.opacity = 1; d._ft = setTimeout(() => { d.style.transition = 'opacity .6s'; d.style.opacity = 0; setTimeout(() => { if (d.style.opacity === '0') d.remove(); }, 600); }, 12000); };
+  if (last && last._k === key) { last._n = (last._n || 1) + 1; if (html) last.innerHTML = text + ` <b style="opacity:.7">×${last._n}</b>`; else last.textContent = strip(text) + ` ×${last._n}`; fade(last); return; }
+  const d = document.createElement('div'); d._k = key; d.style.color = c; if (html) d.innerHTML = text; else d.textContent = strip(text);
+  L.appendChild(d); while (L.children.length > 5) L.removeChild(L.firstChild); fade(d);
 };
 let _annT2 = null;
 announce = function (t, c) { const a = $('announce'); a.innerHTML = `<span style="color:${c || '#fff'}">${esc(strip(t))}</span>`; a.style.transition = ''; a.style.opacity = 1; clearTimeout(_annT2); _annT2 = setTimeout(() => { a.style.transition = 'opacity 1s'; a.style.opacity = 0; }, 4000); };

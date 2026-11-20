@@ -39,7 +39,7 @@ tileImg = function (id, v, pal, castle, frame, under) {
     case T.WATER: cell = gTile('water', v + frame); break;
     case T.CASTLE: cell = castle ? GFX.A.tiles.flag2[v % 3] : GFX.A.tiles.castle[0]; break;
     case T.CARPET: cell = GFX.A.tiles.castle[1 + (v % 2)]; break;
-    case T.CAVE: cell = GFX.A.tiles.volc[2]; break;
+    case T.CAVE: cell = gTile('dirt', v); extra = g => { g.fillStyle = 'rgba(38,26,44,0.5)'; g.fillRect(0, 0, 64, 64); }; break;
     case T.TREE: case T.PINE: case T.DEADTREE: case T.CACTUS: case T.ROCK: cell = groundCell(under || (id === T.PINE ? 's' : id === T.CACTUS ? 'd' : id === T.DEADTREE ? 'w' : id === T.ROCK && castle ? 'v' : 'g'), v); if (id === T.ROCK && under === 'c') cell = GFX.A.tiles.volc[2]; break;
     case T.FENCE: cell = groundCell(under || 'g', v); extra = g => { const r = sprRect('fence'); g.drawImage(GFX.spr, r[0] + 20, r[1], 54, r[3], 0, 24, 64, 40); }; break;
     case T.WALL: case T.CASTLEWALL: case T.CAVEWALL: case T.RUINWALL: { const k = id === T.WALL ? 'wall' : id === T.CASTLEWALL ? 'castlewall' : id === T.RUINWALL ? 'ruinwall' : (v % 4 === 1 ? 'cavewall2' : 'cavewall'); c = wallSlice(k, v, false); break; }

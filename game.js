@@ -631,6 +631,7 @@ function frame(nowMs) {
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
     const X0 = x * TS - sx, Y0 = y * TS - sy;
     { const ti = tileImg(id, v, m.pal, m.castle, anim, under); if (ti.height > 64) ctx.drawImage(ti, X0, Y0 - 10, TS, ti.height * TS / 64); else ctx.drawImage(ti, X0, Y0, TS, TS); }
+    if (m.dark && GD.BLOCK.has(id) && id !== T.WATER && id !== T.LAVA) { ctx.fillStyle = m.castle ? 'rgba(10,6,20,.22)' : 'rgba(8,6,14,.52)'; ctx.fillRect(X0, Y0, TS, TS); }
     drawDecor(id, x, y, X0, Y0);
     if (TREEISH.has(id) && !m.castle) trees.push([id, x, y, under]);
     if (!m.castle) drawEdges(id, x, y, X0, Y0);
@@ -680,7 +681,7 @@ function frame(nowMs) {
   drawEntrances(m, sx, sy, ents);
   for (const c of (m.chests || [])) if (c.x >= x0 - 1 && c.x <= x1 + 1 && c.y >= y0 - 1 && c.y <= y1 + 2) ents.push({ y: c.y - 0.02, f: () => drawChest(c, sx, sy, now) });
   for (const t of S.tents) if (isOuterTent(t) && t.x + 10 >= x0 && t.x - 1 <= x1 && t.y + 8 >= y0 && t.y - 3 <= y1) ents.push({ y: t.y + 6.4, f: () => drawTentOut(t, sx, sy, now) });
-  ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f());
+  ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f()); NAMEQ.splice(0).forEach(f => f());
   for (const c of (m.chests || [])) if (!c.o) drawChestSpark(c, sx, sy, now);
   drawFx(now, sx, sy, 'mid');
   // 맵 표지
@@ -698,6 +699,7 @@ function frame(nowMs) {
 }
 requestAnimationFrame(frame);
 
+const NAMEQ = [];
 function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   const x = rx * TS + 16 - sx, y = ry * TS + 32 - sy;
   if (p.dd) { ctx.globalAlpha = 0.5; }
@@ -709,6 +711,7 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
     shadowAt(x, y, ap.mt ? 18 : 12); if (img.dw) ctx.drawImage(img, Math.round(x - img.dw / 2 + dx * lunge), Math.round(y - img.dh + 6 + dy * lunge), img.dw, img.dh); else ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge), 56, 80);
   }
   ctx.globalAlpha = 1;
+  NAMEQ.push(() => {
   if (p.bf) { ctx.strokeStyle = `rgba(255,220,120,${0.4 + Math.sin(now / 200) * 0.2})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, 16, 6, 0, 0, 7); ctx.stroke(); }
   const jn = GD.JOBS[ap.job] ? GD.JOBS[ap.job].name : '';
   drawText(`${p.n}`, x, y + 15, isMe ? '#ffe86a' : '#9fe8ff', 13);
@@ -721,6 +724,7 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
     ctx.fillStyle = '#141e3a'; ctx.fillRect(x - bw / 2, by + 4, bw, 3); ctx.fillStyle = '#3b82f6'; ctx.fillRect(x - bw / 2, by + 4, bw * mr, 3);
   }
   if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32 * p.h / 100, 4); }
+  });
 }
 function drawNpc(n, sx, sy, now) {
   const x = n.x * TS + 16 - sx, y = n.y * TS + 32 - sy; if (x < -60 || x > W + 60 || y < -80 || y > H + 80) return;
@@ -743,6 +747,7 @@ function drawMon(mo, sx, sy, now) {
   ctx.fillStyle = '#0005'; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.3, 5 * def.size, 0, 0, 7); ctx.fill();
   if (!def.fly && def.kind !== 'bat' && def.kind !== 'ghost') shadowAt(x, y, Math.max(8, IW * 0.28)); else shadowAt(x, y + 4, Math.max(6, IW * 0.2));
   ctx.drawImage(img, Math.round(x - IW / 2 + OXX), Math.round(y - IH + (img.bob || 0)), IW, IH);
+  NAMEQ.push(() => {
   const top = y - IH - 4;
   if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, IW * 0.35), 7, 0, 0, 7); ctx.stroke(); }
   if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
@@ -750,6 +755,7 @@ function drawMon(mo, sx, sy, now) {
     if (mo.h < 100 || S.target === mo.i) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, top, 32, 4); ctx.fillStyle = mo.s ? '#b47cff' : '#ff4a4a'; ctx.fillRect(x - 16, top, 32 * mo.h / 100, 4); }
     if (S.target === mo.i || mo.mu || mo.s) drawText((mo.mu ? '돌연변이 ' : '') + def.name + (mo.s ? '' : ` Lv${mo.lv}`), x, top - 4, mo.mu ? '#d08aff' : mo.s ? '#d8c0ff' : '#ffb0b0', 11);
   }
+  });
 }
 function drawBubble(id, x, y, now) {
   const b = S.bubbles.get(id); if (!b) return; if (now > b.until) { S.bubbles.delete(id); return; }
@@ -811,7 +817,7 @@ function placeAt(tx, ty) {
   if (S.place.del) send({ t: 'furnDel', s: S.place.s, x: lx, y: ly }); else send({ t: 'furn', s: S.place.s, k: S.place.k, x: lx, y: ly });
 }
 function drawLight(sx, sy, now) {
-  const m = S.map; let a = m.dark ? (m.castle ? 0.62 : 0.86) : S.nl * 0.74;
+  const m = S.map; let a = m.dark ? (m.castle ? 0.42 : 0.66) : S.nl * 0.7;
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
   if (m.inner) a = 0.3;
   if (a < 0.02) return;
@@ -819,7 +825,7 @@ function drawLight(sx, sy, now) {
   lcx.globalCompositeOperation = 'destination-out';
   const L = (x, y, r, i = 1) => { const px = x * TS + 16 - sx, py = y * TS + 10 - sy, R = r * TS; if (px < -R || px > W + R || py < -R || py > H + R) return; const gr = lcx.createRadialGradient(px, py, 0, px, py, R); gr.addColorStop(0, `rgba(0,0,0,${i})`); gr.addColorStop(0.5, `rgba(0,0,0,${i * 0.7})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lcx.fillStyle = gr; lcx.fillRect(px - R, py - R, R * 2, R * 2); };
   const fl = 1 + Math.sin(now / 120) * 0.04;
-  L(pos.rx, pos.ry, m.dark ? 5 : 4.5);
+  L(pos.rx, pos.ry, m.dark ? 6.5 : 5);
   if (m.inner) { L(5, 3.2, 6.5, 0.85); L(5, 1.4, 3, 0.6); }
   for (const p of S.P.values()) if (p.i !== S.myId) L(p.rx, p.ry, 3.2, 0.8);
   for (const l of m.lights) L(l.x, l.y, l.r * fl);

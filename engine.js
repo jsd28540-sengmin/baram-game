@@ -264,10 +264,11 @@ function nearFreeBody(m, x, y, self) {
   return { x, y };
 }
 function nearFree(m, x, y, avoidPortal = true) {
-  for (let r = 0; r < 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+  for (let r = 0; r < 40; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
     const nx = x + dx, ny = y + dy; if (walkable(m, nx, ny) && !(avoidPortal && m.portals[nx + ',' + ny])) return { x: nx, y: ny };
   }
+  for (let i = 0; i < m.w * m.h; i++) { const nx = i % m.w, ny = (i / m.w) | 0; if (walkable(m, nx, ny) && !m.portals[nx + ',' + ny]) return { x: nx, y: ny }; }
   return { x, y };
 }
 
@@ -1156,7 +1157,7 @@ function handle(p, msg) {
       const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
       break;
     }
-    case 'dbg': if (!ENV.DEBUG) return; if (msg.lv) { p.lv = msg.lv; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
+    case 'dbg': if (!ENV.DEBUG) return; if (msg.lv) { p.lv = msg.lv; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
     case 'face': p.dir = clamp(msg.d | 0, 0, 3); break;
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;

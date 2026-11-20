@@ -128,8 +128,8 @@
     let d = 0; const dx = pos.x - n.x, dy = pos.y - n.y; if (Math.abs(dx) + Math.abs(dy) <= 5 && (dx || dy)) d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0);
     const r = fr[d]; const s = 0.47, w = r[2] * s, h = r[3] * s; const br = Math.sin(now / 600 + n.x) > 0.6 ? 1 : 0;
     shadowAt(x, y, 12); ctx.imageSmoothingEnabled = true; _di.call(ctx, NPI, r[0], r[1], r[2], r[3], Math.round(x - w / 2), Math.round(y - h + 3 - br), w, h + br); ctx.imageSmoothingEnabled = false;
-    drawText(n.name, x, y + 15, '#ffe08a', 13);
-    const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - h - 4 + bob, '#ffd000', 18);
+    NAMEQ.push(() => { drawText(n.name, x, y + 15, '#ffe08a', 13);
+    const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - h - 4 + bob, '#ffd000', 18); });
   };
 
   // ── 스킬/공격 버튼 (아트 아이콘) ──
