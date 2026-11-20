@@ -1146,7 +1146,7 @@ function handle(p, msg) {
     case 'mv': {
       if (p.dead) return;
       const x = msg.x | 0, y = msg.y | 0; calc(p);
-      const timeOk = msg.ct ? msg.ct - (p.lastCt || 0) >= p.st.spd * 0.6 : now - (p.lastMove || 0) >= p.st.spd * 0.45;
+      const timeOk = msg.ct ? (msg.ct < (p.lastCt || 0) - 1000 || msg.ct - (p.lastCt || 0) >= p.st.spd * 0.6) : now - (p.lastMove || 0) >= p.st.spd * 0.45; // 클라 시계 기준: 네트워크 지연으로 몰려 와도 튕기지 않음
       const ddx = x - p.x, ddy = y - p.y, diag = Math.abs(ddx) === 1 && Math.abs(ddy) === 1;
       const ok = (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) && timeOk && walkable(m, x, y) && !m.occ.has(occKey(x, y)) && !bodyAt(m, x, y, p);
       p.dir = clamp(msg.d | 0, 0, 3);

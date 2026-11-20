@@ -945,7 +945,7 @@ updateMove = function (now) {
       if (dx && dy && !tryV(dx, dy)) { if (tryV(dx, 0)) dy = 0; else if (tryV(0, dy)) dx = 0; }
       if (tryV(dx, dy)) {
         const diag = dx && dy; pos.moving = true; pos.fx = pos.x; pos.fy = pos.y; pos.x += dx; pos.y += dy; pos.t0 = now; pos.dur = S.me.st.spd * (diag ? 1.41 : 1); pos.step++;
-        send({ t: 'mv', x: pos.x, y: pos.y, d });
+        send({ t: 'mv', x: pos.x, y: pos.y, d, ct: Math.round(performance.now()) });
       } else if (now - lastFace > 150) { lastFace = now; send({ t: 'face', d }); }
     }
   }
@@ -1176,10 +1176,10 @@ function openBigMap() {
   d.innerHTML = `<div class="bmwin win"><div class="bmhead"><b>${ic('map')} ${esc(S.map.name || '')}</b><div style="flex:1"></div><button class="btn sm" id="bmzoom">${bigZoom ? '전체 보기' : '내 주변 확대'}</button><button class="xbtn" id="bmx">${ic('x')}</button></div><canvas id="bmc"></canvas></div>`;
   document.body.appendChild(d);
   d.addEventListener('pointerdown', e => { if (!e.target.closest('.bmwin')) closeBigMap(); });
-  $('bmx').onclick = closeBigMap; $('bmzoom').onclick = () => { bigZoom = bigZoom ? 0 : 1; openBigMap(); };
+  $('bmx').onclick = closeBigMap; $('bmx').addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); closeBigMap(); }); $('bmzoom').onclick = () => { bigZoom = bigZoom ? 0 : 1; openBigMap(); };
   drawBigMap(); S._bmT = setInterval(drawBigMap, 500);
 }
-function closeBigMap() { const d = $('bigmap'); if (d) d.remove(); clearInterval(S._bmT); }
+function closeBigMap() { const d = $('bigmap'); if (d) { d.remove(); S._bmClosed = performance.now(); } clearInterval(S._bmT); }
 function drawBigMap() {
   const c = $('bmc'); if (!c || !S.map) return; const m = S.map;
   const box = c.parentElement.getBoundingClientRect(); const Wc = Math.round(box.width - 16), Hc = Math.round(box.height - 46);
@@ -1216,7 +1216,7 @@ function drawBigMap() {
   // 나
   const t = performance.now(); const r = 6 + Math.sin(t / 200) * 2; g.strokeStyle = '#ffe86a'; g.lineWidth = 2; g.beginPath(); g.arc(X(pos.x + 0.5), Y(pos.y + 0.5), r + 3, 0, 7); g.stroke(); dot(pos.x, pos.y, '#ffe86a', '나');
 }
-$('mini').addEventListener('click', e => { e.stopPropagation(); openBigMap(); });
+$('mini').addEventListener('click', e => { e.stopPropagation(); if ($('bigmap') || performance.now() - (S._bmClosed || 0) < 600) return; openBigMap(); }); // 닫을 때의 터치가 미니맵을 다시 누르는 것 방지
 $('mini').style.cursor = 'pointer';
 
 // ═══════ 가방 주머니 ═══════

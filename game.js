@@ -3,12 +3,12 @@
 // ═══════════════════════════════════════════
 const $ = id => document.getElementById(id);
 const DIRS = [[0, 1], [-1, 0], [1, 0], [0, -1]];
-const cv = $('game'), ctx = cv.getContext('2d');
+const cv = $('game'); let ctx = cv.getContext('2d'); const MAINCTX = ctx;
 let W = 0, H = 0;
 let DPR = 1;
 let ZOOM = 1, VW = 0, VH = 0;
 function resize() {
-  DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1)));
+  DPR = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1))); // 3배는 무거워서 2배로 제한
   const r = cv.getBoundingClientRect(); VW = Math.round(r.width) || innerWidth; VH = Math.round(r.height) || innerHeight;
   ZOOM = Math.max(0.6, Math.min(1, VH / (17 * TS))); // 시점: 세로로 약 17칸이 보이도록
   W = Math.round(VW / ZOOM); H = Math.round(VH / ZOOM);
@@ -247,7 +247,7 @@ function webLobby() {
         r.seen = Date.now();
         if (d.m && r.conn.onmsg) { try { r.conn.onmsg(JSON.stringify(d.m)); } catch (e) { } }
       });
-      setInterval(flushRemotes, 150);
+      setInterval(flushRemotes, 100);
       setInterval(() => { const now = Date.now(); for (const [k, r] of NET.remotes) if (now - r.seen > 25000) { NET.remotes.delete(k); if (r.conn.onclose) r.conn.onclose(); } }, 5000);
       setInterval(() => ENGINE.saveAll(), 10000);
       const bye = () => { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); }; addEventListener('pagehide', () => { bye(); try { c.publish(TP + code + '/host', '', { retain: true }); } catch (e) { } }); addEventListener('visibilitychange', () => { if (document.hidden) bye(); });
@@ -609,32 +609,16 @@ const AO2 = t => AO_SRC(t) && !TREEISH.has(t) && t !== T.ROCK;
 function biomeChar(x, y) { const b = S.map.biome; return b ? b[y * S.map.w + x] : (S.map.castle ? 'k' : 'c'); }
 function shadowAt(x, y, rx) { ctx.fillStyle = 'rgba(20,30,10,.28)'; ctx.beginPath(); ctx.ellipse(x, y - 2, rx, rx * 0.32, 0, 0, 7); ctx.fill(); }
 function drawText(t, x, y, col, size = 12, bold = true) { size = Math.round(size / Math.max(0.75, ZOOM) * 10) / 10; ctx.font = `${bold ? '800 ' : '600 '}${size}px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.32); ctx.strokeStyle = 'rgba(0,0,0,.92)'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
-function frame(nowMs) {
-  requestAnimationFrame(frame);
-  { const r = cv.getBoundingClientRect(); if (Math.round(r.width) !== VW || Math.round(r.height) !== VH) resize(); }
-  const now = performance.now();
-  if (!S.map || !S.me) { return; }
-  updateMove(now);
-  const m = S.map;
-  const SHK = window.shakeOff ? shakeOff() : null;
-  const sx = Math.floor(pos.rx * TS + TS / 2 - W / 2) + (SHK ? SHK[0] : 0), sy = Math.floor(pos.ry * TS + TS / 2 - H / 2) + (SHK ? SHK[1] : 0);
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  const x0 = Math.max(0, Math.floor(sx / TS)), y0 = Math.max(0, Math.floor(sy / TS)), x1 = Math.min(m.w - 1, Math.ceil((sx + W) / TS)), y1 = Math.min(m.h - 1, Math.ceil((sy + H) / TS));
-  const fr = (now / 600 | 0) % 2;
-  const trees = [];
-  for (let y = y0; y <= Math.min(m.h - 1, y1 + 2); y++) for (let x = x0; x <= x1; x++) {
+function drawGroundTile(m, x, y, X0, Y0, fr) {
     const id = m.t[y * m.w + x]; const v = TREEISH.has(id) || id === T.HOUSE || id === T.ROOF ? (((x * 7 + y * 13) ^ (x * y)) & 3) : (((Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0) % 12);
-    if (y > y1) { if (TREEISH.has(id)) trees.push([id, x, y, m.biome ? biomeChar(x, y) : '']); continue; }
     let under = '';
     if (id === T.ROOF) under = S.roof.get(x + ',' + y) || '#b04030';
     else if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y);
     else if (!m.biome && id === T.ROCK) under = 'c';
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
-    const X0 = x * TS - sx, Y0 = y * TS - sy;
     { const ti = tileImg(id, v, m.pal, m.castle, anim, under); if (ti.height > 64) ctx.drawImage(ti, X0, Y0 - 10, TS, ti.height * TS / 64); else ctx.drawImage(ti, X0, Y0, TS, TS); }
     if (m.dark && GD.BLOCK.has(id) && id !== T.WATER && id !== T.LAVA) { ctx.fillStyle = m.castle ? 'rgba(10,6,20,.22)' : 'rgba(8,6,14,.52)'; ctx.fillRect(X0, Y0, TS, TS); }
     drawDecor(id, x, y, X0, Y0);
-    if (TREEISH.has(id) && !m.castle) trees.push([id, x, y, under]);
     if (!m.castle) drawEdges(id, x, y, X0, Y0);
     const blk = GD.BLOCK.has(id);
     if (m.biome && !blk) { const n = vnoise(x, y); if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.18).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.2).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
@@ -649,6 +633,52 @@ function frame(nowMs) {
       if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0);
       if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
     }
+  }
+const GCH = 8, gChunks = new Map(); let gKey = '';
+function drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr) {
+  const k = DPR * ZOOM, key = (m.id || '') + '|' + (window.GFX && GFX.ok ? 1 : 0) + '|' + k.toFixed(3);
+  if (key !== gKey || gChunks._m !== m) { gChunks.clear(); gKey = key; gChunks._m = m; }
+  const cx0 = Math.floor(x0 / GCH), cy0 = Math.floor(y0 / GCH), cx1 = Math.floor(x1 / GCH), cy1 = Math.floor(y1 / GCH);
+  const CW = GCH * TS, px = Math.ceil(CW * k);
+  MAINCTX.setTransform(1, 0, 0, 1, 0, 0); MAINCTX.imageSmoothingEnabled = false;
+  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+    let ch = gChunks.get(cx + ',' + cy);
+    if (!ch) { ch = { anim: false, c: [] }; const ax0 = cx * GCH, ay0 = cy * GCH; for (let y = ay0; y < ay0 + GCH && !ch.anim; y++) for (let x = ax0; x < ax0 + GCH; x++) { if (x >= m.w || y >= m.h) continue; const id = m.t[y * m.w + x]; if (id === T.WATER || id === T.LAVA) { ch.anim = true; break; } } gChunks.set(cx + ',' + cy, ch); }
+    const fi = ch.anim ? fr : 0; let c = ch.c[fi];
+    if (!c) {
+      c = document.createElement('canvas'); c.width = px; c.height = px; const g = c.getContext('2d');
+      g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false;
+      const saved = ctx; ctx = g;
+      try { const ax0 = cx * GCH, ay0 = cy * GCH; for (let y = ay0; y <= Math.min(m.h - 1, ay0 + GCH); y++) for (let x = ax0; x < Math.min(m.w, ax0 + GCH); x++) drawGroundTile(m, x, y, (x - ax0) * TS, (y - ay0) * TS, fi); } finally { ctx = saved; }
+      ch.c[fi] = c;
+      if (gChunks.size > 60) { for (const kk of gChunks.keys()) { const [a, b] = kk.split(',').map(Number); if (Math.abs(a - cx) > 4 || Math.abs(b - cy) > 4) gChunks.delete(kk); } }
+    }
+    const dx = Math.round((cx * CW - sx) * k), dy = Math.round((cy * CW - sy) * k), dx2 = Math.round(((cx + 1) * CW - sx) * k), dy2 = Math.round(((cy + 1) * CW - sy) * k);
+    MAINCTX.drawImage(c, 0, 0, CW * k, CW * k, dx, dy, dx2 - dx, dy2 - dy);
+  }
+  MAINCTX.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0); MAINCTX.imageSmoothingEnabled = false;
+}
+function frame(nowMs) {
+  requestAnimationFrame(frame);
+  if ((frame._n = (frame._n || 0) + 1) % 30 === 0) { const r = cv.getBoundingClientRect(); if (Math.round(r.width) !== VW || Math.round(r.height) !== VH) resize(); }
+  const now = performance.now();
+  if (!S.map || !S.me) { return; }
+  updateMove(now);
+  const m = S.map;
+  const SHK = window.shakeOff ? shakeOff() : null;
+  const sx = Math.floor(pos.rx * TS + TS / 2 - W / 2) + (SHK ? SHK[0] : 0), sy = Math.floor(pos.ry * TS + TS / 2 - H / 2) + (SHK ? SHK[1] : 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  const x0 = Math.max(0, Math.floor(sx / TS)), y0 = Math.max(0, Math.floor(sy / TS)), x1 = Math.min(m.w - 1, Math.ceil((sx + W) / TS)), y1 = Math.min(m.h - 1, Math.ceil((sy + H) / TS));
+  const fr = (now / 600 | 0) % 2;
+  const trees = [];
+  // 바닥은 8x8칸 묶음으로 미리 그려 둔 그림을 재사용 (렉 감소)
+  drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr);
+  for (let y = y0; y <= Math.min(m.h - 1, y1 + 2); y++) for (let x = x0; x <= x1; x++) {
+    const id = m.t[y * m.w + x]; if (!TREEISH.has(id)) continue;
+    if (y > y1) { trees.push([id, x, y, m.biome ? biomeChar(x, y) : '']); continue; }
+    if (m.castle) continue;
+    let under = ''; if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y); else if (!m.biome && id === T.ROCK) under = 'c';
+    trees.push([id, x, y, under]);
   }
   // 텐트/집/공터
   for (const pl of S.plots) drawPlot(pl, sx, sy);
