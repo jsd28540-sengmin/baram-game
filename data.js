@@ -12,7 +12,7 @@
   // ───────── 직업 ─────────
   D.JOBS = {
     warrior: { name: '전사', base: 'warrior', tier: 0, hp0: 70, hpL: 17, mp0: 16, mpL: 2.6, atk0: 9, atkL: 2.6, def0: 6, defL: 1.8, crit: 5, desc: '근접 전투 특화. 레벨이 오를수록 데미지가 강력해진다.' },
-    mage: { name: '마법사', base: 'mage', tier: 0, hp0: 40, hpL: 8, mp0: 55, mpL: 8.5, atk0: 11, atkL: 3.1, def0: 2, defL: 0.7, crit: 5, desc: '강력한 마법과 광역기. 방어력이 약하다.' },
+    mage: { name: '마법사', base: 'mage', tier: 0, hp0: 40, hpL: 8, mp0: 55, mpL: 8.5, atk0: 10, atkL: 2.8, def0: 2, defL: 0.7, crit: 5, desc: '강력한 마법과 광역기. 방어력이 약하다.' },
     healer: { name: '치유사', base: 'healer', tier: 0, hp0: 46, hpL: 9.5, mp0: 42, mpL: 7, atk0: 9, atkL: 2.4, def0: 3, defL: 0.9, crit: 7, desc: '주변 모든 아군을 치유하는 핵심 직업. 활·석궁 사용, 방어력이 약하다.' },
     guardian: { name: '수호기사', base: 'warrior', tier: 1, mHp: 1.4, mDef: 1.7, mAtk: 1.0, crit: 5, desc: '철벽 방어형 전사. 어그로를 끌고 동료를 지킨다.' },
     berserker: { name: '광전사', base: 'warrior', tier: 1, mHp: 1.1, mDef: 0.9, mAtk: 1.45, crit: 15, desc: '공격 특화 전사. 압도적인 근접 화력.' },
@@ -37,21 +37,21 @@
     { id: 'b_combo', name: '혈풍연참', jobs: ['berserker'], lv: 18, mp: 18, cd: 3500, kind: 'melee', mul: 4.8, fx: 'slash3', col: '#ff3b3b', desc: '눈에 보이지 않는 연속 베기.' },
     { id: 'b_storm', name: '폭풍검무', jobs: ['berserker'], lv: 24, mp: 34, cd: 9000, kind: 'aoeSelf', r: 3, mul: 3.8, fx: 'spin', col: '#ff5555', desc: '칼바람으로 주변을 휩쓴다. (광역)' },
     // 마법사
-    { id: 'm_fire', name: '화염구', jobs: ['mage', 'elementalist', 'summoner'], lv: 1, mp: 5, cd: 900, kind: 'proj', range: 7, mul: 2.4, fx: 'fireball', col: '#ff7a1a', desc: '불덩이를 날린다.' },
-    { id: 'm_frost', name: '얼음폭풍', jobs: ['mage', 'elementalist', 'summoner'], lv: 5, mp: 16, cd: 4000, kind: 'aoeTarget', range: 7, r: 2, mul: 1.9, slow: 1, fx: 'ice', col: '#8fe3ff', desc: '대상 주변에 얼음 폭풍. (광역, 둔화)' },
-    { id: 'm_chain', name: '연쇄번개', jobs: ['mage', 'elementalist', 'summoner'], lv: 10, mp: 20, cd: 5000, kind: 'multi', range: 7, n: 4, mul: 2.2, fx: 'bolt', col: '#fff36b', desc: '최대 4마리에게 번개가 튄다.' },
-    { id: 'e_meteor', name: '메테오', jobs: ['elementalist'], lv: 15, mp: 42, cd: 10000, kind: 'aoeTarget', range: 8, r: 3, mul: 5.2, fx: 'meteor', col: '#ff3d00', desc: '거대한 운석을 떨어뜨린다. (광역)' },
-    { id: 'e_bliz', name: '블리자드', jobs: ['elementalist'], lv: 18, mp: 34, cd: 7000, kind: 'aoeTarget', range: 8, r: 4, mul: 3.1, slow: 1, fx: 'ice', col: '#bdf1ff', desc: '넓은 범위에 눈보라. (광역, 둔화)' },
+    { id: 'm_fire', name: '화염구', jobs: ['mage', 'elementalist', 'summoner'], lv: 1, mp: 5, cd: 900, kind: 'proj', range: 4, mul: 2.4, fx: 'fireball', col: '#ff7a1a', desc: '불덩이를 날린다.' },
+    { id: 'm_frost', name: '얼음폭풍', jobs: ['mage', 'elementalist', 'summoner'], lv: 5, mp: 16, cd: 4000, kind: 'aoeTarget', range: 4, r: 2, mul: 1.9, slow: 1, fx: 'ice', col: '#8fe3ff', desc: '대상 주변에 얼음 폭풍. (광역, 둔화)' },
+    { id: 'm_chain', name: '연쇄번개', jobs: ['mage', 'elementalist', 'summoner'], lv: 10, mp: 20, cd: 5000, kind: 'multi', range: 4, n: 4, mul: 2.2, fx: 'bolt', col: '#fff36b', desc: '최대 4마리에게 번개가 튄다.' },
+    { id: 'e_meteor', name: '메테오', jobs: ['elementalist'], lv: 15, mp: 42, cd: 10000, kind: 'aoeTarget', range: 5, r: 3, mul: 5.2, fx: 'meteor', col: '#ff3d00', desc: '거대한 운석을 떨어뜨린다. (광역)' },
+    { id: 'e_bliz', name: '블리자드', jobs: ['elementalist'], lv: 18, mp: 34, cd: 7000, kind: 'aoeTarget', range: 5, r: 4, mul: 3.1, slow: 1, fx: 'ice', col: '#bdf1ff', desc: '넓은 범위에 눈보라. (광역, 둔화)' },
     { id: 'e_hell', name: '지옥불', jobs: ['elementalist'], lv: 24, mp: 40, cd: 9000, kind: 'aoeSelf', r: 3.5, mul: 4.3, fx: 'flame', col: '#ff5a00', desc: '자신 주변을 불바다로 만든다. (광역)' },
     { id: 's_wolf', name: '늑대 소환', jobs: ['summoner'], lv: 15, mp: 30, cd: 12000, kind: 'summon', summon: 'sWolf', count: 2, dur: 60000, fx: 'summon', col: '#b47cff', desc: '늑대 2마리를 60초간 소환.' },
     { id: 's_golem', name: '바위골렘 소환', jobs: ['summoner'], lv: 18, mp: 40, cd: 20000, kind: 'summon', summon: 'sGolem', count: 1, dur: 90000, fx: 'summon', col: '#b47cff', desc: '단단한 골렘을 90초간 소환. (적을 끌어들임)' },
     { id: 's_spirit', name: '화염정령 소환', jobs: ['summoner'], lv: 24, mp: 45, cd: 20000, kind: 'summon', summon: 'sSpirit', count: 2, dur: 60000, fx: 'summon', col: '#b47cff', desc: '원거리 화염정령 2기를 60초간 소환.' },
     // 치유사
-    { id: 'h_shot', name: '저격', jobs: ['healer', 'ranger', 'priest'], lv: 1, mp: 4, cd: 900, kind: 'proj', range: 8, mul: 2.2, fx: 'arrow', col: '#e8e0c0', desc: '정확하게 조준해 쏜다.' },
+    { id: 'h_shot', name: '저격', jobs: ['healer', 'ranger', 'priest'], lv: 1, mp: 4, cd: 900, kind: 'proj', range: 5, mul: 2.2, fx: 'arrow', col: '#e8e0c0', desc: '정확하게 조준해 쏜다.' },
     { id: 'h_heal', name: '치유의 빛', jobs: ['healer', 'ranger', 'priest'], lv: 3, mp: 14, cd: 3000, kind: 'heal', r: 5, mul: 2.0, fx: 'heal', col: '#7dff9a', desc: '주변 모든 아군(나 포함)을 치유한다.' },
-    { id: 'h_multi', name: '다중사격', jobs: ['healer', 'ranger', 'priest'], lv: 8, mp: 14, cd: 4000, kind: 'multi', range: 8, n: 3, mul: 2.0, fx: 'arrow', col: '#e8e0c0', desc: '최대 3마리에게 동시에 화살.' },
-    { id: 'r_rain', name: '화살비', jobs: ['ranger'], lv: 15, mp: 30, cd: 8000, kind: 'aoeTarget', range: 9, r: 3, mul: 3.4, fx: 'rain', col: '#f0e6b0', desc: '화살을 비처럼 쏟아붓는다. (광역)' },
-    { id: 'r_pierce', name: '관통사격', jobs: ['ranger'], lv: 18, mp: 24, cd: 5000, kind: 'line', range: 9, mul: 4.4, fx: 'pierce', col: '#fff8c8', desc: '일직선의 모든 적을 관통한다.' },
+    { id: 'h_multi', name: '다중사격', jobs: ['healer', 'ranger', 'priest'], lv: 8, mp: 14, cd: 4000, kind: 'multi', range: 5, n: 3, mul: 2.0, fx: 'arrow', col: '#e8e0c0', desc: '최대 3마리에게 동시에 화살.' },
+    { id: 'r_rain', name: '화살비', jobs: ['ranger'], lv: 15, mp: 30, cd: 8000, kind: 'aoeTarget', range: 6, r: 3, mul: 3.4, fx: 'rain', col: '#f0e6b0', desc: '화살을 비처럼 쏟아붓는다. (광역)' },
+    { id: 'r_pierce', name: '관통사격', jobs: ['ranger'], lv: 18, mp: 24, cd: 5000, kind: 'line', range: 6, mul: 4.4, fx: 'pierce', col: '#fff8c8', desc: '일직선의 모든 적을 관통한다.' },
     { id: 'r_aid', name: '응급치료', jobs: ['ranger'], lv: 21, mp: 20, cd: 6000, kind: 'heal', r: 4, mul: 1.6, fx: 'heal', col: '#7dff9a', desc: '주변 아군을 약간 치유.' },
     { id: 'p_great', name: '대치유', jobs: ['priest'], lv: 15, mp: 30, cd: 4000, kind: 'heal', r: 8, mul: 3.6, fx: 'bigheal', col: '#9dffb6', desc: '넓은 범위의 아군을 크게 치유.' },
     { id: 'p_bless', name: '수호의 축복', jobs: ['priest'], lv: 18, mp: 32, cd: 25000, kind: 'partyBuff', r: 7, buff: { def: 0.5, atk: 0.15 }, dur: 30000, fx: 'bless', col: '#ffe98a', desc: '주변 아군 30초간 방어 +50%, 공격 +15%' },
@@ -64,7 +64,7 @@
   D.SUMMONS = {
     sWolf: { name: '영혼늑대', kind: 'quad', c: ['#9a7cff', '#d9ccff', '#ffffff'], size: 0.8, hp: 1.2, atk: 0.55, range: 1 },
     sGolem: { name: '바위골렘', kind: 'golem', c: ['#8a8170', '#b5ab95', '#ffcc33'], size: 1.1, hp: 4.0, atk: 0.5, range: 1, taunt: 1 },
-    sSpirit: { name: '화염정령', kind: 'ghost', c: ['#ff7a1a', '#ffd34d', '#ffffff'], size: 0.8, hp: 0.9, atk: 0.75, range: 5 },
+    sSpirit: { name: '화염정령', kind: 'ghost', c: ['#ff7a1a', '#ffd34d', '#ffffff'], size: 0.8, hp: 0.9, atk: 0.75, range: 4 },
   };
 
   // ───────── 몬스터 ─────────
