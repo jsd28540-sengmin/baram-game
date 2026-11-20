@@ -360,7 +360,7 @@ function newPlayer(o) {
   const p = {
     name: o.name, gender: o.gender === 'f' ? 'f' : 'm', hair: clamp(+o.hair || 0, 0, 3), hairColor: clamp(+o.hairColor || 0, 0, 7), skin: clamp(+o.skin || 0, 0, 3),
     job, lv: 1, exp: 0, hp: 1, mp: 1, coins: 300, map: 'world', x: w.spawn.x, y: w.spawn.y, dir: 0,
-    inv: [], eq: {}, mounts: [], mount: null, storage: [], tent: null, hot: [], kills: 0,
+    inv: [], eq: {}, mounts: [], mount: null, storage: [], tent: null, hot: ['hp1', 'mp1'], kills: 0,
   };
   const wt = { warrior: 'sword', mage: 'staff', healer: 'bow' }[job];
   p.eq.weapon = makeGear(job, 'weapon', 1, { shop: true, wt }); p.eq.weapon.name = '수련용 ' + D.WEAPONS[wt].name;
@@ -410,7 +410,7 @@ function appear(p) {
 }
 function meData(p) {
   calc(p);
-  return { t: 'me', name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: p.mounts, mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills };
+  return { t: 'me', name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: p.mounts, mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills, hot: Array.isArray(p.hot) && p.hot.length ? p.hot : ['hp1', 'mp1'] };
 }
 const dirty = p => { p.dirty = true; };
 function sysMsg(p, text, c = '#ffe28a') { if (p.ws) p.ws.send({ t: 'msg', text, c }); }
@@ -949,7 +949,7 @@ function handle(p, msg) {
     case 'cook': cook(p, msg.id); break;
     case 'sleep': p.sleeping = !p.sleeping && !p.dead; break;
     case 'respawn': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
-    case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 6) : []; break;
+    case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 5).map(x => typeof x === 'string' && D.CONSUMES[x] ? x : null) : []; dirty(p); break;
     case 'boss': p.ws.send({ t: 'boss', list: bossSchedule() }); break;
     // 교환
     case 'tradeReq': {

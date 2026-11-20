@@ -436,3 +436,296 @@ function renderAtlas(body) {
   info.querySelectorAll('canvas[data-mon]').forEach(cc => { const img = monSprite(cc.dataset.mon, false, 0, false); const gg = cc.getContext('2d'); gg.imageSmoothingEnabled = false; const s = Math.min(38 / img.width, 38 / img.height); gg.drawImage(img, (40 - img.width * s) / 2, 40 - img.height * s, img.width * s, img.height * s); });
 }
 // 배치 모드: 구조물 밖을 누르면 종료 (ESC 대신)
+
+// ═══════════════════════════════════════════
+//  v3: 말풍선 · 퀵슬롯 창 · 아이콘 스킬 · NPC 전체화면 분할
+// ═══════════════════════════════════════════
+// ── 채팅 = 머리 위 말풍선 (로그에 남기지 않음) ──
+const _onMsg2 = onMsg;
+onMsg = function (m) {
+  if (m.t === 'chat') { S.bubbles.set(m.id, { text: String(m.text), until: performance.now() + 6000 }); return; }
+  return _onMsg2(m);
+};
+function drawBubble(id, x, y, now) {
+  const b = S.bubbles.get(id); if (!b) return; if (now > b.until) { S.bubbles.delete(id); return; }
+  const tileTop = y + 30; const bottom = tileTop - 24; // 머리 위 체력바 바로 위
+  ctx.font = '600 12px Pretendard, sans-serif';
+  const words = [...b.text]; const lines = []; let cur = '';
+  for (const ch of words) { if (ctx.measureText(cur + ch).width > 150) { lines.push(cur); cur = ch; if (lines.length >= 3) break; } else cur += ch; }
+  if (lines.length < 3 && cur) lines.push(cur);
+  const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 14, h = lines.length * 15 + 8;
+  const left = x - w / 2, top = bottom - h - 6;
+  ctx.fillStyle = 'rgba(255,255,255,.96)'; ctx.strokeStyle = '#1c2026'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.rect(left, top, w, h); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 5, top + h); ctx.lineTo(x, top + h + 6); ctx.lineTo(x + 5, top + h); ctx.fill(); ctx.stroke();
+  ctx.fillRect(x - 4, top + h - 2, 8, 3);
+  ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  lines.forEach((l, i) => ctx.fillText(l, x, top + 5 + i * 15)); ctx.textBaseline = 'alphabetic';
+}
+
+// ── 스킬/공격 아이콘 ──
+function skillIcon(sk) {
+  if (!sk) return 'lock';
+  const base = sk.jobs[0];
+  switch (sk.kind) {
+    case 'melee': return 'sword'; case 'aoeSelf': case 'taunt': return 'target'; case 'buff': case 'partyBuff': return 'star';
+    case 'proj': return base === 'healer' ? 'bow' : 'flame'; case 'multi': return 'zap'; case 'aoeTarget': return sk.fx === 'ice' ? 'drop' : sk.fx === 'rain' ? 'bow' : 'flame';
+    case 'line': return 'bow'; case 'heal': return 'heart'; case 'summon': return 'users';
+  }
+  return 'zap';
+}
+function buildTouch() {
+  const dp = $('dpad');
+  dp.innerHTML = `<div data-d="3" style="left:46px;top:0">${ic('up')}</div><div data-d="1" style="left:0;top:46px">${ic('left')}</div><div data-d="2" style="left:92px;top:46px">${ic('right')}</div><div data-d="0" style="left:46px;top:92px">${ic('down')}</div>`;
+  const setD = e => { const r = dp.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 136 - 68, y = (e.clientY - r.top) / r.height * 136 - 68; if (Math.hypot(x, y) < 10) { touchDir = -1; return; } touchDir = Math.abs(x) > Math.abs(y) ? (x > 0 ? 2 : 1) : (y > 0 ? 0 : 3); };
+  dp.onpointerdown = e => { dp.setPointerCapture(e.pointerId); setD(e); e.preventDefault(); };
+  dp.onpointermove = e => { if (e.buttons || e.pressure) setD(e); };
+  dp.onpointerup = dp.onpointercancel = () => { touchDir = -1; };
+  const acts = $('acts'); acts.innerHTML = '<div id="skillgrid"></div>'; S.touchCd = []; S.touchBtns = null; S._skKey = '';
+  const g = $('skillgrid');
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement('div'); d.className = 'tb'; d.innerHTML = `<span class="kn">${i + 1}</span><span class="si">${ic('lock')}</span><div class="cdm"></div>`;
+    d.addEventListener('pointerdown', e => { e.preventDefault(); castSkill(i); });
+    g.appendChild(d); S.touchCd[i] = d;
+  }
+  const atk = document.createElement('div'); atk.className = 'tb atk'; atk.innerHTML = ic('sword');
+  atk.addEventListener('pointerdown', e => { e.preventDefault(); touchAtk = true; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => atk.addEventListener(ev, () => touchAtk = false));
+  acts.appendChild(atk);
+  renderQS(true);
+}
+
+// ── 퀵슬롯 창 (소모품 등록 → 터치 사용) ──
+const QN = 5;
+function hotList() { const h = (S.me && Array.isArray(S.me.hot)) ? S.me.hot.slice(0, QN) : ['hp1', 'mp1']; while (h.length < QN) h.push(null); return h; }
+function useCount(id) { return S.me ? S.me.inv.filter(o => o.k === 'use' && o.id === id).reduce((a, o) => a + o.n, 0) : 0; }
+function renderQS(force) {
+  if (!S.me) return; const hot = hotList();
+  const key = JSON.stringify(hot.map(id => id ? id + useCount(id) : '-'));
+  if (!force && key === S._qsKey) return; S._qsKey = key;
+  const q = $('qs');
+  q.innerHTML = hot.map((id, i) => id ? `<div class="qsl ${useCount(id) ? '' : 'zero'}" data-q="${i}" title="${GD.CONSUMES[id].name}"><span class="k">${[7, 8, 9, 0, '-'][i]}</span><canvas width="22" height="22" data-qi="${id}"></canvas><span class="n">${useCount(id)}</span></div>` : `<div class="qsl empty" data-q="${i}" title="가방에서 소모품을 눌러 등록"><span class="k">${[7, 8, 9, 0, '-'][i]}</span>${ic('plus', 14)}</div>`).join('') +
+    `<div class="qsdiv"></div><div class="qut" data-u="talk" title="대화">${ic('talk')}</div><div class="qut" data-u="grab" title="줍기">${ic('grab')}</div><div class="qut" data-u="target" title="대상">${ic('target')}</div><div class="qut" data-u="chat" title="채팅">${ic('chat')}</div>`;
+  q.querySelectorAll('canvas[data-qi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon({ k: 'use', id: c.dataset.qi }), 0, 0); });
+  q.querySelectorAll('[data-q]').forEach(d => d.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const id = hot[+d.dataset.q]; if (id) { if (useCount(id)) send({ t: 'useId', id }); else log(`${GD.CONSUMES[id].name}이(가) 없습니다.`, '#bbb'); } else { openPanel('inv'); log('가방에서 물약·음식을 눌러 [퀵슬롯 등록]을 하세요.', '#9fe8ff'); } });
+  q.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); const u = d.dataset.u; if (u === 'talk') send({ t: 'interact' }); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
+}
+function setHot(i, id) { const h = hotList(); if (id) { const ex = h.indexOf(id); if (ex >= 0) h[ex] = null; } h[i] = id; S.me.hot = h; send({ t: 'hot', hot: h }); renderQS(true); }
+function addHot(id) { const h = hotList(); if (h.includes(id)) return log('이미 퀵슬롯에 있어요.', '#bbb'); let i = h.indexOf(null); if (i < 0) i = QN - 1; setHot(i, id); log(`[${GD.CONSUMES[id].name}] 퀵슬롯 ${i + 1}번에 등록`, '#9fe8ff'); }
+usePot = function (kind) { const idx = { hp: 0, mp: 1, buffAtk: 2, buffDef: 3 }[kind]; const id = hotList()[idx]; if (id && useCount(id)) send({ t: 'useId', id }); else if (id) log(`${GD.CONSUMES[id].name}이(가) 없습니다.`, '#bbb'); };
+
+// ── HUD 보정 ──
+const _rh2 = refreshHud;
+refreshHud = function (full) {
+  _rh2(full);
+  if (!S.me) return;
+  renderQS(full);
+  if (S.touchCd) {
+    const key = S.me.skills.join() + S.me.lv;
+    if (key !== S._skKey) { S._skKey = key; S.touchCd.forEach((d, i) => { const sk = GD.SKILL[S.me.skills[i]]; d.querySelector('.si').innerHTML = ic(sk && S.me.lv >= sk.lv ? skillIcon(sk) : 'lock'); d.title = sk ? sk.name : ''; }); }
+  }
+};
+showCode = function (code) {
+  const d = document.createElement('div'); d.id = 'roomcode'; d.className = 'win'; d.innerHTML = `${ic('key')}방 코드 ${code}`; d.title = '눌러서 참가 링크 복사';
+  d.onclick = () => { const url = location.href.split('#')[0] + '#' + code; try { navigator.clipboard.writeText(url).then(() => log('참가 링크를 복사했어요: ' + url, '#9fe8ff')); } catch (e) { log('참가 링크: ' + url, '#9fe8ff'); } };
+  $('hud').appendChild(d);
+};
+
+// ── 가방 클릭 (모든 창 공통) ──
+function sellPrice(it) { return it.k === 'gear' ? Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)) : it.k === 'use' ? Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n : 5 * it.n; }
+function invClick(i, ev, mode) {
+  const it = S.me.inv[i]; if (!it) return;
+  let btns = '';
+  if (mode === 'shop') btns = `<button class="btn sm pri" data-a="sell" data-i="${i}">${ic('coin')}판매 ${fmt(sellPrice(it))}</button>`;
+  else if (mode === 'chest') btns = `<button class="btn sm pri" data-a="store" data-i="${i}">보관상자에 넣기</button>`;
+  else if (mode === 'trade') btns = S.trade && S.trade.myIdx.includes(i) ? `<button class="btn sm red" data-a="untrade" data-i="${i}">교환에서 빼기</button>` : `<button class="btn sm pri" data-a="trade" data-i="${i}">${ic('swap')}교환에 올리기</button>`;
+  else {
+    if (it.k !== 'mat') btns += `<button class="btn sm pri" data-a="use" data-i="${i}">${it.k === 'gear' ? '착용' : '사용'}</button> `;
+    if (it.k === 'use') btns += hotList().includes(it.id) ? `<button class="btn sm" data-qrm="${it.id}">퀵슬롯 해제</button> ` : `<button class="btn sm" data-qadd="${it.id}">${ic('plus')}퀵슬롯 등록</button> `;
+    btns += `<button class="btn sm red" data-a="drop" data-i="${i}">${ic('trash')}</button>`;
+  }
+  showTip(itemDesc(it) + `<div class="row" style="margin-top:7px;flex-wrap:wrap">${btns}</div>`, ev);
+}
+$('tip').addEventListener('click', e => {
+  const a = e.target.closest('[data-qadd],[data-qrm],[data-buy2],[data-gbuy]'); if (!a) return;
+  if (a.dataset.qadd) addHot(a.dataset.qadd);
+  if (a.dataset.qrm) { const h = hotList(); const i = h.indexOf(a.dataset.qrm); if (i >= 0) setHot(i, null); }
+  if (a.dataset.buy2) send({ t: 'buy', id: a.dataset.buy2, n: +a.dataset.n });
+  if (a.dataset.gbuy) { const [lv, slot, wt] = a.dataset.gbuy.split('|'); send({ t: 'buy', lv: +lv, slot, wt }); }
+  hideTip();
+});
+
+// ── NPC 전체화면 (왼쪽 NPC · 오른쪽 내 가방) ──
+const FULL = new Set(['shop', 'gear', 'smith', 'stable', 'master', 'guide', 'talk', 'chest', 'cook', 'plot', 'trade']);
+const NPC_KIND_AP = { shop: 'shop', gear: 'gear', smith: 'smith', stable: 'stable', master: 'master', guide: 'guide', talk: 'guide' };
+const _rp = renderPanel;
+renderPanel = function () {
+  const P = S.panel; if (!P || !S.me) return;
+  const full = FULL.has(P.kind);
+  $('panel').classList.toggle('full', full);
+  if (!full) return _rp();
+  hideTip(); renderNpc(P);
+};
+const _cp = closePanel; closePanel = function () { $('panel').classList.remove('full'); return _cp(); };
+function npcHeadH(d, kind) {
+  const say = strip(d.text || '');
+  return `<div class="npchead">${NPC_KIND_AP[kind] ? `<canvas width="56" height="80" data-npcap="${NPC_KIND_AP[kind]}"></canvas>` : ''}<div class="say">${esc(say.split('\n').filter(Boolean).slice(0, 3).join(' '))}</div></div>`;
+}
+function bagColH(mode) {
+  const me = S.me; const sel = S.smithSel;
+  const eqr = GD.SLOTS.map(s => { const it = me.eq[s]; const on = mode === 'smith' && sel && sel.eq === s; return it ? `<div class="cell r${it.rar} ${on ? 'sel' : ''}" style="width:42px;height:42px" data-eqs="${s}" title="${GD.SLOT_NAME[s]}"><canvas width="22" height="22" data-ic="eqs:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; }).join('');
+  let g = '<div class="grid" style="grid-template-columns:repeat(9,40px)">';
+  for (let i = 0; i < 36; i++) { const it = me.inv[i]; const on = (mode === 'smith' && sel && sel.i === i) || (mode === 'trade' && S.trade && S.trade.myIdx.includes(i)); g += it ? `<div class="cell r${it.k === 'gear' ? it.rar : 0} ${on ? (mode === 'trade' ? 'off' : 'sel') : ''}" style="width:40px;height:40px" data-bi="${i}"><canvas width="22" height="22" data-ic="bi:${i}" style="width:32px;height:32px"></canvas>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:40px;height:40px"></div>`; }
+  g += '</div>';
+  const hint = { shop: '팔 아이템을 누르세요', smith: '강화할 장비를 누르세요', chest: '넣을 아이템을 누르세요', trade: '교환할 아이템을 누르세요' }[mode] || '아이템을 눌러 사용·착용';
+  return `<div class="npcr"><div class="row"><b style="color:#fff">${ic('bag')} 내 가방</b><span class="mut">${hint}</span><div style="flex:1"></div>${coinH(me.coins)}</div><div class="eqrow">${eqr}</div>${g}<div class="mut">${me.inv.length}/36칸</div></div>`;
+}
+function bindBagCol(body, mode) {
+  const me = S.me;
+  body.querySelectorAll('canvas[data-ic^="eqs:"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.ic.slice(4)]), 0, 0); });
+  body.querySelectorAll('canvas[data-ic^="bi:"]').forEach(c => { const it = me.inv[+c.dataset.ic.slice(3)]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(it), 0, 0); });
+  body.querySelectorAll('[data-eqs]').forEach(c => c.onclick = e => { e.stopPropagation(); const s = c.dataset.eqs; if (mode === 'smith') { S.smithSel = { eq: s }; renderPanel(); return; } showTip(itemDesc(me.eq[s]) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${s}">해제</button></div>`, e); });
+  body.querySelectorAll('[data-bi]').forEach(c => c.onclick = e => { e.stopPropagation(); const i = +c.dataset.bi; const it = me.inv[i]; if (mode === 'smith') { if (it.k === 'gear') { S.smithSel = { i }; renderPanel(); } else showTip(itemDesc(it), e); return; } invClick(i, e, mode); });
+  body.querySelectorAll('canvas[data-npcap]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite(NPC_AP[c.dataset.npcap] || NPC_AP.guide, 0, 0), 0, 0); });
+}
+function renderNpc(P) {
+  const me = S.me, d = P.data || {}, body = $('pbody');
+  const T = (i, t, extra = '') => { $('ptitle').innerHTML = ic(i) + `<span>${esc(t)}</span>` + extra; };
+  let L = '', mode = 'inv';
+  switch (P.kind) {
+    case 'shop': {
+      T('flask', d.npc || '잡화상'); mode = 'shop';
+      L = npcHeadH(d, 'shop') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + d.items.map(it => `<div class="tile" data-si="${it.id}"><canvas width="22" height="22" data-one='{"k":"use","id":"${it.id}"}'></canvas><div class="nm">${it.name}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">물건을 누르면 구매, 오른쪽 가방의 물건을 누르면 판매</div>`;
+      break;
+    }
+    case 'gear': {
+      T('sword', d.npc || '장비상');
+      const lvs = [...new Set(d.items.map(i => i.lvl))]; S.gearLv = lvs.includes(S.gearLv) ? S.gearLv : lvs[0];
+      const list = d.items.filter(i => i.lvl === S.gearLv); S._gearList = list;
+      L = npcHeadH(d, 'gear') + `<div class="tabs">${lvs.map(l => `<div class="tab ${l === S.gearLv ? 'on' : ''}" data-glv="${l}">${l}등급</div>`).join('')}</div><div class="tiles" style="grid-template-columns:repeat(4,1fr)">` + list.map((it, k) => `<div class="tile" data-gi="${k}"><canvas width="22" height="22" data-one='${JSON.stringify({ k: 'gear', slot: it.slot, wt: it.wt, tier: it.tier, job: it.job })}'></canvas><div class="nm">${esc(it.name)}</div>${coinH(it.price)}</div>`).join('') + `</div><div class="mut">상점 장비는 옵션이 낮아요. 좋은 옵션은 몬스터가 떨어뜨립니다.</div>`;
+      break;
+    }
+    case 'smith': {
+      T('hammer', d.npc || '대장간'); mode = 'smith';
+      let it = null; const sel = S.smithSel;
+      if (sel) it = sel.eq ? me.eq[sel.eq] : me.inv[sel.i];
+      if (!it || it.k !== 'gear') { S.smithSel = null; it = null; }
+      let anvil;
+      if (!it) anvil = `<div class="anvil"><div class="bigslot">장비를<br>올려주세요</div><div class="txt">오른쪽 가방이나 착용 장비에서<br><b style="color:#fff">강화할 장비를 누르면</b> 모루 위에 올라갑니다.\n\n강화 재료는 사냥으로 얻어요.\n철광석 1~15등급 · 은광석 16~30등급\n마력석 31~45등급 · 용의비늘 46~50등급</div></div>`;
+      else {
+        const c = GD.upgradeCost(it), have = haveMat(c.mat), p = it.plus || 0;
+        const cur = Object.assign({}, it.st), nx = Object.assign({}, it.st);
+        if (cur.atk) { cur.atk = Math.round(cur.atk * (1 + 0.1 * p) + p * 2); nx.atk = Math.round(nx.atk * (1 + 0.1 * (p + 1)) + (p + 1) * 2); }
+        if (cur.def) { cur.def = Math.round(cur.def * (1 + 0.1 * p) + p); nx.def = Math.round(nx.def * (1 + 0.1 * (p + 1)) + p + 1); }
+        const ok = have >= c.n && me.coins >= c.coin && p < 10;
+        anvil = `<div class="anvil"><div class="bigslot" style="border-style:solid;border-color:${GD.RARITY[it.rar].c}"><canvas width="22" height="22" id="anvilic"></canvas></div><div class="col" style="flex:1;gap:5px">
+          <div class="nm" style="font-size:14px;font-weight:800;color:${GD.RARITY[it.rar].c}">${esc(it.name)} <span style="color:#fff">+${p}</span>${p < 10 ? ` <span class="gl">→ +${p + 1}</span>` : ''}</div>
+          ${p >= 10 ? '<div class="yl">최대 강화 완료</div>' : `<div class="row" style="gap:14px">${['atk', 'def'].filter(k => cur[k]).map(k => `<span>${GD.OPT_NAME[k]} <b>${cur[k]}</b> <span class="gl">→ ${nx[k]}</span></span>`).join('')}</div>
+          <div class="row" style="gap:10px"><span class="row" style="gap:4px"><canvas width="22" height="22" data-one='{"k":"mat","id":"${c.mat}"}' style="width:24px;height:24px"></canvas><b class="${have >= c.n ? 'gl' : 'rl'}">${have}/${c.n}</b><span class="mut">${c.mat}</span></span>${coinH(c.coin)}</div>
+          <div class="row"><span>성공률</span><div style="flex:1;height:8px;background:#1b1f24;border-radius:2px;overflow:hidden"><div style="width:${GD.UPG_RATE[p]}%;height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div><b class="yl">${GD.UPG_RATE[p]}%</b></div>
+          <button class="btn pri" id="doupg" style="height:36px;font-size:14px" ${ok ? '' : 'disabled'}>${ic('hammer')}강화하기</button>`}</div></div>`;
+      }
+      L = npcHeadH({ text: '쇠는 두드려야 강해지는 법! 장비를 +10까지 강화해 주지. 실패해도 장비는 무사하다네.' }, 'smith') + anvil;
+      break;
+    }
+    case 'stable': {
+      T('horse', d.npc || '마구간');
+      L = npcHeadH(d, 'stable') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr);flex:1">` + Object.entries(GD.MOUNTS).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="tile" style="justify-content:space-between"><canvas width="56" height="80" data-mt="${id}" style="width:56px;height:80px"></canvas><div class="nm">${mt.name}</div><small class="mut">속도 x${mt.spd}</small>${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `${coinH(mt.price)}<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div>';
+      break;
+    }
+    case 'master': {
+      T('crown', d.npc || '전직관');
+      L = npcHeadH(d, 'master') + `<div class="tiles" style="grid-template-columns:1fr 1fr;flex:1">` + d.opts.map(o => `<div class="card" style="padding:10px"><div class="nm" style="font-size:15px;color:#c4b5fd">${o.name}</div><small style="font-size:11px">${o.desc}</small><div class="row" style="flex-wrap:wrap;gap:3px">${o.skills.map(s => `<span class="tab" style="height:22px">${ic('zap')}&nbsp;${s}</span>`).join('')}</div><div style="flex:1"></div>${d.can ? `<button class="btn pri" data-pro="${o.id}">${ic('star')}전직하기</button>` : `<div class="mut">Lv${GD.PROMO_LEVEL}에 전직 가능</div>`}</div>`).join('') + '</div>';
+      break;
+    }
+    case 'guide': case 'talk': {
+      T('talk', d.npc || '안내');
+      const guide = P.kind === 'guide';
+      L = npcHeadH({ text: guide ? '바람의 대륙에 온 걸 환영해요! 밤이 되면 몬스터가 늘고 돌연변이가 나와요. 지치면 재료로 텐트를 지어 쉬세요!' : d.text }, 'guide') +
+        (guide ? `<div class="row" style="gap:8px;flex:1;align-items:stretch"><div class="box txt" style="flex:1">${esc('PC 조작\n이동 방향키/WASD · 공격 스페이스\n스킬 1~6 · 퀵슬롯 7·8·9·0\nE 대화 · Z 줍기 · R 탈것 · B 집짓기\nI 가방 · M 지도 · K 스킬 · Tab 대상\n\n폰: 왼쪽 방향키 · 오른쪽 공격/스킬\n아래 퀵슬롯에 물약을 등록해 사용\n다른 플레이어를 누르면 교환 신청')}</div><div class="col" style="width:240px"><div class="lbl">보스 출현 시간</div>${bossRows(d.bosses || [])}</div></div>` : '');
+      break;
+    }
+    case 'chest': {
+      T('bag', '보관상자'); mode = 'chest';
+      L = `<div class="lbl">보관상자 — 눌러서 꺼내기</div><div data-store>${gridH(me.storage, 24, 8, '', 'data-s', 44)}</div><div class="mut">오른쪽 가방의 아이템을 누르면 보관상자에 넣어요.</div>`;
+      break;
+    }
+    case 'cook': {
+      T('flame', d.at === 'campfire' ? '모닥불 요리' : '조리대 요리');
+      L = `<div class="tiles" style="grid-template-columns:repeat(3,1fr)">` + d.recipes.map(r => `<div class="tile" style="padding:10px"><canvas width="22" height="22" data-one='{"k":"use","id":"${r.id}"}' style="width:44px;height:44px"></canvas><div class="nm">${r.name}</div><small class="mut">${r.desc}</small><small>${needH(r.need)}</small><button class="btn pri sm" data-cook="${r.id}" style="width:100%">${ic('flame')}요리</button></div>`).join('') + `</div><div class="mut">요리한 음식은 가방에서 눌러 퀵슬롯에 등록할 수 있어요.</div>`;
+      break;
+    }
+    case 'plot': {
+      T('home', `${d.town} 공터`);
+      let act = '';
+      if (!d.owner) act = d.myPlot ? '<div class="mut">이미 다른 땅을 갖고 있어요 (1인 1채).</div>' : `<button class="btn pri" data-plot="buy" ${me.coins < d.price ? 'disabled' : ''}>${ic('coin')}땅 구입 ${fmt(d.price)}</button>`;
+      else if (d.mine) act = (!d.hasHouse ? `<div>집 재료: ${needH(d.cost)}</div><button class="btn pri" data-plot="build">${ic('home')}집 짓기</button>` : `<button class="btn pri" data-plot="deco">${ic('bed')}집 꾸미기</button>`) + `<button class="btn red sm" data-plot="sell">땅 팔기 (절반 환불)</button>`;
+      L = `<div class="box txt">${esc(strip(d.text))}</div><div class="col">${act}</div>`;
+      break;
+    }
+    case 'trade': {
+      const tr = S.trade; if (!tr) return; mode = 'trade';
+      T('swap', `교환 — ${tr.with}`);
+      const side = (v, mine) => `<div class="col box" style="flex:1;${v.lock ? 'outline:2px solid var(--acc)' : ''}"><div class="row"><b>${mine ? '내 제안' : esc(tr.with)}</b><div style="flex:1"></div>${v.ok ? `<span class="gl">${ic('check')}</span>` : v.lock ? `<span class="yl">${ic('lock')}</span>` : ''}</div><div data-tg="${mine ? 'm' : 't'}">${gridH(v.items, 10, 5, '', 'data-t', 34)}</div><div class="row">${ic('coin')}${mine ? `<input type="number" id="tcoin" value="${v.coins}" min="0" style="width:100px;height:26px" ${v.lock ? 'disabled' : ''}>` : `<b class="yl">${fmt(v.coins)}</b>`}</div></div>`;
+      L = `<div class="row" style="align-items:stretch;gap:8px">${side(tr.mine, 1)}${side(tr.theirs, 0)}</div><div class="row"><button class="btn" data-tr="lock" ${tr.mine.lock ? 'disabled' : ''}>${ic('lock')}확정</button><button class="btn pri" data-tr="ok" ${!(tr.mine.lock && tr.theirs.lock) || tr.mine.ok ? 'disabled' : ''}>${ic('check')}교환하기</button><div style="flex:1"></div><button class="btn red" data-tr="cancel">취소</button></div><div class="mut">모든 아이템(장비·재료·요리·물약) 교환 가능 · 둘 다 확정 후 교환하기</div>`;
+      break;
+    }
+  }
+  body.innerHTML = `<div class="npcl">${L}</div>${bagColH(mode)}`;
+  paintOne(body); bindBagCol(body, mode);
+  // 공통 바인딩
+  body.querySelectorAll('[data-si]').forEach(t => t.onclick = e => { e.stopPropagation(); const it = d.items.find(x => x.id === t.dataset.si); showTip(`<div class="nm">${it.name}</div><div>${it.desc}</div><div style="margin:4px 0">${coinH(it.price)} / 개</div><div class="row"><button class="btn sm pri" data-buy2="${it.id}" data-n="1">1개 구매</button><button class="btn sm" data-buy2="${it.id}" data-n="10">10개</button></div>`, e); });
+  body.querySelectorAll('[data-glv]').forEach(t => t.onclick = () => { S.gearLv = +t.dataset.glv; renderPanel(); });
+  body.querySelectorAll('[data-gi]').forEach(t => t.onclick = e => { e.stopPropagation(); const it = S._gearList[+t.dataset.gi]; showTip(`<div class="nm">${esc(it.name)}</div><div class="mut">${it.lvl}등급 · ${GD.SLOT_NAME[it.slot]}</div>${Object.entries(it.st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('')}<div style="margin:4px 0">${coinH(it.price)}</div><button class="btn sm pri" data-gbuy="${it.lvl}|${it.slot}|${it.wt || ''}" ${me.coins < it.price ? 'disabled' : ''}>구매</button>`, e); });
+  const ai = $('anvilic'); if (ai) { const it = S.smithSel && (S.smithSel.eq ? me.eq[S.smithSel.eq] : me.inv[S.smithSel.i]); if (it) { const g = ai.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(it), 0, 0); } }
+  if ($('doupg')) $('doupg').onclick = () => send(Object.assign({ t: 'upgrade' }, S.smithSel));
+  body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0); });
+  body.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => send({ t: 'setMount', id: b.dataset.ride }));
+  body.querySelectorAll('[data-bm]').forEach(b => b.onclick = () => uiAsk(`${GD.MOUNTS[b.dataset.bm].name}을(를) ${fmt(GD.MOUNTS[b.dataset.bm].price)}코인에 구매할까요?`, () => send({ t: 'buy', id: b.dataset.bm })));
+  body.querySelectorAll('[data-pro]').forEach(b => b.onclick = () => uiAsk(`[${GD.JOBS[b.dataset.pro].name}](으)로 전직합니다. 되돌릴 수 없습니다.`, () => send({ t: 'promote', id: b.dataset.pro })));
+  body.querySelectorAll('[data-cook]').forEach(b => b.onclick = () => send({ t: 'cook', id: b.dataset.cook }));
+  body.querySelectorAll('[data-plot]').forEach(b => b.onclick = () => { const a = b.dataset.plot; if (a === 'buy') send({ t: 'plotBuy' }); if (a === 'build') send({ t: 'houseBuild' }); if (a === 'deco') openBuild('house'); if (a === 'sell') uiAsk('땅과 집을 팔까요? (가구는 사라집니다)', () => send({ t: 'plotSell' })); });
+  const st = body.querySelector('[data-store]'); if (st) { paint(st, 'data-s', me.storage); st.querySelectorAll('.cell[data-s]').forEach(c => c.onclick = e => { e.stopPropagation(); showTip(itemDesc(me.storage[+c.dataset.s]) + `<div style="margin-top:6px"><button class="btn sm pri" data-a="take" data-i="${c.dataset.s}">꺼내기</button></div>`, e); }); }
+  if (P.kind === 'trade' && S.trade) {
+    ['m', 't'].forEach(k => { const g = body.querySelector(`[data-tg="${k}"]`); const list = k === 'm' ? S.trade.mine.items : S.trade.theirs.items; paint(g, 'data-t', list); g.querySelectorAll('.cell[data-t]').forEach(c => c.onclick = e => { e.stopPropagation(); showTip(itemDesc(list[+c.dataset.t]), e); }); });
+    const tc = $('tcoin'); if (tc) tc.onchange = () => send({ t: 'tradeCoin', n: +tc.value });
+    body.querySelectorAll('[data-tr]').forEach(b => b.onclick = () => { const a = b.dataset.tr; if (a === 'cancel') send({ t: 'tradeCancel' }); else send({ t: a === 'lock' ? 'tradeLock' : 'tradeOk' }); });
+  }
+}
+// 이동 시 NPC 창 닫기는 game.js가 처리 (전체화면에서도 동일)
+
+// ═══════ v4: 실제 화면 높이 · 조이스틱 · 메뉴 이름 · 알림 가독성 ═══════
+function setVP() { const r = document.documentElement.style; r.setProperty('--vwp', innerWidth + 'px'); r.setProperty('--vhp', innerHeight + 'px'); }
+const _fit = fitUI; fitUI = function () { setVP(); _fit(); }; setVP(); fitUI();
+addEventListener('resize', () => { setVP(); fitUI(); });
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { setVP(); fitUI(); });
+// 메뉴 아이콘 + 이름
+$('menu').innerHTML = MENU.map(([k, i, t]) => `<div class="mbtn" data-k="${k}">${ic(i)}<span>${t}</span></div>`).join('');
+$('menu').querySelectorAll('.mbtn').forEach(b => b.onclick = () => hotkey(b.dataset.k));
+// 알림: 진한 배경 + 12초 뒤 사라짐
+log = function (text, c = '#fff', html) {
+  const d = document.createElement('div'); d.style.color = c; if (html) d.innerHTML = text; else d.textContent = strip(text);
+  const L = $('log'); L.appendChild(d); while (L.children.length > 5) L.removeChild(L.firstChild);
+  setTimeout(() => { d.style.transition = 'opacity .6s'; d.style.opacity = 0; setTimeout(() => d.remove(), 600); }, 12000);
+};
+let _annT2 = null;
+announce = function (t, c) { const a = $('announce'); a.innerHTML = `<span style="color:${c || '#fff'}">${esc(strip(t))}</span>`; a.style.transition = ''; a.style.opacity = 1; clearTimeout(_annT2); _annT2 = setTimeout(() => { a.style.transition = 'opacity 1s'; a.style.opacity = 0; }, 4000); };
+// 조이스틱
+const _bt = buildTouch;
+buildTouch = function () {
+  _bt();
+  const dp = $('dpad'); dp.innerHTML = '<div id="joy"></div><div id="knob"></div>';
+  const knob = $('knob'); let active = null;
+  const upd = e => {
+    const r = dp.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const R = r.width / 2; const dist = Math.hypot(dx, dy);
+    const k = dist > R * 0.6 ? R * 0.6 / dist : 1; const sc = 120 / r.width;
+    knob.style.transform = `translate(${dx * k * sc}px,${dy * k * sc}px)`;
+    if (dist < R * 0.18) { touchDir = -1; return; }
+    touchDir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : (dy > 0 ? 0 : 3);
+  };
+  const end = () => { active = null; touchDir = -1; knob.style.transform = ''; };
+  dp.onpointerdown = e => { active = e.pointerId; dp.setPointerCapture(e.pointerId); upd(e); e.preventDefault(); };
+  dp.onpointermove = e => { if (active === e.pointerId) upd(e); };
+  dp.onpointerup = dp.onpointercancel = end;
+};
