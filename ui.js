@@ -105,8 +105,16 @@ webLobby = function () {
   $('lcode').style.cssText = 'width:110px;height:34px;text-align:center;font-size:15px;font-weight:700'; $('lcode').placeholder = '방 코드';
   $('lsolo').className = 'btn sm'; $('lsolo').innerHTML = ic('users') + '혼자 하기';
   L.querySelectorAll('.row').forEach(r => r.style.marginTop = '6px');
+  let mem = null; try { mem = JSON.parse(localStorage.getItem('baram_last') || 'null'); } catch (e) { }
+  if (mem && mem.code && mem.name) {
+    $('nm').value = mem.name; if (mem.role === 'guest' && !$('lcode').value) $('lcode').value = mem.code;
+    const cont = document.createElement('button'); cont.className = 'btn pri'; cont.id = 'lcont'; cont.style.cssText = 'width:100%;height:42px;font-size:14px;margin-bottom:4px;background:#16a34a;border-color:#16a34a';
+    cont.innerHTML = `${ic('check')}이어하기 · ${esc(mem.name)} · 방 ${mem.code} (${mem.role === 'host' ? '방장' : '참가'})`;
+    L.insertBefore(cont, L.firstChild);
+    cont.onclick = () => { $('nm').value = mem.name; if (mem.role === 'host') NET.hostRoom(mem.name, mem.code); else { $('lcode').value = mem.code; $('ljoin').click(); } };
+  }
   const note = document.createElement('div'); note.className = 'mut'; note.style.cssText = 'text-align:center;margin-top:8px';
-  note.textContent = '방장이 [방 만들기]를 누르면 4자리 코드가 나와요. 친구는 코드를 넣고 [참가하기]. 로그인 필요 없음.'; L.appendChild(note);
+  note.textContent = '방장이 [방 만들기]를 누르면 4자리 코드가 나와요 (한 번 만든 방은 계속 유지). 친구는 코드를 넣고 [참가하기]. 다음부터는 [이어하기]만 누르면 돼요.'; L.appendChild(note);
 };
 function opts(el, list, key) {
   el.innerHTML = list.map((o, i) => `<div class="opt ${CR[key] === o.v ? 'on' : ''}" data-v="${i}">${o.html}</div>`).join('');

@@ -96,17 +96,24 @@ function recvChunk(d) {
 // ── 방장(호스트) ──
 const hexName = n => 'p_' + Array.from(new TextEncoder().encode(n)).map(b => b.toString(16).padStart(2, '0')).join('');
 async function loadSaves(db) {
+  if (NET.preSaves) return NET.preSaves;
   const saves = {};
   if (db) {
     try { const snap = await Promise.race([db.collection('saves').get(), new Promise((_, j) => setTimeout(() => j('timeout'), 10000))]); snap.docs.forEach(d => { const v = d.data(); if (v && v.name && v.s) saves[v.name] = v.s; }); }
     catch (e) { log('⚠ 저장 데이터를 불러오지 못했습니다. (새로 시작)', '#ffb4b4'); }
-  } else { try { Object.assign(saves, JSON.parse(localStorage.getItem('baram_saves') || '{}')); } catch (e) { } }
+  } else { try { const o = JSON.parse(localStorage.getItem('baram_saves') || '{}'); Object.assign(saves, o && o.saves ? o.saves : o); } catch (e) { } }
   return saves;
 }
 function makeSaver(db) {
   const last = {}; let busy = false;
   return { save(S) {
-    if (!db) { try { localStorage.setItem('baram_saves', JSON.stringify(S)); } catch (e) { } return; }
+    if (!db) {
+      const pack = JSON.stringify({ t: Date.now(), saves: S });
+      try { localStorage.setItem(NET.code ? 'baram_saves_' + NET.code : 'baram_saves', pack); } catch (e) { }
+      // 인터넷 백업 (중계 서버에 보관) — 방장 폰 데이터가 지워져도 복구 가능
+      if (NET.mq && NET.code) { const j = JSON.stringify(S); const now = Date.now(); if (j !== NET._lastBk && (!NET._bkT || now - NET._bkT > 20000)) { NET._lastBk = j; NET._bkT = now; try { NET.mq.publish(TP + NET.code + '/save', pack, { retain: true, qos: 1 }); } catch (e) { } } }
+      return;
+    }
     if (busy) return; busy = true;
     (async () => { for (const name in S) { const j = JSON.stringify(S[name]); if (last[name] === j) continue; try { await db.doc('saves/' + hexName(name)).set({ name, s: S[name] }); last[name] = j; } catch (e) { } } busy = false; })();
   } };
@@ -195,18 +202,35 @@ function webLobby() {
   const lock = () => { $('lobby').querySelectorAll('button').forEach(b => b.disabled = true); };
   const unlock = () => { $('lobby').querySelectorAll('button').forEach(b => b.disabled = false); };
   $('lsolo').onclick = () => { const n = needName(); if (!n) return; lock(); startHost(null, '🎮 혼자 플레이', () => { NET.hostName = n; send({ t: 'login', name: n }); }); };
-  $('lhost').onclick = async () => {
-    const n = needName(); if (!n) return; lock(); setNetStatus('중계 서버에 연결하는 중...');
-    const code = String(1000 + Math.floor(Math.random() * 9000));
+  // ── 방장: 방 열기 (한 번 만든 방 코드는 계속 유지 → 이어하기) ──
+  const hostRoom = async (n, wantCode) => {
+    lock(); setNetStatus('중계 서버에 연결하는 중...');
+    let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
+    const code = wantCode || (mem.role === 'host' && mem.code) || String(1000 + Math.floor(Math.random() * 9000));
     NET.code = code; NET.will = { topic: TP + code + '/host', payload: '', retain: true, qos: 0 };
     let c; try { c = await mqConnect(); } catch (e) { unlock(); setNetStatus('⚠ 중계 서버 연결 실패. 인터넷을 확인하거나 [혼자 하기]를 이용하세요.', '#ff8a8a'); return; }
-    NET.mq = c;
+    // 같은 코드로 이미 방장이 있으면 참가로 전환
+    setNetStatus('방 정보를 확인하는 중...');
+    let otherHost = null, backup = null;
+    const onPre = (topic, buf) => { const str = buf.toString(); if (topic.endsWith('/host')) { if (str) { try { const d = JSON.parse(str); if (Date.now() - d.t < 60000) otherHost = d; } catch (e) { } } } else if (topic.endsWith('/save')) { try { backup = JSON.parse(str); } catch (e) { } } };
+    c.on('message', onPre); c.subscribe([TP + code + '/host', TP + code + '/save']);
+    await new Promise(r => setTimeout(r, 2200));
+    c.removeListener('message', onPre); c.unsubscribe([TP + code + '/host', TP + code + '/save']);
+    if (otherHost && otherHost.sid !== NET.sid) { c.end(true); unlock(); setNetStatus(`${otherHost.n}님이 이미 ${code}번 방을 열어 두었어요. [참가하기]로 들어가세요.`, '#ffe08a'); $('lcode').value = code; return; }
+    // 저장 데이터: 이 폰의 저장 vs 인터넷 백업 중 최신 것
+    let local = null; try { local = JSON.parse(localStorage.getItem('baram_saves_' + code) || 'null'); } catch (e) { }
+    if (!local && mem.code === code) { try { const old = JSON.parse(localStorage.getItem('baram_saves') || 'null'); if (old) local = old.saves ? old : { t: 0, saves: old }; } catch (e) { } }
+    const pickB = backup && backup.saves && (!local || (backup.t || 0) > (local.t || 0));
+    NET.preSaves = (pickB ? backup.saves : local && local.saves) || {};
+    NET.mq = c; NET.sid = NET.sid || Math.random().toString(36).slice(2, 9);
+    try { localStorage.setItem('baram_last', JSON.stringify({ role: 'host', code, name: n })); } catch (e) { }
     startHost(null, '', () => {
       c.subscribe(TP + code + '/h');
-      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n, t: Date.now() }), { retain: true });
+      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n, t: Date.now(), sid: NET.sid }), { retain: true });
       pubHost(); setInterval(pubHost, 5000);
       c.on('connect', () => { c.subscribe(TP + code + '/h'); pubHost(); });
       c.on('message', (topic, buf) => {
+        if (!topic.endsWith('/h')) return;
         let d; try { d = JSON.parse(buf.toString()); } catch (e) { return; }
         if (!d || typeof d.cid !== 'string') return;
         let r = NET.remotes.get(d.cid);
@@ -217,10 +241,15 @@ function webLobby() {
       });
       setInterval(flushRemotes, 150);
       setInterval(() => { const now = Date.now(); for (const [k, r] of NET.remotes) if (now - r.seen > 25000) { NET.remotes.delete(k); if (r.conn.onclose) r.conn.onclose(); } }, 5000);
+      setInterval(() => ENGINE.saveAll(), 10000);
+      const bye = () => { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); }; addEventListener('pagehide', () => { bye(); try { c.publish(TP + code + '/host', '', { retain: true }); } catch (e) { } }); addEventListener('visibilitychange', () => { if (document.hidden) bye(); });
       NET.hostName = n; send({ t: 'login', name: n });
       showCode(code);
+      if (pickB) log('인터넷 백업에서 저장 데이터를 불러왔어요.', '#9fe8ff');
     });
   };
+  $('lhost').onclick = () => { const n = needName(); if (!n) return; const typed = $('lcode').value.trim(); hostRoom(n, /^\d{4}$/.test(typed) ? typed : null); };
+  NET.hostRoom = hostRoom;
   $('ljoin').onclick = async () => {
     const n = needName(); if (!n) return; const code = $('lcode').value.trim(); if (!/^\d{4}$/.test(code)) { $('lerr').textContent = '방 코드 4자리를 입력하세요.'; return; }
     lock(); setNetStatus('방을 찾는 중...');
@@ -234,8 +263,13 @@ function webLobby() {
       if (topic.endsWith('/host')) {
         const str = buf.toString(); if (!str) { NET.hostPeer = null; setNetStatus('⚠ 방장이 나갔습니다', '#ff8a8a'); if (S.me) announce('방장(호스트)이 게임을 닫았습니다', '#ff8a8a'); return; }
         let d; try { d = JSON.parse(str); } catch (e) { return; }
+        if (d.t && Date.now() - d.t > 60000) return; // 오래된 방장 정보는 무시
         lastHost = Date.now(); NET.hostPeer = 'host';
-        if (!found) { found = true; setNetStatus(`✅ ${d.n}님의 방(${code})에 연결됨`); send({ t: 'login', name: n }); }
+        if (!found || (d.sid && NET.hostSid && d.sid !== NET.hostSid)) {
+          const re = found; found = true; NET.hostSid = d.sid; setNetStatus(`✅ ${d.n}님의 방(${code})에 연결됨`);
+          try { localStorage.setItem('baram_last', JSON.stringify({ role: 'guest', code, name: n })); } catch (e) { }
+          send({ t: 'login', name: n }); if (re) announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff');
+        } else NET.hostSid = d.sid;
         return;
       }
       let z; try { z = JSON.parse(buf.toString()); } catch (e) { return; } z.forEach(m => onMsg(m));
@@ -243,7 +277,7 @@ function webLobby() {
     send = o => { if (!NET.mq) return; if (o.t === 'mv') o.ct = Math.round(performance.now()); c.publish(TP + code + '/h', JSON.stringify({ cid, m: o })); };
     setInterval(() => c.publish(TP + code + '/h', JSON.stringify({ cid })), 5000);
     addEventListener('pagehide', () => { try { c.publish(TP + code + '/h', JSON.stringify({ cid, bye: 1 })); } catch (e) { } });
-    setTimeout(() => { if (!found) { unlock(); setNetStatus(`⚠ ${code}번 방을 찾을 수 없어요. 코드를 확인하세요.`, '#ff8a8a'); } }, 8000);
+    setTimeout(() => { if (!found) setNetStatus(`${code}번 방장이 아직 방을 열지 않았어요. 방장이 열면 자동으로 들어갑니다.`, '#ffe08a'); }, 6000);
     setInterval(() => { if (found && Date.now() - lastHost > 16000) { setNetStatus('⚠ 방장과 연결이 끊겼습니다', '#ff8a8a'); if (S.me) announce('방장과 연결이 끊겼습니다 (방장 화면이 꺼졌을 수 있어요)', '#ff8a8a'); lastHost = Date.now(); } }, 4000);
   };
 }
