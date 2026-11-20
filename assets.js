@@ -299,13 +299,13 @@
 (function () {
   const KEY = 'baram_chars';
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
-  const save = l => { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 10))); } catch (e) { } };
+  const save = l => { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 3))); } catch (e) { } };
   setInterval(() => {
     if (!S.me || !NET.code || NET.serverOnly) return;
     let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
     const role = mem.role === 'host' && mem.code === NET.code ? 'host' : 'join';
     const l = load().filter(c => !(c.name === S.me.name && c.code === NET.code));
-    l.unshift({ name: S.me.name, code: NET.code, job: S.me.job, lv: S.me.lv, role, t: Date.now() }); save(l);
+    const old = load().findIndex(c => c.name === S.me.name && c.code === NET.code); const ent = { name: S.me.name, code: NET.code, job: S.me.job, lv: S.me.lv, role, g: S.me.gender, h: S.me.hair, hc: S.me.hairColor, sk: S.me.skin, t: Date.now() }; if (old >= 0) l.splice(old, 0, ent); else l.push(ent); save(l);
   }, 5000);
   // 게임 메뉴에 [캐릭터] 버튼
   function addBtn() {
@@ -322,21 +322,50 @@
     $('menu').appendChild(b);
   }
   addBtn(); setTimeout(addBtn, 1500);
-  // 로비: 내 캐릭터 목록
+  // 로비: 캐릭터 선택 (최대 3명)
+  const MAXC = 3;
   if (typeof webLobby === 'function') {
     const _wl = webLobby;
     webLobby = function () {
       _wl();
-      const list = load(); const L = $('lobby'); if (!L || !list.length) return;
+      const L = $('lobby'); if (!L) return;
       const JN = { warrior: '전사', mage: '마법사', healer: '치유사' };
-      const box = document.createElement('div'); box.id = 'mychars';
-      box.style.cssText = 'margin:2px 0 8px;display:flex;flex-direction:column;gap:6px';
-      box.innerHTML = `<div class="mut" style="font-size:12px">내 캐릭터 · 누르면 바로 접속</div><div style="display:flex;gap:6px;flex-wrap:wrap">${list.map((c, i) => `<button class="btn" data-ci="${i}" style="height:40px;padding:0 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.15"><b style="font-size:13px">${esc(c.name)}</b><span class="mut" style="font-size:10px">Lv${c.lv} ${JN[(GD.JOBS[c.job] || {}).base] || (GD.JOBS[c.job] || {}).name || ''} · 방 ${c.code}</span></button>`).join('')}</div>`;
-      L.insertBefore(box, L.firstChild);
-      box.querySelectorAll('[data-ci]').forEach(bt => bt.onclick = () => {
-        const c = list[+bt.dataset.ci]; $('nm').value = c.name; $('lcode').value = c.code;
-        if (c.role === 'host' && $('lhost')) $('lhost').click(); else if ($('ljoin')) $('ljoin').click();
-      });
+      const jobName = j => (GD.JOBS[j] && GD.JOBS[j].name) || JN[(GD.JOBS[j] || {}).base] || '';
+      const box = document.createElement('div'); box.id = 'mychars'; L.insertBefore(box, L.firstChild);
+      const st = document.createElement('style'); st.textContent = `#mychars{margin:0 0 8px}#mychars .cslots{display:flex;gap:6px}#mychars .cs{flex:1;min-width:0;height:64px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);display:flex;align-items:center;gap:6px;padding:4px 6px;position:relative;cursor:pointer;color:#fff}#mychars .cs.sel{border-color:#ffd166;box-shadow:0 0 0 2px #ffd16655;background:rgba(255,209,102,.08)}#mychars .cs canvas{width:34px;height:48px;flex:none;image-rendering:auto}#mychars .cs .ci{display:flex;flex-direction:column;min-width:0;line-height:1.2;text-align:left}#mychars .cs b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#mychars .cs small{font-size:10px;color:#9fb0c0;white-space:nowrap}#mychars .cs.empty{justify-content:center;color:#9fb0c0;border-style:dashed}#mychars .cs .del{position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:5px;background:rgba(0,0,0,.35);color:#f88;font-size:12px;display:flex;align-items:center;justify-content:center}#mychars .ch{display:flex;align-items:center;font-size:12px;color:#9fb0c0;margin-bottom:4px}`;
+      document.head.appendChild(st);
+      let sel = -1;
+      const render = () => {
+        const list = load().slice(0, MAXC);
+        let h = `<div class="ch"><b style="color:#fff;font-size:13px">캐릭터 선택</b><span style="margin-left:6px">(${list.length}/${MAXC}) · 고르면 바로 접속</span></div><div class="cslots">`;
+        for (let k = 0; k < MAXC; k++) {
+          const c = list[k];
+          if (c) h += `<div class="cs${sel === k ? ' sel' : ''}" data-k="${k}"><canvas width="56" height="80"></canvas><div class="ci"><b>${esc(c.name)}</b><small>Lv${c.lv} ${jobName(c.job)}</small><small>방 ${c.code}</small></div><div class="del" data-del="${k}">✕</div></div>`;
+          else h += `<div class="cs empty${sel === k ? ' sel' : ''}" data-k="${k}">＋ 새 캐릭터</div>`;
+        }
+        box.innerHTML = h + '</div>';
+        box.querySelectorAll('.cs').forEach(el => {
+          const k = +el.dataset.k, c = list[k];
+          if (c) { const cv = el.querySelector('canvas'); try { const im = charSprite({ job: c.job, g: c.g || 'm', h: c.h || 0, hc: c.hc || 0, sk: c.sk || 0, eq: {} }, 0, 0); cv.getContext('2d').drawImage(im, 0, 0, 56, 80); } catch (e) { } }
+          el.onclick = e => {
+            if (e.target.dataset.del != null) {
+              if (!confirm(`'${c.name}' 캐릭터를 목록에서 지울까요?\n(같은 방에 저장된 데이터는 남아 있어 이름을 다시 입력하면 불러올 수 있어요)`)) return;
+              const l = load(); l.splice(k, 1); save(l); sel = -1; render(); return;
+            }
+            sel = k; render();
+            if (c) { $('nm').value = c.name; $('lcode').value = c.code; if (c.role === 'host' && $('lhost')) $('lhost').click(); else if ($('ljoin')) $('ljoin').click(); }
+            else { $('nm').value = ''; $('nm').placeholder = '새 캐릭터 이름 (최대 10자)'; $('nm').focus(); }
+          };
+        });
+      };
+      render();
+      // 4번째 캐릭터는 만들 수 없음
+      L.addEventListener('click', e => {
+        const b = e.target.closest('#lhost,#ljoin,#lsolo'); if (!b) return;
+        const n = ($('nm').value || '').trim(); if (!n) return;
+        const list = load(); if (list.some(c => c.name === n)) return;
+        if (list.length >= MAXC) { e.stopImmediatePropagation(); e.preventDefault(); const er = $('lerr'); if (er) er.textContent = `캐릭터는 ${MAXC}개까지 만들 수 있어요. 위 목록에서 하나를 지우고 만들어 주세요.`; }
+      }, true);
     };
   }
 })();

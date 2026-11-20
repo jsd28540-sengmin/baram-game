@@ -94,7 +94,12 @@ function fsHint() {
   $('fsok').onclick = () => { d.remove(); try { localStorage.setItem('baram_fshint', '1'); } catch (e) { } };
   setTimeout(() => d.remove(), 20000);
 }
-addEventListener('pointerdown', function once() { if (S.me) { tryFullscreen(); removeEventListener('pointerdown', once); } });
+// 안드로이드: 터치를 뗄 때(사용자 동작) 전체화면 요청 — 주소창 숨김. 전체화면이 풀리면 다음 터치에 다시 요청
+(function () {
+  const isFS = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const go = () => { if (!S.me || isFS() || /iPhone|iPod/.test(navigator.userAgent)) return; tryFullscreen(); setTimeout(() => { try { if (isFS() && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }, 400); };
+  ['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => addEventListener(ev, go, true));
+})();
 const _onMsg = onMsg; onMsg = function (m) { const r = _onMsg(m); if (m.t === 'welcome') { setTimeout(() => { tryFullscreen(); fsHint(); scrollTo(0, 1); }, 300); } return r; };
 
 // ── 로그인 화면 ──
