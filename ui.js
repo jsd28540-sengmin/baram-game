@@ -923,6 +923,8 @@ function heldVec() {
   return null;
 }
 const dirOf = (dx, dy) => dx < 0 ? 1 : dx > 0 ? 2 : dy < 0 ? 3 : 0;
+// 바라보는 방향: 조이스틱은 손가락이 더 많이 향한 쪽, 대각선 이동은 지금 방향이 맞으면 유지(좌우로 깜빡임 방지)
+const faceOf = (dx, dy) => { if (touchVec && window.touchFace != null) return window.touchFace; if (dx && dy) { const keep = (pos.dir === 1 && dx < 0) || (pos.dir === 2 && dx > 0) || (pos.dir === 3 && dy < 0) || (pos.dir === 0 && dy > 0); if (keep) return pos.dir; } return dirOf(dx, dy); };
 updateMove = function (now) {
   if (pos.moving) {
     const k = (now - pos.t0) / pos.dur;
@@ -933,7 +935,7 @@ updateMove = function (now) {
     const v = heldVec();
     if (v) {
       if (S.panel && S.panel.kind && ['shop', 'gear', 'smith', 'stable', 'master', 'cook', 'chest', 'plot', 'guide', 'talk'].includes(S.panel.kind)) closePanel();
-      let [dx, dy] = v; const d = dirOf(dx, dy); pos.dir = d;
+      let [dx, dy] = v; const d = faceOf(dx, dy); pos.dir = d;
       const tryV = (a, b) => (a && b) ? (canWalk(pos.x + a, pos.y + b) && canWalk(pos.x + a, pos.y) && canWalk(pos.x, pos.y + b)) : canWalk(pos.x + a, pos.y + b);
       if (dx && dy && !tryV(dx, dy)) { if (tryV(dx, 0)) dy = 0; else if (tryV(0, dy)) dx = 0; }
       if (tryV(dx, dy)) {
@@ -1273,6 +1275,6 @@ document.addEventListener('pointerup', e => {
 // ═══════ 새 버전 자동 적용: 캐시된 옛 화면이면 새로고침 ═══════
 (function () {
   if (!window.BUILDV) return;
-  const check = () => fetch('index.html?ts=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/window\.BUILDV="(\d+)"/); if (m && m[1] !== window.BUILDV && !S.me) location.reload(); else if (m && m[1] !== window.BUILDV) { if (!$('newver')) { const d = document.createElement('div'); d.id = 'newver'; d.className = 'win'; d.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:80;padding:6px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;background:#16a34a'; d.textContent = '새 버전이 있어요 — 눌러서 적용'; d.onclick = () => location.reload(); document.body.appendChild(d); } } }).catch(() => { });
+  const check = () => fetch('index.html?ts=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/window\.BUILDV="(\d+)"/); if (m && m[1] !== window.BUILDV && NET.serverOnly) { if (typeof serverUpdate === 'function') serverUpdate(); } else if (m && m[1] !== window.BUILDV && !S.me) location.reload(); else if (m && m[1] !== window.BUILDV) { if (!$('newver')) { const d = document.createElement('div'); d.id = 'newver'; d.className = 'win'; d.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:80;padding:6px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;background:#16a34a'; d.textContent = '새 버전이 있어요 — 눌러서 적용'; d.onclick = () => location.reload(); document.body.appendChild(d); } } }).catch(() => { });
   check(); setInterval(check, 120000);
 })();

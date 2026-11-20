@@ -231,7 +231,7 @@
     const sec = [['E', 0], ['SE', 45], ['S', 90], ['SW', 135], ['W', 180], ['NW', 225], ['N', 270], ['NE', 315]];
     const half = n => n.length === 1 ? 27 : 18, diff = (x, y) => Math.abs(((x - y + 540) % 360) - 180);
     const pickDir = deg => { const a = (deg + 360) % 360; if (cur) { const c = sec.find(s => s[0] === cur); if (diff(a, c[1]) <= half(cur) + 5) return cur; } let best = 'E', bd = 999; for (const [n, c] of sec) { const d = diff(a, c) - half(n); if (d < bd) { bd = d; best = n; } } return best; };
-    const start = (id, x, y) => { active = id; ox = x; oy = y; cur = null; };
+    const start = (id, x, y) => { active = id; ox = x; oy = y; cur = null; window.touchFace = null; };
     const move = (x, y) => {
       const r = dp.getBoundingClientRect(), sc = 120 / (r.width || 120);
       const dx = (x - ox) * sc, dy = (y - oy) * sc, dist = Math.hypot(dx, dy), lim = 38;
@@ -239,8 +239,9 @@
       if (dist < 13) { if (dist < 9) { cur = null; touchVec = null; touchDir = -1; } return; }
       if (dist > 70) { ox += (x - ox) * (1 - 70 / dist); oy += (y - oy) * (1 - 70 / dist); }
       cur = pickDir(Math.atan2(dy, dx) * 180 / Math.PI); touchVec = VEC[cur]; touchDir = dirOf(touchVec[0], touchVec[1]);
+      const tf = Math.abs(dx) > Math.abs(dy) * 1.15 ? (dx > 0 ? 2 : 1) : Math.abs(dy) > Math.abs(dx) * 1.15 ? (dy > 0 ? 0 : 3) : window.touchFace; window.touchFace = tf != null ? tf : (Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 2 : 1) : (dy > 0 ? 0 : 3));
     };
-    const end = () => { active = null; cur = null; touchVec = null; touchDir = -1; knob.style.transform = ''; };
+    const end = () => { active = null; cur = null; touchVec = null; touchDir = -1; window.touchFace = null; knob.style.transform = ''; };
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     // 마우스·펜용 포인터 (터치는 아래 터치 이벤트가 담당)
     dp.onpointerdown = e => { if (e.pointerType === 'touch' && hasTouch) return; active = e.pointerId; try { dp.setPointerCapture(e.pointerId); } catch (_) { } start(e.pointerId, e.clientX, e.clientY); e.preventDefault(); };
@@ -257,4 +258,85 @@
       window.addEventListener('touchend', fin, o); window.addEventListener('touchcancel', fin, o);
     }
   };
+})();
+// ═══════ 서버 아이패드: 꺼짐 방지 ═══════
+(function () {
+  let vid = null;
+  function awakeVideo() {
+    if (!vid) { vid = document.createElement('video'); vid.src = 'sfx/awake.mp4'; vid.muted = true; vid.loop = true; vid.playsInline = true; vid.setAttribute('playsinline', ''); vid.setAttribute('muted', ''); vid.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1'; document.body.appendChild(vid); }
+    const p = vid.play(); if (p && p.catch) p.catch(() => { });
+  }
+  let wl = null;
+  async function lock() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible' && (!wl || wl.released)) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } } catch (e) { } }
+  function keep() { lock(); awakeVideo(); }
+  const _sd = showServerDash;
+  showServerDash = function (code, restored) {
+    _sd(code, restored);
+    // 새로고침·탭 복구 시 자동으로 같은 방을 다시 엶
+    try { history.replaceState(null, '', location.pathname + location.search + '#server' + code); } catch (e) { }
+    keep(); setInterval(keep, 20000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keep(); });
+    document.addEventListener('pointerdown', keep, { passive: true });
+    const info = document.createElement('div'); info.id = 'svkeep'; info.className = 'mut'; info.style.cssText = 'position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:71;font-size:12px;text-align:center;line-height:1.5;color:#9fb0c0';
+    info.innerHTML = '화면 꺼짐 방지 켜짐 · 꺼지거나 새로고침돼도 같은 방으로 자동 복구돼요<br>더 확실하게: 설정 › 디스플레이 및 밝기 › 자동 잠금 › <b style="color:#ffe08a">안 함</b> · 충전기 연결';
+    document.body.appendChild(info);
+  };
+  // 새 버전: 접속자가 0명일 때만 저장 후 자동 적용 (접속 중이면 기다림)
+  let pend = false;
+  window.serverUpdate = function () {
+    if (pend) return; pend = true;
+    const tryApply = () => {
+      let n = 1; try { n = ENGINE.online().length; } catch (e) { }
+      const msg = $('svmsg'); if (n > 0) { if (msg) msg.textContent = `새 버전이 있어요. 접속자가 모두 나가면 자동으로 적용돼요 (현재 ${n}명).`; setTimeout(tryApply, 30000); return; }
+      try { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); } catch (e) { }
+      setTimeout(() => { try { history.replaceState(null, '', location.pathname + '#server' + NET.code); } catch (e) { } location.reload(); }, 1500);
+    };
+    tryApply();
+  };
+})();
+
+// ═══════ 캐릭터 선택: 게임 중 나가기 + 로비에서 내 캐릭터 목록 ═══════
+(function () {
+  const KEY = 'baram_chars';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const save = l => { try { localStorage.setItem(KEY, JSON.stringify(l.slice(0, 10))); } catch (e) { } };
+  setInterval(() => {
+    if (!S.me || !NET.code || NET.serverOnly) return;
+    let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
+    const role = mem.role === 'host' && mem.code === NET.code ? 'host' : 'join';
+    const l = load().filter(c => !(c.name === S.me.name && c.code === NET.code));
+    l.unshift({ name: S.me.name, code: NET.code, job: S.me.job, lv: S.me.lv, role, t: Date.now() }); save(l);
+  }, 5000);
+  // 게임 메뉴에 [캐릭터] 버튼
+  function addBtn() {
+    if ($('charsel') || !$('menu')) return;
+    const b = document.createElement('div'); b.className = 'mbtn'; b.id = 'charsel'; b.innerHTML = `${ic('users')}<span>캐릭터</span>`;
+    b.onclick = () => {
+      let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
+      const iAmHost = mem.role === 'host' && mem.code === NET.code;
+      const q = iAmHost ? '캐릭터 선택 화면으로 갈까요?\n지금 방장이라 나가면 이 방이 잠시 닫혀요 (저장은 돼요).' : '캐릭터 선택 화면으로 갈까요? (저장은 자동으로 돼요)';
+      if (!confirm(q)) return;
+      try { if (iAmHost) { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); } } catch (e) { }
+      setTimeout(() => { try { history.replaceState(null, '', location.pathname + (NET.code ? '#' + NET.code : '')); } catch (e) { } location.reload(); }, 600);
+    };
+    $('menu').appendChild(b);
+  }
+  addBtn(); setTimeout(addBtn, 1500);
+  // 로비: 내 캐릭터 목록
+  if (typeof webLobby === 'function') {
+    const _wl = webLobby;
+    webLobby = function () {
+      _wl();
+      const list = load(); const L = $('lobby'); if (!L || !list.length) return;
+      const JN = { warrior: '전사', mage: '마법사', healer: '치유사' };
+      const box = document.createElement('div'); box.id = 'mychars';
+      box.style.cssText = 'margin:2px 0 8px;display:flex;flex-direction:column;gap:6px';
+      box.innerHTML = `<div class="mut" style="font-size:12px">내 캐릭터 · 누르면 바로 접속</div><div style="display:flex;gap:6px;flex-wrap:wrap">${list.map((c, i) => `<button class="btn" data-ci="${i}" style="height:40px;padding:0 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.15"><b style="font-size:13px">${esc(c.name)}</b><span class="mut" style="font-size:10px">Lv${c.lv} ${JN[(GD.JOBS[c.job] || {}).base] || (GD.JOBS[c.job] || {}).name || ''} · 방 ${c.code}</span></button>`).join('')}</div>`;
+      L.insertBefore(box, L.firstChild);
+      box.querySelectorAll('[data-ci]').forEach(bt => bt.onclick = () => {
+        const c = list[+bt.dataset.ci]; $('nm').value = c.name; $('lcode').value = c.code;
+        if (c.role === 'host' && $('lhost')) $('lhost').click(); else if ($('ljoin')) $('ljoin').click();
+      });
+    };
+  }
 })();
