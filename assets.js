@@ -179,3 +179,5 @@
 #skillgrid .tb.pressed{transform:scale(.9);filter:brightness(1.35)}
 `; document.head.appendChild(st);
 })();
+// 창이 열리면 캐릭터 메뉴 팝업 닫기
+(function () { const _op = openPanel; openPanel = function () { try { closePM(); } catch (e) { } return _op.apply(this, arguments); }; })();
