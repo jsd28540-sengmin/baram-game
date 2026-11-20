@@ -706,7 +706,7 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 10); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, -40, -28, 56, 80); ctx.restore(); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
   else {
     const lunge = p.atkT && now - p.atkT < 150 ? 4 : 0; const [dx, dy] = DIRS[dir];
-    shadowAt(x, y, ap.mt ? 18 : 12); ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge), 56, 80);
+    shadowAt(x, y, ap.mt ? 18 : 12); if (img.dw) ctx.drawImage(img, Math.round(x - img.dw / 2 + dx * lunge), Math.round(y - img.dh + 6 + dy * lunge), img.dw, img.dh); else ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge), 56, 80);
   }
   ctx.globalAlpha = 1;
   if (p.bf) { ctx.strokeStyle = `rgba(255,220,120,${0.4 + Math.sin(now / 200) * 0.2})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, 16, 6, 0, 0, 7); ctx.stroke(); }
