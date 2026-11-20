@@ -178,11 +178,13 @@ charSprite = function (ap, dir, frame) {
   if (charCache3.size > 700) charCache3.clear();
   const base = GD.JOBS[ap.job] ? GD.JOBS[ap.job].base : 'warrior'; const bk = base + '_' + (ap.g === 'f' ? 'f' : 'm');
   const FR = CH3.A.frames[bk]; const row = FR[[0, 2, 1, 3][dir] ?? 0]; const n = row.length;
-  const col = frame === 1 ? 1 : frame === 3 ? (n === 4 ? 3 : 2) : 0;
+  // 시안 0번 칸은 소품이 달라 깜빡여 보이므로 1번 칸부터 사용
+  const col = n >= 3 ? (frame === 1 ? 2 : frame === 3 ? (n === 4 ? 3 : 1) : 1) : 0;
   const R = CH3.A.rects[row[Math.min(col, n - 1)]];
   const S2 = 2, s = 0.78 * S2; // 2배 해상도로 그린 뒤 표시는 56x80
   c = mk(56 * S2, 80 * S2); const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-  const dw = R[2] * s, dh = R[3] * s, dx = 28 * S2 - dw / 2, dy = 77 * S2 - dh;
+  const ri = row[Math.min(col, n - 1)], AX = CH3.A.ax ? CH3.A.ax[ri] : R[2] / 2;
+  const dw = R[2] * s, dh = R[3] * s, dx = 28 * S2 - AX * s, dy = 77 * S2 - dh;
   g.drawImage(CH3.img, R[0], R[1], R[2], R[3], dx, dy, dw, dh);
   // 머리색 · 갑옷 색
   const eq = ap.eq || {}; const hairPal = CH3.A.hairpal[bk]; const hairT = hex2rgb(HAIRC[ap.hc || 0]);
