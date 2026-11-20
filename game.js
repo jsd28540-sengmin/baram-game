@@ -579,11 +579,18 @@ function frame(nowMs) {
     else if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y);
     else if (!m.biome && id === T.ROCK) under = 'c';
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
-    ctx.drawImage(tileImg(id, v, m.pal, m.castle, anim, under), x * TS - sx, y * TS - sy);
-    if (m.biome && (id === T.ROAD || id === T.SAND)) {
-      const gc = { g: '#7fd35a', f: '#5fbf4a', s: '#f2f8ff', d: '#f7e2a3', w: '#7fae6a', v: '#7a6a72' };
-      const isG = t2 => t2 === T.GRASS || t2 === T.FLOWER || t2 === T.FOREST || t2 === T.TREE || t2 === T.SNOW || t2 === T.PINE || t2 === T.SWAMP || (id === T.ROAD && t2 === T.SAND);
-      for (const [dx, dy, sd] of [[0, -1, 'n'], [0, 1, 's'], [-1, 0, 'w'], [1, 0, 'e']]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= m.w || ny >= m.h) continue; const t2 = m.t[ny * m.w + nx]; if (isG(t2)) { const b = t2 === T.SAND ? 'd' : biomeChar(nx, ny); ctx.drawImage(fringeImg(sd, gc[b] || gc.g), x * TS - sx, y * TS - sy); } }
+    const X0 = x * TS - sx, Y0 = y * TS - sy;
+    ctx.drawImage(tileImg(id, v, m.pal, m.castle, anim, under), X0, Y0);
+    const blk = GD.BLOCK.has(id);
+    if (m.biome && !blk) { const n = vnoise(x, y); if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.32).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.38).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
+    if (id === T.WATER) { if (!GD.BLOCK.has(tileAt(x, y - 1)) || tileAt(x, y - 1) === T.TREE) ctx.drawImage(FX_IMG.foam, X0, Y0); }
+    else if (!blk) {
+      if (AO_SRC(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.aoN, X0, Y0);
+      if (AO_SRC(tileAt(x - 1, y))) ctx.drawImage(FX_IMG.aoW, X0, Y0);
+      if (AO_SRC(tileAt(x + 1, y))) ctx.drawImage(FX_IMG.aoE, X0, Y0);
+    } else if (TALL.has(id)) {
+      if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0);
+      if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
     }
   }
   // 텐트/집/공터
