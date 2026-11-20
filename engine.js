@@ -897,7 +897,7 @@ function hitMon(m, mon, p, atk, mul, fromSummon) {
   mon.hp -= d; mon.dmgBy[p.id] = (mon.dmgBy[p.id] || 0) + d;
   if (!mon.target || R() < 0.15) mon.target = p.id;
   if (!fromSummon && mon.target && mon.target[0] === 'm' && R() < 0.3) mon.target = p.id;
-  fx(m, { k: 'dmg', x: mon.x, y: mon.y, v: d, c: crit ? 1 : 0 });
+  fx(m, { k: 'dmg', x: mon.x, y: mon.y, v: d, c: crit ? 1 : 0, by: fromSummon ? 0 : p.id, i: mon.id, b: mul >= 1.3 ? 1 : 0 });
   if (mon.hp <= 0) killMon(m, mon, p);
   return d;
 }

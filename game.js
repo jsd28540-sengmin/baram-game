@@ -550,7 +550,7 @@ function drawFx(now, sx, sy, layer) {
       case 'dmg': case 'heal': case 'mana': case 'coin': {
         const txt = f.k === 'heal' ? '+' + f.v : f.k === 'mana' ? '+' + f.v : f.k === 'coin' ? '+' + f.v + '💰' : (f.c ? f.v + '!' : f.v);
         const col = f.k === 'heal' ? '#5aff7a' : f.k === 'mana' ? '#6ab4ff' : f.k === 'coin' ? '#ffd700' : f.p ? '#ff4a4a' : f.c ? '#ffb020' : '#ffffff';
-        g.globalAlpha = 1 - k * k; g.font = `bold ${f.c ? 22 : 16}px sans-serif`; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000';
+        g.globalAlpha = 1 - k * k; const pop = f.k === 'dmg' && f.by === S.myId ? (k < 0.12 ? 1 + (0.12 - k) / 0.12 * 0.7 : 1) : 1; g.font = `900 ${Math.round((f.c ? 24 : f.by === S.myId ? 18 : 16) * pop)}px sans-serif`; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000';
         const y = Y(f.y) - 30 - k * 34, x = X(f.x) + ((f.v * 7) % 13 - 6);
         g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y); break;
       }
@@ -616,7 +616,8 @@ function frame(nowMs) {
   if (!S.map || !S.me) { return; }
   updateMove(now);
   const m = S.map;
-  const sx = Math.floor(pos.rx * TS + TS / 2 - W / 2), sy = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const SHK = window.shakeOff ? shakeOff() : null;
+  const sx = Math.floor(pos.rx * TS + TS / 2 - W / 2) + (SHK ? SHK[0] : 0), sy = Math.floor(pos.ry * TS + TS / 2 - H / 2) + (SHK ? SHK[1] : 0);
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   const x0 = Math.max(0, Math.floor(sx / TS)), y0 = Math.max(0, Math.floor(sy / TS)), x1 = Math.min(m.w - 1, Math.ceil((sx + W) / TS)), y1 = Math.min(m.h - 1, Math.ceil((sy + H) / TS));
   const fr = (now / 600 | 0) % 2;

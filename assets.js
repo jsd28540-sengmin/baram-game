@@ -181,3 +181,40 @@
 })();
 // 창이 열리면 캐릭터 메뉴 팝업 닫기
 (function () { const _op = openPanel; openPanel = function () { try { closePM(); } catch (e) { } return _op.apply(this, arguments); }; })();
+// ═══════ 타격감: 화면 흔들림 · 피격 번쩍임 · 넉백 · 타격 불꽃 · 진동 ═══════
+(function () {
+  const SP = []; let shk = 0, shkT = 0, shkD = 1;
+  function shake(a, d) { if (a >= shk * Math.max(0, 1 - (performance.now() - shkT) / shkD)) { shk = a; shkT = performance.now(); shkD = d; } }
+  const _af2 = addFx;
+  addFx = function (f) {
+    const r = _af2(f);
+    if (f.k === 'dmg' && !f.p && f.by && f.by === S.myId) {
+      const now = performance.now(); const mo = f.i != null ? S.M.get(f.i) : null;
+      if (mo) { mo.hitT = now; const dx = mo.x - pos.x, dy = mo.y - pos.y, L = Math.hypot(dx, dy) || 1; mo.kx = dx / L; mo.ky = dy / L; }
+      const big = f.c || f.b;
+      shake(f.c ? 5 : f.b ? 3.5 : 2.2, f.c ? 200 : 140);
+      const n = f.c ? 12 : big ? 9 : 6, cx = f.x, cy = f.y;
+      for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, sp = (f.c ? 2.6 : 1.8) + Math.random() * 1.6; SP.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.6, t0: now, life: 220 + Math.random() * 120, c: f.c ? (i % 2 ? '#ffb020' : '#fff3a0') : (i % 3 ? '#ffffff' : '#ffe08a') }); }
+      SP.push({ ring: 1, x: cx, y: cy, t0: now, life: f.c ? 260 : 180, c: f.c ? '#ffb020' : '#ffffff' });
+      try { navigator.vibrate && navigator.vibrate(f.c ? 30 : 12); } catch (e) { }
+    } else if (f.k === 'dmg' && f.p && f.x === pos.x && f.y === pos.y) { shake(4, 180); try { navigator.vibrate && navigator.vibrate(25); } catch (e) { } }
+    return r;
+  };
+  const _dfx = drawFx;
+  drawFx = function (now, sx, sy, layer) {
+    _dfx(now, sx, sy, layer);
+    if (layer !== 'mid' || !SP.length) return;
+    const g = ctx; g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = SP.length - 1; i >= 0; i--) {
+      const p = SP[i], k = (now - p.t0) / p.life; if (k >= 1) { SP.splice(i, 1); continue; }
+      const X = p.x * TS + 16 - sx, Y = p.y * TS + 16 - sy - 14;
+      g.globalAlpha = 1 - k;
+      if (p.ring) { g.strokeStyle = p.c; g.lineWidth = 3 * (1 - k) + 1; g.beginPath(); g.ellipse(X, Y, 6 + k * 20, 4 + k * 14, 0, 0, 7); g.stroke(); continue; }
+      const d = k * 14, x1 = X + p.vx * d, y1 = Y + p.vy * d + k * k * 6, x0 = X + p.vx * d * 0.4, y0 = Y + p.vy * d * 0.4;
+      g.strokeStyle = p.c; g.lineWidth = 2.4 * (1 - k) + 0.6; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    }
+    g.restore();
+  };
+  // 카메라 흔들기 (월드만, HUD는 그대로)
+  window.shakeOff = function () { const e = performance.now() - shkT; if (!shk || e >= shkD) { shk = 0; return null; } const a = shk * (1 - e / shkD); return [Math.round((Math.random() * 2 - 1) * a), Math.round((Math.random() * 2 - 1) * a)]; };
+})();
