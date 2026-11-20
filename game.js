@@ -6,9 +6,16 @@ const DIRS = [[0, 1], [-1, 0], [1, 0], [0, -1]];
 const cv = $('game'), ctx = cv.getContext('2d');
 let W = 0, H = 0;
 let DPR = 1;
-function resize() { DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1))); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H; }
+let ZOOM = 1, VW = 0, VH = 0;
+function resize() {
+  DPR = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1)));
+  const r = cv.getBoundingClientRect(); VW = Math.round(r.width) || innerWidth; VH = Math.round(r.height) || innerHeight;
+  ZOOM = Math.max(0.6, Math.min(1, VH / (17 * TS))); // 시점: 세로로 약 17칸이 보이도록
+  W = Math.round(VW / ZOOM); H = Math.round(VH / ZOOM);
+  cv.width = VW * DPR; cv.height = VH * DPR; ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0); ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H;
+}
 const lc = mk(10, 10), lcx = lc.getContext('2d');
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 300)); if (window.visualViewport) visualViewport.addEventListener('resize', resize); resize();
 // 블록 테마 텍스처 (돌판·흙·하트·물방울)
 (function blockTextures() {
   const tex = (w, pal, fn) => { const c = document.createElement('canvas'); c.width = c.height = w; const g = c.getContext('2d'); for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { g.fillStyle = fn ? fn(x, y) : pal[Math.random() * pal.length | 0]; g.fillRect(x, y, 1, 1); } return 'url(' + c.toDataURL() + ')'; };
@@ -451,7 +458,7 @@ function setTarget(id) { S.target = id; send({ t: 'target', id }); }
 cv.addEventListener('pointerdown', e => {
   if (!S.map || !S.me) return; hideTip();
   const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
-  const wx = (e.clientX + camX) / TS, wy = (e.clientY + camY) / TS; const tx = Math.floor(wx), ty = Math.floor(wy);
+  const wx = (e.clientX / ZOOM + camX) / TS, wy = (e.clientY / ZOOM + camY) / TS; const tx = Math.floor(wx), ty = Math.floor(wy);
   if (S.place) { placeAt(tx, ty); return; }
   // 몬스터
   let best = null, bd = 1.2;
@@ -598,9 +605,10 @@ const NPC_AP = {
 const AO2 = t => AO_SRC(t) && !TREEISH.has(t) && t !== T.ROCK;
 function biomeChar(x, y) { const b = S.map.biome; return b ? b[y * S.map.w + x] : (S.map.castle ? 'k' : 'c'); }
 function shadowAt(x, y, rx) { ctx.fillStyle = 'rgba(20,30,10,.28)'; ctx.beginPath(); ctx.ellipse(x, y - 2, rx, rx * 0.32, 0, 0, 7); ctx.fill(); }
-function drawText(t, x, y, col, size = 12, bold = true) { ctx.font = `${bold ? '800 ' : '600 '}${size}px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.32); ctx.strokeStyle = 'rgba(0,0,0,.92)'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
+function drawText(t, x, y, col, size = 12, bold = true) { size = Math.round(size / Math.max(0.75, ZOOM) * 10) / 10; ctx.font = `${bold ? '800 ' : '600 '}${size}px -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, size * 0.32); ctx.strokeStyle = 'rgba(0,0,0,.92)'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); }
 function frame(nowMs) {
   requestAnimationFrame(frame);
+  { const r = cv.getBoundingClientRect(); if (Math.round(r.width) !== VW || Math.round(r.height) !== VH) resize(); }
   const now = performance.now();
   if (!S.map || !S.me) { return; }
   updateMove(now);

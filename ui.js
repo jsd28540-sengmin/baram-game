@@ -1003,7 +1003,7 @@ openPlayerMenu = function (p) {
     <button class="btn" data-pm="insp">${ic('shield')}장비 보기</button>`;
   document.body.appendChild(d);
   const sc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hz')) || 1;
-  let x = (p.rx + 1) * TS - camX + 8, y = p.ry * TS - camY - 20;
+  let x = ((p.rx + 1) * TS - camX) * ZOOM + 8, y = (p.ry * TS - camY) * ZOOM - 20;
   const w = d.offsetWidth * sc, h = d.offsetHeight * sc;
   if (x + w > innerWidth - 6) x = (p.rx) * TS - camX - w - 8;
   d.style.left = Math.max(6, x) + 'px'; d.style.top = Math.max(6, Math.min(innerHeight - h - 6, y)) + 'px';
@@ -1041,7 +1041,7 @@ canWalk = function (x, y) { if (S.map && S.map.chests && S.map.chests.some(c => 
 cv.addEventListener('pointerdown', e => {
   if (!S.map || !S.me || S.place) return;
   const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
-  const tx = Math.floor((e.clientX + camX) / TS), ty = Math.floor((e.clientY + camY) / TS);
+  const tx = Math.floor((e.clientX / ZOOM + camX) / TS), ty = Math.floor((e.clientY / ZOOM + camY) / TS);
   const c = (S.map.chests || []).find(c => c.x === tx && c.y === ty);
   if (c) { if (Math.max(Math.abs(c.x - pos.x), Math.abs(c.y - pos.y)) <= 1) send({ t: 'openChest', id: c.i }); else log('보물상자에 가까이 가서 누르세요.', '#ffe08a'); return; }
   if (tileAt(tx, ty) === T.WATER && Math.abs(tx - pos.x) + Math.abs(ty - pos.y) === 1) {
