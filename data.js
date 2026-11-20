@@ -196,6 +196,10 @@
     blackCommander: { set: '흑기사단장의', slots: ['weapon', 'armor', 'shield'], opt: { atk: 1.6, def: 1.3 }, desc: '흑요석으로 벼린 최상급 장비' },
     demonLord: { set: '마왕 무저갱의', slots: ['weapon', 'armor', 'helmet', 'gloves', 'boots'], opt: { atk: 2, def: 1.5, crit: 1 }, desc: '전설 중의 전설, 마왕의 장비' },
   };
+  // 장비 효력: 요구 레벨 미달이면 착용은 되지만 효력이 줄어든다 (레벨이 오를수록 회복, 도달 시 100%)
+  D.gearReq = it => Math.max(1, (it.lvl || 1) - 3);
+  D.gearEff = (lv, it) => { const req = D.gearReq(it); if (lv >= req) return { main: 1, extra: 1, req }; const k = Math.max(0, lv / req); const main = Math.min(0.85, 0.25 + 0.6 * Math.pow(k, 1.3)); return { main, extra: main * 0.5, req }; };
+  D.isMainStat = (it, key) => key === 'atk' || key === 'def' || (key === 'hp' && it.slot === 'armor') || (key === 'mp' && it.wt === 'wand');
   D.upgradeMat = lvl => lvl <= 15 ? '철광석' : lvl <= 30 ? '은광석' : lvl <= 45 ? '마력석' : '용의비늘';
   D.UPG_RATE = [100, 95, 88, 78, 66, 55, 45, 35, 25, 15];
   D.upgradeCost = (it) => ({ mat: D.upgradeMat(it.lvl), n: it.plus + 2, coin: Math.floor(it.lvl * 40 * (it.plus + 1) + 100) });

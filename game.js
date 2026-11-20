@@ -886,7 +886,7 @@ function itemDesc(it) {
     const p = it.plus || 0; const st = Object.assign({}, it.st); if (st.atk) st.atk = Math.round(st.atk * (1 + 0.1 * p) + p * 2); if (st.def) st.def = Math.round(st.def * (1 + 0.1 * p) + p);
     const job = GD.JOBS[it.job].name; const can = S.me && (it.slot === 'shield' ? GD.JOBS[S.me.job].base === 'warrior' : GD.JOBS[S.me.job].base === it.job);
     return `<div class="nm" style="color:${GD.RARITY[it.rar].c}">${esc(itemName(it))}</div><div style="color:#a7b0bf">${it.boss ? '👑 보스 전용 · ' : ''}${GD.RARITY[it.rar].n} · ${it.lvl}등급 · <span style="color:${can ? '#4ade80' : '#f87171'}">${it.slot === 'shield' ? '전사' : job} 전용</span> ${GD.SLOT_NAME[it.slot]}${it.shop ? ' (상점)' : ''}</div>` +
-      Object.entries(st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('') + `<div style="color:#a7b0bf;font-size:11px">착용 레벨: ${Math.max(1, it.lvl - 3)}+</div>`;
+      Object.entries(st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('') + (() => { const e = GD.gearEff(S.me ? S.me.lv : 1, it); return e.main < 1 ? `<div style="color:#fbbf24;font-size:11px">요구 레벨 ${e.req} (내 레벨 ${S.me.lv}) — 착용 가능, 효력 ${Math.round(e.main * 100)}% · 추가옵션 ${Math.round(e.extra * 100)}%</div>` : `<div style="color:#4ade80;font-size:11px">요구 레벨 ${e.req} — 효력 100%</div>`; })();
   }
   if (it.k === 'use') return `<div class="nm">${GD.CONSUMES[it.id].name} x${it.n}</div><div>${GD.CONSUMES[it.id].desc}</div>`;
   return `<div class="nm">${esc(it.id)} x${it.n}</div><div>${(GD.MATS[it.id] || {}).desc || ''}</div>${(GD.MATS[it.id] || {}).where ? `<div style="color:#9fe8ff;font-size:11px">얻는 곳: ${esc(GD.MATS[it.id].where)}</div>` : ''}`;

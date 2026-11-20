@@ -406,10 +406,10 @@ function openChest(p, c) {
   const ings = ['약초', '버섯', '사과', '꿀', '향신료', '얼음꽃', '용암고추', '달걀', '밀가루']; for (let i = 0; i < 1 + (t >> 1); i++) give({ k: 'mat', id: pick(ings), n: ri(1, 3) });
   give({ k: 'use', id: pick(t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1']), n: ri(2, 5) });
   if (R() < 0.12 + t * 0.06) give({ k: 'mat', id: '보물지도 조각', n: 1 });
-  const nGear = t >= 4 ? 2 : R() < 0.35 + t * 0.12 ? 1 : 0;
-  for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 50), { luck, bonus: t * 8, minRar: t >= 3 ? 2 : 1 })); }
+  const nGear = t >= 4 ? (R() < 0.35 ? 2 : 1) : R() < 0.22 + t * 0.08 ? 1 : 0;
+  for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 50), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
   if (c.legend) { const L = makeLegend(c.legend); if (L) { give(L); announce(`✨ ${p.name}님이 전설의 보물상자에서 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); } }
-  else if (t >= 4 && R() < 0.006 * (1 + luck / 100)) { const lid = pick(Object.keys(D.LEGENDS)); const L = makeLegend(lid); give(L); announce(`✨ ${p.name}님이 보물상자에서 전설의 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); }
+  else if (t >= 4 && R() < 0.0015 * (1 + luck / 100)) { const lid = pick(Object.keys(D.LEGENDS)); const L = makeLegend(lid); give(L); announce(`✨ ${p.name}님이 보물상자에서 전설의 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); }
   fx(m, { k: 'coin', x: c.x, y: c.y, v: coins }); fx(m, { k: 'chest', x: c.x, y: c.y, t });
   sysMsg(p, `${D.TREASURE_TIER[t]}을(를) 열었다! ${got.join(', ')}`, t >= 4 ? '#ffb84d' : '#ffe28a');
   p.ws.send({ t: 'chestUp', i: c.id, o: 1 }); dirty(p);
@@ -440,7 +440,7 @@ function fishTick(p, now) {
   if (x < 0.5 * rare * (1 + luck / 100)) it = { k: 'use', id: 'fGold', n: 1 };
   else if (x < 2.2 * rare) it = { k: 'mat', id: '보물지도 조각', n: 1 };
   else if (x < 3.4 * rare) it = { k: 'mat', id: '진주', n: 1 };
-  else if (x < 3.8 * rare) { const job = pick(['warrior', 'mage', 'healer']); it = makeGear(job, pick(job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield')), clamp(p.lv - ri(0, 6), 1, 50), { luck, minRar: 2 }); }
+  else if (x < 3.6 * rare) { const job = pick(['warrior', 'mage', 'healer']); it = makeGear(job, pick(job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield')), clamp(p.lv - ri(0, 6), 1, 50), { luck, minRar: 1 }); }
   else if (x < 7.5) it = { k: 'mat', id: '낡은 장화', n: 1 };
   else if (x < 10) { const c = ri(30, 120) + p.lv * 4; p.coins += c; sysMsg(p, `동전 주머니를 낚았다! +${c} 코인`, '#ffe28a'); fx(m, { k: 'fishc', x: f.x, y: f.y }); dirty(p); return; }
   else { const tb = D.FISH[b] || D.FISH.g; const tot = tb.reduce((a, [, w_]) => a + w_, 0); let q = R() * tot; let id = tb[0][0]; for (const [fid, w_] of tb) { q -= w_; if (q <= 0) { id = fid; break; } } it = { k: 'use', id, n: 1 }; }
@@ -527,10 +527,11 @@ function makeGear(job, slot, lvl, opts = {}) {
   }
   return it;
 }
-function gearPower(it) { // 강화 반영 최종 스탯
+function gearPower(it, lv) { // 강화 + 레벨 효력 반영 최종 스탯
   const s = Object.assign({}, it.st); const p = it.plus || 0;
   if (s.atk) s.atk = Math.round(s.atk * (1 + 0.1 * p) + p * 2);
   if (s.def) s.def = Math.round(s.def * (1 + 0.1 * p) + p);
+  if (lv != null) { const e = D.gearEff(lv, it); if (e.main < 1) for (const k in s) s[k] = Math.round(s[k] * (D.isMainStat(it, k) ? e.main : e.extra)); }
   return s;
 }
 function gearSell(it) { return Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)); }
@@ -599,7 +600,7 @@ function calc(p) {
   const J = D.JOBS[p.job], B = D.JOBS[J.base]; const L = p.lv - 1;
   let maxHp = B.hp0 + B.hpL * L, maxMp = B.mp0 + B.mpL * L, atk = B.atk0 + B.atkL * L, def = B.def0 + B.defL * L, crit = J.crit || 5, luck = 0;
   if (J.tier) { maxHp *= J.mHp || 1; def *= J.mDef || 1; atk *= J.mAtk || 1; maxMp *= J.mMp || 1; }
-  for (const s of D.SLOTS) { const it = p.eq[s]; if (!it) continue; const g = gearPower(it); atk += g.atk || 0; def += g.def || 0; maxHp += g.hp || 0; maxMp += g.mp || 0; crit += g.crit || 0; luck += g.luck || 0; }
+  for (const s of D.SLOTS) { const it = p.eq[s]; if (!it) continue; const g = gearPower(it, p.lv); atk += g.atk || 0; def += g.def || 0; maxHp += g.hp || 0; maxMp += g.mp || 0; crit += g.crit || 0; luck += g.luck || 0; }
   let ba = 0, bd = 0, bc = 0, bl = 0, bs = 0, be = 0; const now = Date.now();
   p.buffs = (p.buffs || []).filter(b => b.until > now);
   for (const b of p.buffs) { ba += b.atk || 0; bd += b.def || 0; bc += b.crit || 0; bl += b.luck || 0; bs += b.spd || 0; be += b.exp || 0; }
@@ -698,7 +699,7 @@ function killMon(m, mon, killer) {
   // 코인 (항상)
   if (mon.stalker && R() < 0.12) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
   if (def.lv >= 56 && !mon.boss && R() < 0.015) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
-  if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.15 : 0.05)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
+  if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.06 : 0.02)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
   const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 15 : mon.mutant ? 2.5 : 1));
   dropAt(m, mon.x, mon.y, { k: 'coin', n: coin }, killer);
   // 장비 (낮은 확률)
@@ -1266,10 +1267,9 @@ function useItem(p, i) {
   const it = p.inv[i]; if (!it || p.dead) return; const now = Date.now();
   if (it.k === 'gear') {
     if (!canEquip(p, it)) return sysMsg(p, `${D.JOBS[it.job] ? D.JOBS[it.job].name : ''} 전용 장비입니다. 다른 직업 플레이어와 교환해 보세요!`, '#ffb4b4');
-    if (it.lvl > p.lv + 3) return sysMsg(p, `레벨 ${it.lvl - 3} 이상부터 착용 가능합니다.`, '#ffb4b4');
     if (it.slot === 'shield' && p.eq.weapon && false) return;
     p.inv.splice(i, 1); const old = p.eq[it.slot]; p.eq[it.slot] = it; if (old) p.inv.splice(i, 0, old);
-    calc(p); dirty(p); return;
+    calc(p); dirty(p); { const e = D.gearEff(p.lv, it); if (e.main < 1) sysMsg(p, `요구 레벨 ${e.req} 미달 — 지금은 효력 ${Math.round(e.main * 100)}%, 추가 옵션 ${Math.round(e.extra * 100)}%만 적용돼요. 레벨이 오를수록 강해져요.`, '#ffd27a'); } return;
   }
   if (it.k === 'mat' && it.id === '보물지도 조각') {
     if (countMat(p, '보물지도 조각') < 4) return sysMsg(p, `보물지도 조각 ${countMat(p, '보물지도 조각')}/4 — 4조각을 모으면 보물지도가 됩니다.`, '#e8d8a0');
