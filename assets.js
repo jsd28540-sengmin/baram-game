@@ -467,3 +467,25 @@
     uiAsk(`[${nm}] ${it.name}\n정말 판매할까요? 판매하면 되돌릴 수 없어요.\n판매가: ${fmt(sellPrice(it))} 코인`, () => send({ t: 'sell', i: idx }));
   }, true);
 })();
+// ═══════ 화면 밀림 자동 복구 + [새로고침] 버튼 ═══════
+(function () {
+  const st = document.createElement('style'); st.textContent = 'html,body{position:fixed;inset:0;overflow:hidden;width:100%;height:100%}';
+  document.head.appendChild(st);
+  const fix = () => { try { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (e) { } try { resize(); } catch (e) { } };
+  ['resize', 'orientationchange', 'fullscreenchange', 'webkitfullscreenchange', 'focusout'].forEach(ev => addEventListener(ev, () => { fix(); setTimeout(fix, 300); setTimeout(fix, 900); }));
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(fix, 100));
+  setInterval(() => { if (window.scrollX || window.scrollY) fix(); }, 1000);
+  function addBtn() {
+    if ($('reloadbtn') || !$('menu')) return;
+    const b = document.createElement('div'); b.className = 'mbtn'; b.id = 'reloadbtn'; ICP.refresh = ICP.refresh || '<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>'; b.innerHTML = `${ic('refresh')}<span>새로고침</span>`;
+    b.onclick = () => {
+      let mem = {}; try { mem = JSON.parse(localStorage.getItem('baram_last') || '{}'); } catch (e) { }
+      const iAmHost = mem.role === 'host' && mem.code === NET.code;
+      if (!confirm(iAmHost ? '새로고침할까요?\n방장이라 잠깐 방이 닫혔다가 다시 열려요 (저장은 돼요).' : '새로고침할까요? (저장은 자동으로 돼요)')) return;
+      try { if (iAmHost) ENGINE.saveAll(); } catch (e) { }
+      setTimeout(() => location.reload(), 300);
+    };
+    const cs = $('charsel'); if (cs) $('menu').insertBefore(b, cs); else $('menu').appendChild(b);
+  }
+  addBtn(); setTimeout(addBtn, 1600);
+})();
