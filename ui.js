@@ -1264,3 +1264,10 @@ document.addEventListener('pointerup', e => {
   e.preventDefault(); e.stopPropagation();
   if (x.id === 'px') closePanel(); else if (x.id === 'px2') closePanel2(); else if (x.id === 'bmx') closeBigMap(); else x.click();
 }, true);
+
+// ═══════ 새 버전 자동 적용: 캐시된 옛 화면이면 새로고침 ═══════
+(function () {
+  if (!window.BUILDV) return;
+  const check = () => fetch('index.html?ts=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/window\.BUILDV="(\d+)"/); if (m && m[1] !== window.BUILDV && !S.me) location.reload(); else if (m && m[1] !== window.BUILDV) { if (!$('newver')) { const d = document.createElement('div'); d.id = 'newver'; d.className = 'win'; d.style.cssText = 'position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:80;padding:6px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;background:#16a34a'; d.textContent = '새 버전이 있어요 — 눌러서 적용'; d.onclick = () => location.reload(); document.body.appendChild(d); } } }).catch(() => { });
+  check(); setInterval(check, 120000);
+})();

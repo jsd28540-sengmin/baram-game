@@ -163,7 +163,7 @@ charSprite = function (ap, dir, frame) {
 // ═══════ 캐릭터 v3: 시안 캐릭터 시트 그대로 + 머리색·갑옷 등급 색·투구 덧입히기 ═══════
 const CH3 = { img: new Image(), ok: false, A: window.CHAR_ATLAS };
 CH3.img.onload = () => { CH3.ok = true; charCache3.clear(); };
-CH3.img.src = 'gfx/chars.png?v=1';
+CH3.img.src = 'gfx/chars.png?v=' + (window.BUILDV || 1);
 const charCache3 = new Map();
 const _charV2 = charSprite;
 function rgb2hsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; } return [h, s, l]; }

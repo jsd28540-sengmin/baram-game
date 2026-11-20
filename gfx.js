@@ -2,7 +2,7 @@
 //  그래픽 아틀라스 (GPT 시안 그대로) — gfx/tiles.png, gfx/sprites.png
 // ═══════════════════════════════════════════
 const GFX = { ok: false, tiles: new Image(), spr: new Image(), A: window.GFX_ATLAS };
-(function () { let n = 0; const done = () => { if (++n === 2) { GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=1'; GFX.spr.src = 'gfx/sprites.png?v=1'; })();
+(function () { let n = 0; const done = () => { if (++n === 2) { GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); })();
 const gTile = (name, i) => { const L = GFX.A.tiles[name]; return L[((i % L.length) + L.length) % L.length]; };
 function gfxCellCanvas(idx, extra) {
   const c = mk(64, 64), g = c.getContext('2d'); g.drawImage(GFX.tiles, (idx % 16) * 64, Math.floor(idx / 16) * 64, 64, 64, 0, 0, 64, 64); if (extra) extra(g); return c;
