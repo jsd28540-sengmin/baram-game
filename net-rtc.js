@@ -10,7 +10,7 @@
       if (r.pc) { try { r.pc.close(); } catch (e) { } }
       const pc = r.pc = new RTCPeerConnection(CFG); r.dc = null;
       pc.ondatachannel = ev => {
-        const dc = ev.channel; r.dc = dc;
+        const dc = ev.channel; if (dc.label === 'u') { r.du = dc; dc.onclose = () => { if (r.du === dc) r.du = null; }; return; } r.dc = dc;
         dc.onmessage = e => { r.seen = Date.now(); let d; try { d = JSON.parse(e.data); } catch (x) { return; } if (d && d.m && r.conn.onmsg) { try { r.conn.onmsg(JSON.stringify(d.m)); } catch (x) { } } };
         dc.onclose = () => { if (r.dc === dc) r.dc = null; };
       };
@@ -18,6 +18,8 @@
       reply({ rtc: { type: pc.localDescription.type, sdp: pc.localDescription.sdp } });
     } catch (e) { r.dc = null; }
   };
+  // 위치 정보: 잃어버려도 다시 보내지 않는 채널 (늦은 정보가 새 정보를 막지 않음)
+  window.rtcSendU = function (r, z) { const dc = r.du; if (!dc || dc.readyState !== 'open') return false; try { const s = JSON.stringify(z); if (s.length > 12000 || dc.bufferedAmount > 64000) return false; dc.send(s); return true; } catch (e) { return false; } };
   window.rtcSend = function (r, z) {
     const dc = r.dc; if (!dc || dc.readyState !== 'open') return false;
     try { const s = JSON.stringify(z); if (s.length > 60000 || dc.bufferedAmount > 1e6) return false; dc.send(s); return true; } catch (e) { return false; }
@@ -27,6 +29,7 @@
   async function start() {
     if (!pub) return; try { if (pc) pc.close(); } catch (e) { }
     pc = new RTCPeerConnection(CFG); dc = pc.createDataChannel('g', { ordered: true });
+    const du = pc.createDataChannel('u', { ordered: false, maxRetransmits: 0 }); du.onmessage = e => { let z; try { z = JSON.parse(e.data); } catch (x) { return; } if (Array.isArray(z)) z.forEach(m => onMsg(m)); };
     dc.onopen = () => { tries = 0; NET.rtc = 1; if (window.S && S.me) log('⚡ 방장 기기와 직접 연결됨 (빠른 모드)', '#9fe8ff'); };
     dc.onmessage = e => { let z; try { z = JSON.parse(e.data); } catch (x) { return; } if (Array.isArray(z)) z.forEach(m => onMsg(m)); };
     dc.onclose = () => { NET.rtc = 0; retry(); };

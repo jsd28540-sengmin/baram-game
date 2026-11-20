@@ -1170,7 +1170,7 @@ function handle(p, msg) {
       const timeOk = p.mvTok >= 1;
       const ddx = x - p.x, ddy = y - p.y, diag = Math.abs(ddx) === 1 && Math.abs(ddy) === 1;
       // 이동은 폰 쪽을 믿음: 벽·NPC·상자 같은 고정물만 서버가 막음 (몬스터·다른 플레이어는 위치가 잠깐 어긋날 수 있어 막지 않음 → 되돌림 없음)
-      const staticBody = (xx, yy) => m.npcs.some(n => n.x === xx && n.y === yy) || m.chests.some(c => c.x === xx && c.y === yy);
+      const staticBody = (xx, yy) => m.npcs.some(n => n.x === xx && n.y === yy) || m.chests.some(c => c.x === xx && c.y === yy) || [...PLAYERS.values()].some(o => o !== p && o.map === m.id && !o.dead && o.x === xx && o.y === yy && now - (o.lastMove || 0) > 700); // 가만히 서 있는 플레이어는 통과 불가
       const step = Math.max(Math.abs(ddx), Math.abs(ddy));
       const ok = step >= 1 && step <= 2 && (step === 1 ? (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) : walkable(m, p.x + Math.sign(ddx), p.y + Math.sign(ddy))) && timeOk && walkable(m, x, y) && !staticBody(x, y);
       p.dir = clamp(msg.d | 0, 0, 3);

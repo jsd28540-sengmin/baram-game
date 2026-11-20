@@ -171,7 +171,8 @@ function flushRemotes() {
       const s = r.snap; r.snap = null;
       for (const p of s.P) { const j = JSON.stringify(p.a); if (r.ap[p.i] === j) delete p.a; else r.ap[p.i] = j; }
       if (s.fx.length > 30) s.fx = s.fx.slice(-30);
-      z.push(s);
+      s.q = r.sq = (r.sq || 0) + 1;
+      if (!(viaRtc && !s.P.some(p => p.a) && window.rtcSendU && rtcSendU(r, [s]))) z.push(s);
     }
     if (!z.length) continue;
     r.emit(z);
@@ -346,7 +347,7 @@ function onMsg(m) {
     case 'map': loadMap(m); break;
     case 'tents': if (S.map && m.map === S.map.id) { S.tents = m.list; S.plots = m.plots || []; } break;
     case 'me': S.me = m; refreshHud(true); rerenderPanel(); break;
-    case 'pos': if (m.ep != null) pos.ep = m.ep; if (pos.x === m.x && pos.y === m.y) break; pos.x = m.x; pos.y = m.y; pos.rx = m.x; pos.ry = m.y; pos.moving = false; break;
+    case 'pos': { if (m.ep != null) pos.ep = m.ep; if (pos.x === m.x && pos.y === m.y) break; const near = Math.abs(pos.rx - m.x) + Math.abs(pos.ry - m.y) <= 4; pos.x = m.x; pos.y = m.y; if (near) { pos.fx = pos.rx; pos.fy = pos.ry; pos.t0 = performance.now(); pos.dur = 140; pos.moving = true; } else { pos.rx = m.x; pos.ry = m.y; pos.moving = false; } break; } // 가까우면 미끄러지듯 보정
     case 's': snapshot(m); break;
     case 'msg': log(m.text, m.c); if (m.big) announce(m.text, m.c); break;
     case 'chat': log(`<b>${esc(m.name)}</b>: ${esc(m.text)}`, '#fff', true); S.bubbles.set(m.id, { text: m.text, until: performance.now() + 5000 }); break;
@@ -370,6 +371,7 @@ function loadMap(m) {
   $('mapname').textContent = m.name;
 }
 function snapshot(m) {
+  if (m.q) { if (S._sq && m.q <= S._sq && S._sq - m.q < 50) return; S._sq = m.q; } // 늦게 온 옛 위치 정보는 버림
   const now = performance.now();
   if (m.tm) S.off = m.tm - Date.now();
   S.nl = m.nl; S.you = m.you;
@@ -703,13 +705,13 @@ function frame(nowMs) {
   for (const n of m.npcs) ents.push({ y: n.y, f: () => drawNpc(n, sx, sy, now) });
   for (const p of S.P.values()) {
     if (p.i === S.myId) continue;
-    const k = Math.min(1, (now - p.t0) / p.dur); p.rx = p.fx + (p.x - p.fx) * k; p.ry = p.fy + (p.y - p.fy) * k;
+    if (!(window.smoothPos && smoothPos(p, now, p.a && p.a.mt ? 160 : 230))) { const k = Math.min(1, (now - p.t0) / p.dur); p.rx = p.fx + (p.x - p.fx) * k; p.ry = p.fy + (p.y - p.fy) * k; }
     ents.push({ y: p.ry, f: () => drawPlayer(p, p.rx, p.ry, p.d, now < (p.walkUntil || 0), sx, sy, now) });
   }
   const meP = S.P.get(S.myId) || { n: S.me.name, a: { job: S.me.job, g: S.me.gender, h: S.me.hair, hc: S.me.hairColor, sk: S.me.skin, eq: {} }, lv: S.me.lv };
   ents.push({ y: pos.ry, f: () => drawPlayer(Object.assign({}, meP, { i: S.myId, sl: S.you.sl, dd: S.you.dead, h: 100 * S.you.hp / S.you.mhp, atkT: pos.atkT }), pos.rx, pos.ry, pos.dir, pos.moving, sx, sy, now, true) });
   for (const mo of S.M.values()) {
-    const k = Math.min(1, (now - mo.t0) / mo.dur); mo.rx = mo.fx + (mo.x - mo.fx) * k; mo.ry = mo.fy + (mo.y - mo.fy) * k;
+    if (!(window.smoothPos && smoothPos(mo, now, 330))) { const k = Math.min(1, (now - mo.t0) / mo.dur); mo.rx = mo.fx + (mo.x - mo.fx) * k; mo.ry = mo.fy + (mo.y - mo.fy) * k; }
     ents.push({ y: mo.ry, f: () => drawMon(mo, sx, sy, now) });
   }
   for (const [id, x, y, u] of trees) ents.push({ y: y - 0.01, f: () => drawTreeAt(id, x, y, sx, sy, u) });
