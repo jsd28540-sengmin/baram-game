@@ -16,9 +16,11 @@ function tileImg(id, v, pal, castle, frame, under) {
   const P = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x * 2, y * 2, w * 2, h * 2); };
   const base = (col, spk, n) => { P(0, 0, 16, 16, col); for (let i = 0; i < n; i++) P(r() * 16 | 0, r() * 16 | 0, 1 + (r() < 0.3 ? 1 : 0), 1, spk[i % spk.length]); };
   const nz = (pal, x0 = 0, y0 = 0, w = 16, h = 16) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) P(x, y, 1, 1, pal[r() * pal.length | 0]); };
-  const GP = { g: ['#5fa13b', '#559533', '#6aad44', '#4f8c30', '#63a63f'], f: ['#3f7a2a', '#386f25', '#478532', '#326522'], d: ['#dbd097', '#d2c68a', '#e4daa5', '#cbbd80'], s: ['#f4f8fa', '#e6eef2', '#ffffff', '#dde7ec'], w: ['#4a5a30', '#3f4e28', '#566838', '#344222', '#4d6a3a'], v: ['#4a3c38', '#3e322e', '#574843', '#5a2a1a'], t: ['#8a8a8a', '#7c7c7c', '#969696', '#6e6e6e'] };
+  const GP = { g: '#7fd35a', f: '#5fbf4a', d: '#f7e2a3', s: '#f2f8ff', w: '#7fae6a', v: '#7a6a72', t: '#d9d2c4' };
+  const GT = { g: ['#6cc548', '#97e46e'], f: ['#4fae3c', '#78d25e'], d: ['#ead190', '#fff0bf'], s: ['#dbe9f7', '#ffffff'], w: ['#6a9a58', '#94c47d'], v: ['#665660', '#8e7e86'], t: ['#c9c0b0', '#ebe5d8'] };
+  const tuft = (x, y, c) => { P(x, y + 1, 1, 1, c); P(x + 1, y, 1, 1, c); P(x + 2, y + 1, 1, 1, c); };
   const ground = u => {
-    if (GP[u]) nz(GP[u]);
+    if (GP[u]) { P(0, 0, 16, 16, GP[u]); const [dk, lt] = GT[u]; for (let i = 0; i < 5; i++) { const x = 1 + (r() * 12 | 0), y = 1 + (r() * 12 | 0); if (u === 'g' || u === 'f' || u === 'w') tuft(x, y, i % 2 ? lt : dk); else P(x, y, 2, 1, i % 2 ? lt : dk); } if (u === 's' && r() < 0.5) P(r() * 14 | 0, r() * 14 | 0, 1, 1, '#9fd0ff'); }
     else if (u === 'c') { const p = CAVE_PAL[pal]; nz([p[0], p[1], p[3], p[0]]); }
     else if (u === 'k') { const p = CASTLE_PAL[pal]; nz([p[0], p[1], p[0], shade(p[0], 0.08)]); P(0, 0, 16, 1, p[2]); P(0, 8, 16, 1, p[2]); P(0, 0, 1, 16, p[2]); P(8, 0, 1, 8, p[2]); P(4, 8, 1, 8, p[2]); P(12, 8, 1, 8, p[2]); }
     else nz(GP.g);
@@ -29,31 +31,31 @@ function tileImg(id, v, pal, castle, frame, under) {
   const cv = CAVE_PAL[pal], kv = CASTLE_PAL[pal] || CASTLE_PAL[0];
   switch (id) {
     case T.GRASS: ground('g'); break;
-    case T.FLOWER: ground(under || 'g'); { const fc = ['#ffef5a', '#ff7aa8', '#ffffff', '#b07aff']; for (let i = 0; i < 4; i++) { const x = 2 + r() * 12 | 0, y = 2 + r() * 12 | 0; P(x, y + 1, 1, 1, '#2a6a20'); P(x, y, 1, 1, fc[(v + i) % 4]); } } break;
+    case T.FLOWER: ground(under || 'g'); { const fc = ['#ff5c8a', '#ffd23f', '#ffffff', '#b77cff', '#ff8a3d']; for (let i = 0; i < 3; i++) { const x = 2 + (r() * 11 | 0), y = 2 + (r() * 11 | 0), c = fc[(v + i) % 5]; P(x, y + 2, 1, 2, '#3f9a33'); P(x - 1, y, 3, 1, c); P(x, y - 1, 1, 3, c); P(x, y, 1, 1, '#fff7a0'); } } break;
     case T.FOREST: ground('f'); break;
-    case T.TREE: ground(under || 'g'); P(6, 11, 4, 5, '#6b5132'); P(7, 11, 1, 5, '#4f3a22'); P(2, 15, 12, 1, '#0003'); leaves(['#3c8a26', '#357c22', '#45972e', '#2f6e1c', '#4fa236'], 1, 0, 14, 12); break;
-    case T.PINE: ground('s'); P(6, 12, 4, 4, '#4a3420'); leaves(['#2a5a3a', '#244f33', '#306444', '#1f4630'], 2, 1, 12, 11); P(3, 1, 4, 1, '#fff'); P(9, 4, 3, 1, '#fff'); P(4, 7, 3, 1, '#fff'); break;
+    case T.TREE: ground(under || 'g'); P(3, 13, 10, 2, '#00000022'); P(7, 10, 2, 5, '#9a6234'); P(7, 10, 1, 5, '#b8783f'); { const c1 = '#3fb64a', c2 = '#5fd35e', c3 = '#2e9a3c'; P(3, 2, 10, 9, c1); P(2, 4, 12, 5, c1); P(4, 1, 8, 1, c1); P(4, 11, 8, 1, c3); P(2, 8, 12, 1, c3); P(4, 2, 4, 3, c2); P(3, 4, 2, 2, c2); P(5, 3, 1, 1, '#b8f5a0'); if (v === 1) { P(10, 5, 2, 2, '#ff4d5a'); P(5, 7, 2, 2, '#ff4d5a'); } } break;
+    case T.PINE: ground('s'); P(4, 14, 8, 1, '#00000018'); P(7, 12, 2, 3, '#9a6234'); { const c = '#3aa86a', d2 = '#2a8a56'; P(6, 1, 4, 3, c); P(4, 4, 8, 3, c); P(3, 7, 10, 3, c); P(2, 10, 12, 2, c); P(2, 11, 12, 1, d2); P(3, 9, 10, 1, d2); P(6, 1, 2, 1, '#fff'); P(4, 4, 3, 1, '#fff'); P(3, 7, 3, 1, '#fff'); P(9, 7, 2, 1, '#fff'); P(7, 0, 2, 1, '#ffd23f'); } break;
     case T.DEADTREE: ground('w'); P(7, 5, 2, 10, '#4a3a2a'); P(4, 4, 3, 1, '#4a3a2a'); P(4, 2, 1, 2, '#4a3a2a'); P(9, 6, 4, 1, '#4a3a2a'); P(12, 3, 1, 3, '#4a3a2a'); break;
-    case T.CACTUS: ground('d'); nz(['#2f7a2f', '#287028', '#358535'], 3, 1, 10, 14); for (let y = 2; y < 15; y += 3) { P(3, y, 1, 1, '#111'); P(12, y + 1, 1, 1, '#111'); } P(3, 1, 10, 1, '#4a9a4a'); P(3, 14, 10, 1, '#1a4a1a'); break;
-    case T.WATER: { nz(['#3f76e4', '#3a6bd6', '#4580ee', '#3568cc']); for (let i = 0; i < 4; i++) { const x = r() * 12 | 0, y = (r() * 15 + frame * 3) % 15 | 0; P(x, y, 4, 1, '#7aa8ff'); } break; }
-    case T.LAVA: { nz(['#e0560e', '#d84a0a', '#f06a14', '#ffa020', '#c43a06']); for (let i = 0; i < 4; i++) P(r() * 13 | 0, (r() * 14 + frame * 3) % 14 | 0, 3, 2, '#ffd040'); break; }
+    case T.CACTUS: ground('d'); P(4, 14, 8, 1, '#00000018'); P(6, 3, 4, 12, '#4cc35a'); P(3, 6, 2, 5, '#4cc35a'); P(3, 10, 4, 2, '#4cc35a'); P(11, 5, 2, 4, '#4cc35a'); P(9, 8, 3, 2, '#4cc35a'); P(7, 3, 1, 11, '#7be38a'); P(7, 1, 2, 2, '#ff6fa8'); break;
+    case T.WATER: { P(0, 0, 16, 16, '#48c2f0'); P(0, 0, 16, 1, '#3aaee0'); for (let i = 0; i < 3; i++) { const x = (r() * 11 | 0), y = ((r() * 14 | 0) + frame * 4) % 15; P(x, y, 4, 1, '#bdefff'); P(x + 1, y + 1, 2, 1, '#7fd8ff'); } if (frame) P(r() * 14 | 0, r() * 14 | 0, 1, 1, '#ffffff'); break; }
+    case T.LAVA: { P(0, 0, 16, 16, '#ff7a2a'); for (let i = 0; i < 4; i++) { const x = r() * 12 | 0, y = ((r() * 13 | 0) + frame * 3) % 14; P(x, y, 4, 2, '#ffc23a'); P(x + 1, y, 2, 1, '#fff2a0'); } break; }
     case T.SAND: ground('d'); break;
     case T.SNOW: ground('s'); break;
     case T.SWAMP: ground('w'); if (v === 1) { P(4, 6, 6, 3, '#2a3a2a'); P(5, 6, 3, 1, '#4a6a5a'); } break;
     case T.ASH: ground('v'); break;
-    case T.ROAD: nz(['#9b7653', '#8a6845', '#a8835e', '#7d5d3c', '#94704d']); break;
-    case T.STONE: cobble('#8f8f8f'); break;
-    case T.WALL: { nz(['#7f7f7f', '#767676', '#888888']); for (let yy = 0; yy < 16; yy += 4) { P(0, yy + 3, 16, 1, '#4a4a4a'); for (let xx = (yy / 4 % 2) * 4; xx < 16; xx += 8) P(xx, yy, 1, 3, '#4a4a4a'); } P(0, 0, 16, 1, '#a8a8a8'); break; }
+    case T.ROAD: { P(0, 0, 16, 16, '#efcf94'); for (let i = 0; i < 4; i++) { const x = 1 + (r() * 12 | 0), y = 1 + (r() * 12 | 0); P(x, y, 2, 1, '#d9b678'); P(x, y - 1, 1, 1, '#fbe3b4'); } break; }
+    case T.STONE: { P(0, 0, 16, 16, '#d6ccbc'); const tl = (x, y, w, h, c) => { P(x + 1, y, w - 2, h, c); P(x, y + 1, w, h - 2, c); P(x + 1, y, w - 2, 1, '#fffaf0'); P(x + 1, y + h - 1, w - 2, 1, '#c4b8a4'); }; tl(0, 0, 8, 8, '#f1ead9'); tl(8, 0, 8, 8, '#ebe2cf'); tl(0, 8, 8, 8, '#ebe2cf'); tl(8, 8, 8, 8, '#f1ead9'); break; }
+    case T.WALL: { P(0, 0, 16, 16, '#a9a6b8'); for (let yy = 0; yy < 16; yy += 5) for (let xx = (yy / 5 % 2) * 4 - 4; xx < 16; xx += 8) { const x0 = Math.max(0, xx), w = Math.min(xx + 7, 16) - x0; if (w <= 0) continue; P(x0, yy, w, 4, '#cfcbe0'); P(x0, yy, w, 1, '#ecebf5'); } P(0, 15, 16, 1, '#7f7c90'); break; }
     case T.FENCE: { ground(under || 'g'); P(0, 6, 16, 2, '#8a5a2a'); P(0, 11, 16, 2, '#8a5a2a'); P(2, 3, 2, 12, '#a06a32'); P(12, 3, 2, 12, '#a06a32'); P(2, 3, 2, 1, '#c8904a'); P(12, 3, 2, 1, '#c8904a'); break; }
-    case T.ROCK: { ground(under || 'g'); nz(['#8a8a8a', '#7e7e7e', '#949494', '#747474'], 1, 1, 14, 9); P(1, 1, 14, 1, '#a8a8a8'); nz(['#5e5e5e', '#555555', '#666666'], 1, 10, 14, 5); P(1, 15, 14, 1, '#0004'); break; }
-    case T.CAVE: nz([cv[0], cv[1], cv[0], cv[3], shade(cv[0], 0.06)]); break;
-    case T.CAVEWALL: { nz([cv[2], cv[1], cv[2], shade(cv[2], -0.2)]); if (v === 1) { P(4, 5, 2, 2, '#c8c8d0'); P(9, 9, 2, 1, '#c8c8d0'); } if (v === 3) { P(6, 3, 2, 2, '#e0b030'); P(11, 10, 1, 2, '#e0b030'); } P(0, 15, 16, 1, '#0006'); break; }
+    case T.ROCK: { ground(under || 'g'); P(2, 12, 12, 2, '#00000022'); P(3, 4, 10, 9, '#b7b4c4'); P(2, 6, 12, 6, '#b7b4c4'); P(4, 3, 8, 1, '#b7b4c4'); P(4, 4, 5, 3, '#dedcea'); P(5, 4, 2, 1, '#ffffff'); P(3, 11, 10, 1, '#8d8a9c'); break; }
+    case T.CAVE: { P(0, 0, 16, 16, cv[0]); for (let i = 0; i < 4; i++) P(1 + (r() * 12 | 0), 1 + (r() * 12 | 0), 2, 1, i % 2 ? cv[3] : cv[1]); break; }
+    case T.CAVEWALL: { P(0, 0, 16, 16, cv[2]); P(1, 1, 7, 6, cv[1]); P(9, 3, 6, 5, cv[1]); P(3, 9, 8, 6, cv[1]); P(1, 1, 7, 1, cv[3]); P(9, 3, 6, 1, cv[3]); P(3, 9, 8, 1, cv[3]); if (v === 1) { P(11, 11, 2, 2, '#9ff0ff'); P(5, 3, 1, 1, '#ffffff'); } if (v === 3) { P(12, 5, 2, 2, '#ffd23f'); } break; }
     case T.CASTLE: ground('k'); break;
     case T.CASTLEWALL: { P(0, 0, 16, 16, kv[2]); for (let y = 0; y < 16; y += 4) { P(0, y + 3, 16, 1, '#000'); for (let x = (y / 4 % 2) * 4; x < 16; x += 8) P(x, y, 1, 3, '#000'); } P(0, 0, 16, 1, kv[3]); P(0, 14, 16, 2, '#0008'); break; }
     case T.CARPET: { P(0, 0, 16, 16, kv[4]); P(1, 0, 1, 16, '#d8b040'); P(14, 0, 1, 16, '#d8b040'); P(6, 6, 4, 4, shade(kv[4], 0.25)); break; }
-    case T.BRIDGE: planks('#a2824e'); break;
-    case T.HOUSE: { planks('#b8945a'); P(0, 0, 1, 16, '#5a3e22'); P(15, 0, 1, 16, '#5a3e22'); if (v % 3 === 0) { P(5, 4, 6, 5, '#4a7ab0'); P(5, 4, 6, 1, '#7a5a3a'); P(7, 4, 1, 5, '#7a5a3a'); P(5, 6, 6, 1, '#7a5a3a'); } else if (v % 3 === 1) { P(5, 5, 6, 11, '#6a4020'); P(6, 6, 4, 9, '#8a5a30'); P(9, 10, 1, 1, '#ffd040'); } break; }
-    case T.ROOF: { const rc = under || '#b04030'; P(0, 0, 16, 16, rc); for (let y = 1; y < 16; y += 3) P(0, y, 16, 1, shade(rc, -0.3)); for (let y = 0; y < 16; y += 3) for (let x = (y % 2) * 3; x < 16; x += 6) P(x, y, 1, 2, shade(rc, -0.2)); P(0, 0, 16, 1, shade(rc, 0.3)); break; }
+    case T.BRIDGE: { P(0, 0, 16, 16, '#48c2f0'); for (let i = 0; i < 4; i++) { P(0, i * 4, 16, 3, i % 2 ? '#d99a5a' : '#e8ab68'); P(0, i * 4, 16, 1, '#f6c98e'); } P(0, 0, 1, 16, '#9a6234'); P(15, 0, 1, 16, '#9a6234'); break; }
+    case T.HOUSE: { P(0, 0, 16, 16, '#fff3dc'); P(0, 13, 16, 3, '#e8c99a'); P(0, 0, 1, 16, '#d6a86a'); P(15, 0, 1, 16, '#d6a86a'); if (v % 3 === 0) { P(5, 4, 6, 5, '#4a7ab0'); P(5, 4, 6, 1, '#7a5a3a'); P(7, 4, 1, 5, '#7a5a3a'); P(5, 6, 6, 1, '#7a5a3a'); } else if (v % 3 === 1) { P(5, 5, 6, 11, '#6a4020'); P(6, 6, 4, 9, '#8a5a30'); P(9, 10, 1, 1, '#ffd040'); } break; }
+    case T.ROOF: { const rc = under || '#ff6b6b'; P(0, 0, 16, 16, rc); for (let yy = 0; yy < 16; yy += 4) for (let xx = (yy / 4 % 2) * 4 - 4; xx < 16; xx += 8) { P(Math.max(0, xx), yy + 2, 6, 2, shade(rc, -0.18)); P(Math.max(0, xx + 1), yy, 4, 1, shade(rc, 0.3)); } break; }
     case T.UP: case T.DOWN: { const castle2 = castle; const fl = castle2 ? kv[0] : cv[0]; P(0, 0, 16, 16, fl); for (let i = 0; i < 5; i++) { const w = id === T.DOWN ? 14 - i * 2 : 6 + i * 2; P(8 - w / 2, 2 + i * 3, w, 2, id === T.DOWN ? shade(fl, -0.2 - i * 0.15) : shade(fl, 0.4 - i * 0.07)); } P(6, 0, 4, 2, id === T.DOWN ? '#000' : '#ffe88a'); break; }
     case T.CAVEDOOR: { P(0, 0, 16, 16, '#7a7a80'); P(2, 2, 12, 14, '#111'); P(3, 1, 10, 2, '#111'); P(2, 2, 1, 14, '#55555a'); P(13, 2, 1, 14, '#55555a'); P(5, 6, 1, 1, '#ff3030'); P(10, 6, 1, 1, '#ff3030'); break; }
     case T.GATE: { P(0, 0, 16, 16, '#2a2a36'); P(2, 1, 12, 15, '#3a1a10'); for (let x = 3; x < 14; x += 3) P(x, 1, 1, 15, '#1a0a05'); P(2, 6, 12, 1, '#8a8a90'); P(2, 11, 12, 1, '#8a8a90'); P(7, 8, 2, 2, '#d8b040'); break; }
@@ -61,7 +63,19 @@ function tileImg(id, v, pal, castle, frame, under) {
   }
   tileCache.set(key, c); return c;
 }
-const MINI_COL = { 0: '#4c9a3c', 1: '#5aaa48', 2: '#1e5a1a', 3: '#2f6fc0', 4: '#e0c27a', 5: '#eef3f8', 6: '#a8865a', 7: '#b8b0a0', 8: '#5a4c3e', 9: '#4a5a32', 10: '#6a6a70', 11: '#6a5040', 12: '#1a1410', 13: '#5a5a70', 14: '#111118', 15: '#2f6a2a', 16: '#ff5a10', 17: '#8a5a2a', 18: '#e8dcc0', 19: '#3a8a3a', 20: '#1f5a3a', 21: '#8a1010', 22: '#ff3030', 23: '#ffe060', 24: '#ff3030', 25: '#ff3030', 26: '#4a3a36', 27: '#3a2a1a', 28: '#8a5a2a', 29: '#b04030' };
+// 길·바닥 위에 잔디 테두리를 둥글게 덧그림 (old한 격자 느낌 제거)
+const fringeCache = new Map();
+function fringeImg(side, col) {
+  const key = side + col; let c = fringeCache.get(key); if (c) return c;
+  c = mk(TS, TS); const g = c.getContext('2d'); g.fillStyle = col;
+  const R = srand(side.charCodeAt(0) * 31);
+  for (let i = 0; i < 16; i++) { const d = 2 + (R() * 3 | 0) + (i % 4 === 0 ? 1 : 0);
+    if (side === 'n') g.fillRect(i * 2, 0, 2, d * 2); if (side === 's') g.fillRect(i * 2, TS - d * 2, 2, d * 2);
+    if (side === 'w') g.fillRect(0, i * 2, d * 2, 2); if (side === 'e') g.fillRect(TS - d * 2, i * 2, d * 2, 2); }
+  g.fillStyle = 'rgba(0,0,0,.08)';
+  fringeCache.set(key, c); return c;
+}
+const MINI_COL = { 0: '#7fd35a', 1: '#8fdc66', 2: '#2e9a3c', 3: '#48c2f0', 4: '#f7e2a3', 5: '#f2f8ff', 6: '#efcf94', 7: '#ebe2cf', 8: '#a9a6b8', 9: '#4a5a32', 10: '#6a6a70', 11: '#6a5040', 12: '#1a1410', 13: '#5a5a70', 14: '#111118', 15: '#5fbf4a', 16: '#ff7a2a', 17: '#e8ab68', 18: '#fff3dc', 19: '#4cc35a', 20: '#3aa86a', 21: '#8a1010', 22: '#ff3030', 23: '#ffe060', 24: '#ff3030', 25: '#ff3030', 26: '#4a3a36', 27: '#3a2a1a', 28: '#8a5a2a', 29: '#b04030' };
 
 // ───── 외곽선 (도트 느낌의 핵심) ─────
 function outline(c, col = [26, 16, 24]) {
