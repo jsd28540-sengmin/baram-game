@@ -234,6 +234,16 @@ html,body{height:var(--vhp,100%)}
 #bigmap canvas{display:block;margin:0 auto;border-radius:4px;image-rendering:pixelated}
 #partybox{top:auto!important;bottom:200px;max-height:none}
 </style>
+<style id="v10">
+.box.stat2{grid-template-columns:auto auto auto auto!important;gap:1px 8px!important;font-size:10px!important;padding:5px 7px!important}
+.pouches{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px}
+[data-eq],.cell.empty:has(.lb){}
+.pouch{display:flex;align-items:center;gap:3px;height:29px;white-space:nowrap;overflow:hidden;padding:0 4px;background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--pc,#888);border-radius:4px;cursor:pointer}
+.pouch canvas{width:20px;height:20px;flex:0 0 20px}.pouch div{display:flex;flex-direction:column;line-height:1.1;min-width:0}.pouch b{font-size:10px;color:#fff}.pouch span{font-size:9px;color:var(--tx2)}
+.pouch.lock{opacity:.45;cursor:default}.pouch.lock svg.ic{width:14px;height:14px}
+.pouch.flash{animation:pfl .5s}@keyframes pfl{50%{background:#3b82f655;transform:scale(1.05)}}
+.cell.psel{outline:2px solid #fbbf24!important;outline-offset:-2px}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>

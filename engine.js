@@ -153,6 +153,7 @@ function makeTown(m, cx, cy, w, h, name, style) {
     { npc: 'smith', name: '대장장이 강쇠', label: '대장간', dx: 5, dy: -9, c: '#c97a2a' },
     { npc: 'stable', name: '마구간지기 돌이', label: '마구간', dx: -11, dy: 4, c: '#8a6a3a' },
     { npc: 'master', name: '전직교관 무영', label: '전직관', dx: 5, dy: 4, c: '#9a5ad9' },
+    { npc: 'bank', name: '창고지기 곳간이', label: '창고', dx: -4, dy: 4, c: '#3a8a7a' },
   ];
   const sx = (w - 4) / 34, sy = (h - 4) / 26;
   for (const b of B) {
@@ -546,7 +547,7 @@ function partyLeave(p, why) {
   if (pt.members.size <= 1) { for (const id of pt.members) { const q = PLAYERS.get(id); if (q) { q.party = null; sysMsg(q, '파티가 해산되었습니다.', '#ccc'); } } PARTIES.delete(pt.id); }
   else if (pt.leader === p.id) { pt.leader = [...pt.members][0]; const L = PLAYERS.get(pt.leader); if (L) partyMsg(pt, `${L.name}님이 파티장이 되었습니다.`); }
 }
-const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills', 'backPos', 'opened', 'tmapTarget'];
+const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills', 'backPos', 'opened', 'tmapTarget', 'pouches'];
 let IO = { save() { } };
 function saveAll() {
   for (const p of PLAYERS.values()) SAVES[p.name] = snapshotSave(p);
@@ -578,7 +579,7 @@ function newPlayer(o) {
   addItem(p, { k: 'mat', id: '나무', n: 10 }); addItem(p, { k: 'mat', id: '양털', n: 6 }); addItem(p, { k: 'mat', id: '솜', n: 4 });
   return p;
 }
-const INV_MAX = 36, STORE_MAX = 24;
+const INV_MAX = 36, STORE_MAX = 48, POUCH_MAX = 16, POUCH_N = 4;
 function addItem(p, it, list = 'inv') {
   const arr = p[list]; const max = list === 'inv' ? INV_MAX : STORE_MAX;
   if (it.k !== 'gear') {
@@ -619,7 +620,7 @@ function appear(p) {
 }
 function meData(p) {
   calc(p);
-  const tc = p.tmapTarget && CHESTS.get(p.tmapTarget); return { t: 'me', tmark: tc ? { map: tc.map, x: tc.x, y: tc.y } : null, name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: p.mounts, mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills, hot: Array.isArray(p.hot) && p.hot.length ? p.hot : ['hp1', 'mp1'] };
+  const tc = p.tmapTarget && CHESTS.get(p.tmapTarget); return { t: 'me', pouches: p.pouches, tmark: tc ? { map: tc.map, x: tc.x, y: tc.y } : null, name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: p.mounts, mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills, hot: Array.isArray(p.hot) && p.hot.length ? p.hot : ['hp1', 'mp1'] };
 }
 const dirty = p => { p.dirty = true; };
 function sysMsg(p, text, c = '#ffe28a') { if (p.ws) p.ws.send({ t: 'msg', text, c }); }
@@ -1029,6 +1030,7 @@ function openNpc(p, n) {
     }
     case 'smith': return p.ws.send({ t: 'dlg', kind: 'smith', npc: n.name, text: '쇠는 두드려야 강해지는 법! 장비를 +10까지 강화해 주지.\n\n[강화 재료] 몬스터를 사냥하면 떨어진다네.\n· 철광석 : 장비 1~15등급 (초원·숲·박쥐동굴·해골굴)\n· 은광석 : 장비 16~30등급 (사막·늪·설원·해골굴·광산)\n· 마력석 : 장비 31~45등급 (도깨비굴·흑요성·마왕성)\n· 용의비늘 : 장비 46~50등급 (마왕성·고레벨 보스)\n\n강화 단계가 높을수록 재료가 많이 들고 성공률이 떨어진다네. 실패하면 재료와 돈만 날아가고 장비는 무사하니 걱정 말게.', rates: D.UPG_RATE });
     case 'stable': return p.ws.send({ t: 'dlg', kind: 'stable', npc: n.name, text: '탈것은 비싸지만 한번 사면 평생 함께라네. [R]키로 타고 내릴 수 있지.', items: Object.entries(D.MOUNTS).map(([id, v]) => ({ id, ...v, owned: p.mounts.includes(id) })) });
+    case 'bank': return p.ws.send({ t: 'dlg', kind: 'chest', bank: 1, npc: n.name, text: '맡길 물건이 있으면 언제든 오게. 마을 창고와 내 집 보관상자는 같은 창고라네.' });
     case 'master': {
       const J = D.JOBS[p.job];
       if (J.tier) return p.ws.send({ t: 'dlg', kind: 'talk', npc: n.name, text: `이미 [${J.name}]의 길을 걷고 있구나. 정진하거라.` });
@@ -1100,7 +1102,7 @@ function onConnect(ws) {
 }
 function enter(p, ws) {
   p.id = 'p' + uid(); p.ws = ws; p.buffs = []; p.cds = {}; p.summons = []; p.dead = false; p.riding = false; p.lastMove = 0;
-  p.inv = p.inv || []; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
+  p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
   if (!MAPS[p.map]) { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; }
   if (!walkable(MAPS[p.map], p.x, p.y)) { const q = nearFree(MAPS[p.map], p.x, p.y); p.x = q.x; p.y = q.y; }
   { const q = nearFreeBody(MAPS[p.map], p.x, p.y, p); p.x = q.x; p.y = q.y; }
@@ -1182,8 +1184,24 @@ function handle(p, msg) {
     case 'furn': placeFurn(p, msg); break;
     case 'furnDel': { const t = msg.s === 'house' ? p.house : p.tent; if (!t || t.map !== p.map) return; if (t.kind === 'house' && t.furn.filter(f => f.k === 'door').length <= 1 && (t.furn.find(f => f.x === msg.x && f.y === msg.y) || {}).k === 'door') return sysMsg(p, '문은 최소 1개 있어야 합니다.'); const i = t.furn.findIndex(f => f.x === msg.x && f.y === msg.y); if (i >= 0) { const f = t.furn[i]; t.furn.splice(i, 1); const need = D.FURNITURE[f.k].need; for (const k in need) addItem(p, { k: 'mat', id: k, n: Math.floor(need[k] / 2) }); sysMsg(p, `${D.FURNITURE[f.k].name} 철거 (재료 절반 회수)`); sendTents(m); dirty(p); } break; }
     case 'tentDel': { if (!p.tent) return; const tm = MAPS[p.tent.map]; tm.tents = tm.tents.filter(t => t !== p.tent); p.tent = null; if (p.storage.length) sysMsg(p, '보관상자의 물건은 다음 텐트로 옮겨집니다.'); sendTents(tm); dirty(p); sysMsg(p, '텐트를 철거했습니다.'); break; }
-    case 'store': { if (!p.tent && !p.house) return; if (msg.dir === 'in') { const it = p.inv[msg.i | 0]; if (!it) return; if (p.storage.length >= STORE_MAX && it.k === 'gear') return sysMsg(p, '보관상자가 가득 찼습니다.'); p.inv.splice(msg.i | 0, 1); if (!addItem(p, it, 'storage')) p.inv.push(it); } else { const it = p.storage[msg.i | 0]; if (!it) return; if (p.inv.length >= INV_MAX && it.k === 'gear') return sysMsg(p, '가방이 가득 찼습니다.'); p.storage.splice(msg.i | 0, 1); if (!addItem(p, it)) p.storage.push(it); } dirty(p); break; }
+    case 'store': { const nb = npcNear(p); if (!(nb && nb.kind === 'bank') && !p.tent && !p.house) return; if (msg.dir === 'in') { const it = p.inv[msg.i | 0]; if (!it) return; if (p.storage.length >= STORE_MAX && it.k === 'gear') return sysMsg(p, '보관상자가 가득 찼습니다.'); p.inv.splice(msg.i | 0, 1); if (!addItem(p, it, 'storage')) p.inv.push(it); } else { const it = p.storage[msg.i | 0]; if (!it) return; if (p.inv.length >= INV_MAX && it.k === 'gear') return sysMsg(p, '가방이 가득 찼습니다.'); p.storage.splice(msg.i | 0, 1); if (!addItem(p, it)) p.storage.push(it); } dirty(p); break; }
     case 'cook': cook(p, msg.id); break;
+    // 주머니 (가방 안 정리)
+    case 'pouchPut': {
+      const pi = msg.pi | 0, i = msg.i | 0; const po = p.pouches[pi], it = p.inv[i]; if (!po || !it) return;
+      if (it.k !== 'gear') { const ex = po.find(o => o.k === it.k && o.id === it.id && o.n + it.n <= 999); if (ex) { ex.n += it.n; p.inv.splice(i, 1); dirty(p); break; } }
+      if (po.length >= POUCH_MAX) return sysMsg(p, `${pi + 1}번 주머니가 가득 찼습니다. (${POUCH_MAX}칸)`, '#ffb4b4');
+      p.inv.splice(i, 1); po.push(it); dirty(p); break;
+    }
+    case 'pouchTake': {
+      const po = p.pouches[msg.pi | 0]; const j = msg.j | 0; const it = po && po[j]; if (!it) return;
+      po.splice(j, 1); if (!addItem(p, it)) { po.splice(j, 0, it); return sysMsg(p, '가방이 가득 찼습니다.', '#ffb4b4'); } dirty(p); break;
+    }
+    case 'pouchAll': { // 같은 종류 한 번에 넣기
+      const po = p.pouches[msg.pi | 0]; const k = msg.k; if (!po || !['use', 'mat', 'gear'].includes(k)) return;
+      for (let i = p.inv.length - 1; i >= 0; i--) { const it = p.inv[i]; if (it.k !== k) continue; if (it.k !== 'gear') { const ex = po.find(o => o.k === it.k && o.id === it.id); if (ex) { ex.n += it.n; p.inv.splice(i, 1); continue; } } if (po.length >= POUCH_MAX) break; p.inv.splice(i, 1); po.push(it); }
+      dirty(p); break;
+    }
     case 'sleep': p.sleeping = !p.sleeping && !p.dead; break;
     case 'respawn': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
     case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 5).map(x => typeof x === 'string' && D.CONSUMES[x] ? x : null) : []; dirty(p); break;
@@ -1264,6 +1282,7 @@ function useItem(p, i) {
   }
   const c = D.CONSUMES[it.id]; if (!c) return;
   if (c.rod) return startFishing(p, c.rod);
+  if (c.pouch) { if (p.pouches.length >= POUCH_N) return sysMsg(p, `주머니는 최대 ${POUCH_N}개까지 쓸 수 있습니다.`); p.pouches.push([]); it.n--; if (it.n <= 0) p.inv.splice(i, 1); dirty(p); return sysMsg(p, `새 주머니를 달았습니다! (주머니 ${p.pouches.length}개)`, '#9fe8ff'); }
   if (c.tmap) { if (useTreasureMap(p)) { it.n--; if (it.n <= 0) p.inv.splice(i, 1); dirty(p); } return; }
   if (now < (p.potCd || 0)) return; p.potCd = now + 350;
   if (c.back && !p.backPos) return sysMsg(p, '돌아갈 위치가 없습니다. 귀환 주문서로 마을에 온 뒤 사용하세요.', '#ffb0b0');

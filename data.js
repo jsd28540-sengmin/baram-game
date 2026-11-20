@@ -333,6 +333,7 @@
     fGold: { name: '황금잉어', col: '#ffd030', hp: 999, mp: 999, buff: { luck: 25 }, dur: 300000, fish: 1, price: 0, desc: '완전 회복 + 5분간 행운 +25% (아주 희귀)' },
     rod: { name: '낚싯대', col: '#a87a42', tool: 1, rod: 1, price: 2500, desc: '물가에서 물을 바라보고 사용하면 자동 낚시 (움직이면 멈춤)' },
     rod2: { name: '명인의 낚싯대', col: '#e8b830', tool: 1, rod: 2, price: 30000, desc: '낚시가 1.6배 빠르고 희귀한 것이 잘 잡힌다' },
+    pouch: { name: '주머니', col: '#a87a42', pouch: 1, tool: 1, price: 5000, desc: '사용하면 가방에 주머니가 하나 늘어난다 (최대 4개, 각 16칸)' },
     tmap: { name: '보물지도', col: '#e8d8a0', tmap: 1, price: 0, desc: '사용하면 아직 찾지 못한 전설의 보물 위치를 알려준다' },
     // 요리 (어려울수록 좋은 효과)
     fishGrill: { name: '생선구이', col: '#c88a4a', hp: 380, mp: 120, price: 0, desc: '체력 380, 마나 120 회복' },
@@ -348,7 +349,7 @@
     goldCarpDish: { name: '황금잉어 정식', col: '#ffd84a', hp: 3000, mp: 3000, buff: { atk: 0.25, def: 0.25, luck: 30, exp: 0.3 }, dur: 900000, price: 0, desc: '완전 회복 + 15분간 공격·방어 +25%, 행운 +30%, 경험치 +30%' },
     kingFeast: { name: '전설의 연회', col: '#ff8ad8', hp: 5000, mp: 5000, buff: { atk: 0.35, def: 0.35, crit: 10, exp: 0.5, spd: 0.15 }, dur: 1200000, price: 0, desc: '20분간 공격·방어 +35%, 치명타 +10%, 경험치 +50%, 이동 +15%' },
   });
-  D.SHOP_CONSUMES.push('rod', 'rod2');
+  D.SHOP_CONSUMES.push('rod', 'rod2', 'pouch');
   // 레시피 (공개) — 모닥불/조리대/마을 어디서나
   Object.assign(D.RECIPES, {
     fishGrill: { name: '생선구이', need: { fCrucian: 1, '소금': 1 }, at: 'campfire', star: 1 },

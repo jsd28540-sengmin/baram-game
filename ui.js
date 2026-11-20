@@ -237,12 +237,12 @@ function renderPanel() {
     case 'inv': {
       T('bag', '가방과 장비', `<div style="flex:1"></div>${coinH(me.coins)}`);
       const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
-      let eq = '<div class="grid" style="grid-template-columns:repeat(3,46px)">';
-      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:46px;height:46px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:38px;height:38px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:46px;height:46px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
+      let eq = '<div class="grid" style="grid-template-columns:repeat(3,42px)">';
+      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:42px;height:42px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
       eq += '</div>';
       const st = me.st;
       h = `<div class="col" style="width:150px">${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
-        <div class="col" style="flex:1">${bagH('inv', 9, 52)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 눌러 착용/사용. 다른 직업 장비는 교환하세요.</div></div>`;
+        <div class="col" style="flex:1">${bagH('inv', 9, 52)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 누른 뒤 주머니를 누르면 주머니에 넣어요.</div></div>`;
       body.innerHTML = h; bindBag(body, 'inv');
       body.querySelectorAll('canvas[data-ic^="eq:"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.ic.slice(3)]), 0, 0); });
       body.querySelectorAll('[data-eq]').forEach(c => c.onclick = e => { e.stopPropagation(); const it = me.eq[c.dataset.eq]; showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${c.dataset.eq}">해제</button></div>`, e); });
@@ -326,7 +326,7 @@ function renderPanel() {
     }
     case 'chest': {
       T('bag', '보관상자');
-      h = `<div class="col"><div class="lbl">보관상자 (눌러서 꺼내기)</div><div data-store>${gridH(me.storage, 24, 8, '', 'data-s', 38)}</div></div><div class="col" style="flex:1"><div class="lbl">가방 (눌러서 넣기)</div>${bagH('chest', 9, 38)}</div>`;
+      h = `<div class="col"><div class="lbl">보관상자 (눌러서 꺼내기)</div><div data-store>${gridH(me.storage, 48, 12, '', 'data-s', 30)}</div></div><div class="col" style="flex:1"><div class="lbl">가방 (눌러서 넣기)</div>${bagH('chest', 9, 38)}</div>`;
       body.innerHTML = h; bindBag(body, 'chest');
       const g = body.querySelector('[data-store]'); paint(g, 'data-s', me.storage);
       g.querySelectorAll('.cell[data-s]').forEach(c => c.onclick = e => { e.stopPropagation(); const it = me.storage[+c.dataset.s]; showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm" data-a="take" data-i="${c.dataset.s}">꺼내기</button></div>`, e); });
@@ -659,8 +659,8 @@ function renderNpc(P) {
       break;
     }
     case 'chest': {
-      T('bag', '보관상자'); mode = 'chest';
-      L = `<div class="lbl">보관상자 — 눌러서 꺼내기</div><div data-store>${gridH(me.storage, 24, 8, '', 'data-s', 44)}</div><div class="mut">오른쪽 가방의 아이템을 누르면 보관상자에 넣어요.</div>`;
+      T('bag', d.bank ? '마을 창고' : '보관상자'); mode = 'chest';
+      L = `<div class="lbl">${d.bank ? "마을 창고" : "보관상자"} — 눌러서 꺼내기</div><div data-store>${gridH(me.storage, 48, 12, '', 'data-s', 30)}</div><div class="mut">오른쪽 가방의 아이템을 누르면 창고에 넣어요. (${me.storage.length}/48칸 · 마을 창고와 집 보관상자는 공유)</div>`;
       break;
     }
     case 'cook': {
@@ -1206,3 +1206,54 @@ function drawBigMap() {
 }
 $('mini').addEventListener('click', e => { e.stopPropagation(); openBigMap(); });
 $('mini').style.cursor = 'pointer';
+
+// ═══════ 가방 주머니 ═══════
+// 아이템을 누른 뒤 주머니를 누르면 들어가고, 주머니를 누르면 안의 아이템을 꺼낼 수 있다
+const _icP = invClick;
+invClick = function (i, ev, mode) {
+  _icP(i, ev, mode);
+  if (mode && mode !== 'inv') return;
+  S.pSel = i; S.pSelT = Date.now(); markSel();
+  const t = $('tip'); if (t && !t.classList.contains('hidden')) t.insertAdjacentHTML('beforeend', `<div class="mut" style="margin-top:6px;font-size:10.5px">${ic('bag')} 이 상태에서 주머니를 누르면 주머니에 넣어요</div>`);
+};
+function markSel() { document.querySelectorAll('[data-bag="inv"] .cell').forEach(c => c.classList.toggle('psel', +c.dataset.i === S.pSel && S.pSel != null)); }
+const PCOL = ['#c8904a', '#4a90dc', '#5ab84a', '#c85ad8'];
+function pouchesH() {
+  const pos_ = S.me.pouches || [];
+  let h = '<div class="pouches">';
+  for (let k = 0; k < 4; k++) {
+    const po = pos_[k];
+    h += po ? `<div class="pouch" data-pouch="${k}" style="--pc:${PCOL[k]}"><canvas width="32" height="32" data-one='{"k":"use","id":"pouch"}'></canvas><div><b>주머니${k + 1}</b><span>${po.length}/16</span></div></div>`
+      : `<div class="pouch lock">${ic('lock')}<div><b>주머니${k + 1}</b><span>상점 구매</span></div></div>`;
+  }
+  return h + '</div>';
+}
+function openPouch(k) {
+  const po = (S.me.pouches || [])[k]; if (!po) return;
+  let g = `<div class="grid" style="grid-template-columns:repeat(8,46px)">`;
+  for (let j = 0; j < 16; j++) { const it = po[j]; g += it ? `<div class="cell lab2 ${it.k === 'gear' ? 'r' + it.rar : ''}" style="width:46px;height:56px" data-pj="${j}"><canvas width="32" height="32" data-one='${JSON.stringify(it.k === 'gear' ? { k: 'gear', slot: it.slot, wt: it.wt, tier: it.tier, job: it.job } : { k: it.k, id: it.id })}'></canvas><span class="inm">${esc(iname(it))}</span>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}</div>` : `<div class="cell empty" style="width:46px;height:56px"></div>`; }
+  g += '</div>';
+  small(`주머니 ${k + 1} (${po.length}/16)`, 'bag', g + `<div class="row" style="margin-top:8px;gap:5px;flex-wrap:wrap"><span class="mut" style="flex:1;font-size:11px">아이템을 누르면 가방으로 꺼내요</span><button class="btn sm" data-pall="use">물약·음식 모두 넣기</button><button class="btn sm" data-pall="mat">재료 모두 넣기</button><button class="btn sm" data-pall="gear">장비 모두 넣기</button></div>`);
+  $('panel2').style.width = '420px';
+  const b = $('pbody2'); paintOne(b); S.pOpen = k;
+  b.querySelectorAll('[data-pj]').forEach(c => c.onclick = e => { e.stopPropagation(); const j = +c.dataset.pj; const it = po[j]; if (it && it.k === 'gear') { showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm pri" id="ptk">가방으로 꺼내기</button></div>`, e); $('ptk').onclick = () => { send({ t: 'pouchTake', pi: k, j }); hideTip(); }; } else send({ t: 'pouchTake', pi: k, j }); });
+  b.querySelectorAll('[data-pall]').forEach(x => x.onclick = () => send({ t: 'pouchAll', pi: k, k: x.dataset.pall }));
+}
+const _rpP = renderPanel;
+renderPanel = function () {
+  _rpP();
+  const P = S.panel; if (!P || P.kind !== 'inv' || !S.me) return;
+  const body = $('pbody'); const st = body.querySelector('.box.stat'); if (!st) return;
+  st.classList.add('stat2');
+  st.insertAdjacentHTML('afterend', pouchesH());
+  paintOne(body); markSel();
+  body.querySelectorAll('[data-pouch]').forEach(d => d.onclick = e => {
+    e.stopPropagation(); const k = +d.dataset.pouch;
+    if (S.pSel != null && S.me.inv[S.pSel] && Date.now() - S.pSelT < 20000) { send({ t: 'pouchPut', pi: k, i: S.pSel }); S.pSel = null; hideTip(); d.classList.add('flash'); }
+    else openPouch(k);
+  });
+};
+// 주머니 창이 열려 있으면 내용 갱신
+const _rhP = refreshHud;
+refreshHud = function (full) { _rhP(full); if (full && S.pOpen != null && !$('panel2').classList.contains('hidden') && $('ptitle2').textContent.startsWith('주머니')) openPouch(S.pOpen); };
+document.addEventListener('pointerdown', e => { if (S.pSel != null && !e.target.closest('[data-pouch],#tip,[data-bag="inv"]')) { S.pSel = null; markSel(); } }, true);
