@@ -98,7 +98,8 @@ function fsHint() {
 (function () {
   const isFS = () => document.fullscreenElement || document.webkitFullscreenElement;
   const go = () => { if (!S.me || isFS() || /iPhone|iPod/.test(navigator.userAgent)) return; tryFullscreen(); setTimeout(() => { try { if (isFS() && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }, 400); };
-  ['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => addEventListener(ev, go, true));
+  // 버튼·창을 누를 때는 전체화면 전환을 하지 않음(화면이 바뀌면서 누른 버튼이 안 눌리는 문제 방지) → 게임 화면·조이스틱을 누를 때만
+  ['touchend', 'pointerup', 'keydown'].forEach(ev => addEventListener(ev, e => { if (e.type !== 'keydown' && !(e.target && e.target.closest && e.target.closest('#game,#dpad'))) return; go(); }, true));
 })();
 const _onMsg = onMsg; onMsg = function (m) { const r = _onMsg(m); if (m.t === 'welcome') { setTimeout(() => { tryFullscreen(); fsHint(); scrollTo(0, 1); }, 300); } return r; };
 
@@ -1116,8 +1117,10 @@ renderPanel = function () {
     </div></div>`;
   paintOne($('pbody'));
   $('pbody').querySelectorAll('[data-ck]').forEach(d => d.onclick = () => { S.cookSel = d.dataset.ck; renderPanel(); });
-  $('docook').onclick = () => send({ t: 'cook', id: sel });
-  $('cook5').onclick = () => { for (let i = 0; i < 5; i++) setTimeout(() => send({ t: 'cook', id: sel }), i * 120); };
+  // 안드로이드 대응: 손을 떼는 순간 바로 실행 (click이 안 오는 기기 대비, 중복 실행 방지)
+  const tapBtn = (el, fn) => { let last = 0; const run = e => { if (el.disabled) return; const t = performance.now(); if (t - last < 400) return; last = t; if (e) { e.preventDefault(); e.stopPropagation(); } fn(); }; el.addEventListener('pointerup', run); el.onclick = run; };
+  tapBtn($('docook'), () => send({ t: 'cook', id: sel }));
+  tapBtn($('cook5'), () => { for (let i = 0; i < 5; i++) setTimeout(() => send({ t: 'cook', id: sel }), i * 120); });
 };
 (function () {
   const b = document.createElement('div'); b.className = 'mbtn'; b.innerHTML = `${ic('flame')}<span>요리책</span>`;
