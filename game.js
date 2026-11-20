@@ -296,7 +296,7 @@ function showCode(code) {
   d.onclick = () => { const url = location.href.split('#')[0] + '#' + code; try { navigator.clipboard.writeText(url).then(() => log('참가 링크를 복사했어요: ' + url, '#9fe8ff')); } catch (e) { log('참가 링크: ' + url, '#9fe8ff'); } };
   $('mini').appendChild(d);
 }
-setTimeout(connect, 0); // ui.js 로드 후 실행
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(connect, 0)); else setTimeout(connect, 0); // 모든 스크립트(ui.js 등) 로드 후 실행
 
 // ── 페이지 안 확인창 (confirm/prompt 대신) ──
 function uiAsk(text, onYes, opt = {}) {

@@ -762,6 +762,9 @@ webLobby = function () {
     else { const c2 = document.createElement('button'); c2.className = 'btn pri'; c2.id = 'lcont'; c2.style.cssText = 'width:100%;height:42px;font-size:14px;margin-bottom:4px;background:#16a34a;border-color:#16a34a'; c2.innerHTML = `${ic('castle')}이어하기 · 서버 기기 · 방 ${mem.code}`; L.insertBefore(c2, L.firstChild); c2.onclick = () => { NET.serverOnly = true; NET.hostRoom(null, mem.code); }; }
     $('nm').value = '';
   }
+  // 아이패드 메인 서버 링크: ...#server 또는 #server1234 로 열면 바로 서버 모드
+  const hm = (location.hash || '').match(/^#server(\d{4})?$/i);
+  if (hm && !NET._autoSrv) { NET._autoSrv = 1; const code = hm[1] || (mem && mem.role === 'server' && mem.code) || null; setTimeout(() => { NET.serverOnly = true; NET.hostRoom(null, code); }, 300); }
 };
 let wakeLock = null;
 async function keepAwake() { try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { } }
