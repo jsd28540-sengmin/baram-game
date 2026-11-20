@@ -989,7 +989,7 @@ function basicAttack(p) {
     fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: t ? (faceTo(p, t), p.dir) : p.dir });
     if (t) hitMon(m, t, p, p.st.atk, 1);
   } else {
-    const t = pickTarget(m, p, base === 'mage' ? 3 : 4); if (!t) { fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: p.dir }); return; }
+    const t = pickTarget(m, p, base === 'mage' ? 4 : 5); if (!t) { fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: p.dir }); return; }
     faceTo(p, t);
     fx(m, { k: 'proj', f: base === 'mage' ? 'mbolt' : 'arrow', fx: p.x, fy: p.y, tx: t.x, ty: t.y, c: base === 'mage' ? '#b48cff' : '#e8e0c0' });
     hitMon(m, t, p, p.st.atk, base === 'mage' ? 0.95 : 1);
