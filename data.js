@@ -208,12 +208,13 @@
     mp2: { name: '진한 파란 물약', col: '#0a2aa8', mp: 280, price: 160, desc: '마나 280 회복' },
     buffAtk: { name: '보라 물약', col: '#a040ff', buff: { atk: 0.3 }, dur: 90000, price: 350, desc: '90초간 전투능력(공격력) +30%' },
     buffDef: { name: '노란 물약', col: '#ffd020', buff: { def: 0.45 }, dur: 90000, price: 350, desc: '90초간 방어력 +45% (체력이 적게 닳음)' },
-    recall: { name: '귀환 주문서', col: '#e8d8a0', recall: 1, price: 120, desc: '가장 가까운 마을로 귀환' },
+    recall: { name: '귀환 주문서', col: '#e8d8a0', recall: 1, price: 120, desc: '가장 가까운 마을로 귀환 (귀환 전 위치를 기억)' },
+    back: { name: '복귀 주문서', col: '#bcd8ff', back: 1, price: 150, desc: '귀환 주문서를 쓰기 전 위치로 돌아간다' },
     meatCooked: { name: '구운 고기', col: '#a0582a', hp: 220, price: 0, desc: '체력 220 회복' },
     stew: { name: '고기 스튜', col: '#c08a40', hp: 500, mp: 300, price: 0, desc: '체력 500, 마나 300 회복' },
     feast: { name: '모험가의 만찬', col: '#ffcf6a', hp: 800, mp: 500, buff: { atk: 0.15, def: 0.15 }, dur: 180000, price: 0, desc: '대량 회복 + 3분간 공격·방어 +15%' },
   };
-  D.SHOP_CONSUMES = ['hp1', 'hp2', 'mp1', 'mp2', 'buffAtk', 'buffDef', 'recall'];
+  D.SHOP_CONSUMES = ['hp1', 'hp2', 'mp1', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'];
   D.SHOP_GEAR_LEVELS = [5, 12, 20, 28];
   D.gearPrice = lvl => Math.floor(lvl * lvl * 18 + 150);
 

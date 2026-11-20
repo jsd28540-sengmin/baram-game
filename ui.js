@@ -900,3 +900,131 @@ refreshHud = function (full) {
   const before = S._skKey; _rhS(full);
   if (S.touchCd && S.me && (S._skKey !== before || full)) S.touchCd.forEach((d, i) => { const sk = GD.SKILL[S.me.skills[i]]; const sn = d.querySelector('.sn'); if (sn) sn.textContent = sk ? (S.me.lv >= sk.lv ? sk.name : `Lv${sk.lv}`) : ''; });
 };
+
+// ═══════ 8방향 이동 (대각선) + 캐릭터·NPC 충돌 ═══════
+let touchVec = null;
+const _cwB = canWalk;
+canWalk = function (x, y) {
+  if (!_cwB(x, y)) return false;
+  if (S.map && S.map.npcs) for (const n of S.map.npcs) if (n.x === x && n.y === y) return false;
+  for (const [id, o] of S.P) if (id !== S.myId && o.x === x && o.y === y && !o.dead && !o.dd) return false;
+  return true;
+};
+function heldVec() {
+  if (touchVec) return touchVec;
+  let dx = 0, dy = 0; if (held.includes(1)) dx--; if (held.includes(2)) dx++; if (held.includes(3)) dy--; if (held.includes(0)) dy++;
+  if (dx || dy) { S.tapDir = -1; return [dx, dy]; }
+  if (S.tapDir >= 0) { const d = S.tapDir; S.tapDir = -1; return DIRS[d]; }
+  return null;
+}
+const dirOf = (dx, dy) => dx < 0 ? 1 : dx > 0 ? 2 : dy < 0 ? 3 : 0;
+updateMove = function (now) {
+  if (pos.moving) {
+    const k = (now - pos.t0) / pos.dur;
+    if (k >= 1) { pos.moving = false; pos.rx = pos.x; pos.ry = pos.y; }
+    else { pos.rx = pos.fx + (pos.x - pos.fx) * k; pos.ry = pos.fy + (pos.y - pos.fy) * k; }
+  }
+  if (!pos.moving && S.me && S.you && !S.you.dead) {
+    const v = heldVec();
+    if (v) {
+      if (S.panel && S.panel.kind && ['shop', 'gear', 'smith', 'stable', 'master', 'cook', 'chest', 'plot', 'guide', 'talk'].includes(S.panel.kind)) closePanel();
+      let [dx, dy] = v; const d = dirOf(dx, dy); pos.dir = d;
+      const tryV = (a, b) => (a && b) ? (canWalk(pos.x + a, pos.y + b) && canWalk(pos.x + a, pos.y) && canWalk(pos.x, pos.y + b)) : canWalk(pos.x + a, pos.y + b);
+      if (dx && dy && !tryV(dx, dy)) { if (tryV(dx, 0)) dy = 0; else if (tryV(0, dy)) dx = 0; }
+      if (tryV(dx, dy)) {
+        const diag = dx && dy; pos.moving = true; pos.fx = pos.x; pos.fy = pos.y; pos.x += dx; pos.y += dy; pos.t0 = now; pos.dur = S.me.st.spd * (diag ? 1.41 : 1); pos.step++;
+        send({ t: 'mv', x: pos.x, y: pos.y, d });
+      } else if (now - lastFace > 150) { lastFace = now; send({ t: 'face', d }); }
+    }
+  }
+  if ((keys.space || touchAtk) && now - lastAtk > 130 && S.you && !S.you.dead) { lastAtk = now; send({ t: 'atk' }); }
+};
+// 조이스틱 8방향
+const _bt8 = buildTouch;
+buildTouch = function () {
+  _bt8();
+  const dp = $('dpad'), knob = $('knob'); if (!dp || !knob) return; let active = null;
+  const upd = e => {
+    const r = dp.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = e.clientX - cx, dy = e.clientY - cy, R = r.width / 2, dist = Math.hypot(dx, dy);
+    const k = dist > R * 0.6 ? R * 0.6 / dist : 1, sc = 120 / r.width;
+    knob.style.transform = `translate(${dx * k * sc}px,${dy * k * sc}px)`;
+    if (dist < R * 0.18) { touchVec = null; touchDir = -1; return; }
+    const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)); // -4..4
+    touchVec = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]][(a + 8) % 8];
+    touchDir = dirOf(touchVec[0], touchVec[1]);
+  };
+  const end = () => { active = null; touchVec = null; touchDir = -1; knob.style.transform = ''; };
+  dp.onpointerdown = e => { active = e.pointerId; dp.setPointerCapture(e.pointerId); upd(e); e.preventDefault(); };
+  dp.onpointermove = e => { if (active === e.pointerId) upd(e); };
+  dp.onpointerup = dp.onpointercancel = end;
+};
+
+// ═══════ 파티 · 따라가기 · 장비 보기 · 캐릭터 터치 메뉴 ═══════
+const _onMsgP = onMsg;
+onMsg = function (m) {
+  if (m.t === 'partyAsk') { small('파티 신청', 'users', `<div class="txt" style="margin-bottom:10px">${esc(m.from)}님이 파티를 신청했습니다.<br><span class="mut">파티원끼리는 근처(12칸)에서 경험치를 함께 얻어요.</span></div><div class="row" style="justify-content:flex-end"><button class="btn red" id="pno">거절</button><button class="btn pri" id="pyes">수락</button></div>`); $('pyes').onclick = () => { send({ t: 'partyYes' }); closePanel2(); }; $('pno').onclick = () => { send({ t: 'partyNo' }); closePanel2(); }; return; }
+  if (m.t === 'insp') return openInspect(m);
+  if (m.t === 's') { S.party = m.pt || null; renderParty(); }
+  return _onMsgP(m);
+};
+const JOBN = j => (GD.JOBS[j] || {}).name || '';
+let _ptKey = '';
+function renderParty() {
+  let el = $('partybox'); const pt = S.party;
+  if (!pt) { if (el) el.remove(); _ptKey = ''; return; }
+  const key = JSON.stringify(pt); if (key === _ptKey) return; _ptKey = key;
+  if (!el) { el = document.createElement('div'); el.id = 'partybox'; el.className = 'win'; $('hud').appendChild(el); }
+  el.innerHTML = `<div class="row" style="gap:4px;margin-bottom:3px"><b style="color:#fff;font-size:10px">${ic('users')} 파티 ${pt.length}명</b><div style="flex:1"></div><span class="pbx" id="pleave">나가기</span></div>` +
+    pt.map(q => `<div class="prow ${q.far ? 'far' : ''}">${q.L ? `<span class="yl">${ic('crown')}</span>` : ''}<b>${esc(q.n)}</b><span class="mut">Lv${q.lv} ${JOBN(q.j)}</span><div class="phb"><i style="width:${q.h}%"></i></div></div>`).join('');
+  $('pleave').onclick = () => uiAsk('파티에서 나갈까요?', () => send({ t: 'partyLeave' }));
+}
+const _smW = small; small = function (...a) { $('panel2').style.width = ''; return _smW(...a); };
+function openInspect(m) {
+  const order = ['helmet', 'weapon', 'armor', 'shield', 'gloves', 'boots'];
+  const cells = order.map(s => { const it = m.eq[s]; return it ? `<div class="cell lab r${it.rar}" style="width:52px;height:62px" data-ins="${s}"><canvas width="32" height="32" data-insc="${s}"></canvas><span class="inm">${esc(it.name)}</span>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:52px;height:62px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; }).join('');
+  small(`${m.name}님의 장비`, 'shield', `<div class="row" style="gap:12px;align-items:flex-start"><div class="grid" style="grid-template-columns:repeat(3,52px)">${cells}</div><div class="box stat" style="flex:1"><span>레벨</span><b>${m.lv}</b><span>직업</span><b>${JOBN(m.job)}</b><span>체력</span><b>${m.st.maxHp}</b><span>공격력</span><b>${m.st.atk}</b><span>방어력</span><b>${m.st.def}</b><span>처치</span><b>${fmt(m.kills)}</b></div></div><div class="mut" style="margin-top:6px">장비를 누르면 능력치를 볼 수 있어요.</div>`);
+  const b = $('pbody2'); $('panel2').style.width = '400px';
+  b.querySelectorAll('canvas[data-insc]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(m.eq[c.dataset.insc]), 0, 0); });
+  b.querySelectorAll('[data-ins]').forEach(c => c.onclick = e => { e.stopPropagation(); showTip(itemDesc(m.eq[c.dataset.ins]), e); });
+}
+function closePM() { const d = $('pmenu'); if (d) d.remove(); }
+document.addEventListener('pointerdown', e => { const d = $('pmenu'); if (d && !d.contains(e.target)) d.remove(); }, true);
+openPlayerMenu = function (p) {
+  closePM(); closePanel2();
+  const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const inParty = S.party && S.party.some(x => x.i === p.i), leader = S.party && S.party.some(x => x.i === S.myId && x.L);
+  const following = S.follow === p.i;
+  const d = document.createElement('div'); d.id = 'pmenu'; d.className = 'win';
+  d.innerHTML = `<div class="pmh"><b>${esc(p.n)}</b><span class="mut">Lv${p.lv} ${JOBN(p.a && p.a.job)}</span></div>
+    <button class="btn" data-pm="trade">${ic('swap')}교환</button>
+    ${inParty ? (leader ? `<button class="btn" data-pm="kick">${ic('x')}파티에서 내보내기</button>` : `<button class="btn" data-pm="leave">${ic('x')}파티 나가기</button>`) : `<button class="btn" data-pm="party">${ic('users')}파티 초대</button>`}
+    <button class="btn" data-pm="follow">${ic('target')}${following ? '그만 따라가기' : '따라가기'}</button>
+    <button class="btn" data-pm="insp">${ic('shield')}장비 보기</button>`;
+  document.body.appendChild(d);
+  const sc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hz')) || 1;
+  let x = (p.rx + 1) * TS - camX + 8, y = p.ry * TS - camY - 20;
+  const w = d.offsetWidth * sc, h = d.offsetHeight * sc;
+  if (x + w > innerWidth - 6) x = (p.rx) * TS - camX - w - 8;
+  d.style.left = Math.max(6, x) + 'px'; d.style.top = Math.max(6, Math.min(innerHeight - h - 6, y)) + 'px';
+  d.onclick = e => {
+    const b = e.target.closest('[data-pm]'); if (!b) return; const a = b.dataset.pm;
+    if (a === 'trade') send({ t: 'tradeReq', id: p.i });
+    if (a === 'party') send({ t: 'partyInv', id: p.i });
+    if (a === 'leave') send({ t: 'partyLeave' });
+    if (a === 'kick') send({ t: 'partyKick', id: p.i });
+    if (a === 'follow') { if (following) { S.follow = null; log('따라가기를 멈췄어요.', '#ccc'); } else { S.follow = p.i; log(`${p.n}님을 따라갑니다. (이동하면 멈춰요)`, '#9fe8ff'); } }
+    if (a === 'insp') send({ t: 'inspect', id: p.i });
+    closePM();
+  };
+};
+// 따라가기: 직접 움직이면 멈춤
+const _hvF = heldVec;
+heldVec = function () {
+  const v = _hvF();
+  if (v) { if (S.follow && (touchVec || held.length)) { S.follow = null; log('따라가기를 멈췄어요.', '#ccc'); } return v; }
+  if (!S.follow) return null;
+  const t = S.P.get(S.follow); if (!t) { S.follow = null; log('따라갈 대상이 멀어졌어요.', '#ccc'); return null; }
+  const dx = t.x - pos.x, dy = t.y - pos.y; if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) return null;
+  return [Math.sign(dx), Math.sign(dy)];
+};

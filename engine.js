@@ -226,6 +226,14 @@ function bfs(m, sx, sy) {
     for (const [dx, dy] of DIRS) { const nx = x + dx, ny = y + dy, nk = ny * m.w + nx; if (!seen.has(nk) && !D.BLOCK.has(gt(m, nx, ny)) && gt(m, nx, ny) !== T.CAVEWALL) { seen.set(nk, d + 1); q.push(nk); } } }
   return seen;
 }
+function nearFreeBody(m, x, y, self) {
+  if (walkable(m, x, y) && !bodyAt(m, x, y, self)) return { x, y };
+  for (let r = 1; r < 8; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const nx = x + dx, ny = y + dy; if (walkable(m, nx, ny) && !m.portals[nx + ',' + ny] && !bodyAt(m, nx, ny, self) && !m.occ.has(occKey(nx, ny))) return { x: nx, y: ny };
+  }
+  return { x, y };
+}
 function nearFree(m, x, y, avoidPortal = true) {
   for (let r = 0; r < 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
@@ -288,6 +296,12 @@ function tentBlock(t, x, y) {
   if (f && !D.WALK_FURN.has(f.k)) return true;
   return false;
 }
+// 다른 플레이어·NPC가 서 있는 칸 (겹쳐 지나갈 수 없음)
+function bodyAt(m, x, y, self) {
+  for (const n of m.npcs) if (n.x === x && n.y === y) return true;
+  for (const o of PLAYERS.values()) if (o !== self && o.map === m.id && !o.dead && o.x === x && o.y === y) return true;
+  return false;
+}
 function walkable(m, x, y) {
   const v = gt(m, x, y);
   const t = m.tents.length ? tentAt(m, x, y) : null;
@@ -337,7 +351,16 @@ function gearSell(it) { return Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.r
 // ═══════════════ 플레이어 ═══════════════
 let SAVES = {};
 const PLAYERS = new Map(); // id -> p
-const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills'];
+const PARTIES = new Map(); let PARTY_N = 1; const PARTY_MAX = 6;
+function partyOf(p) { return p.party ? PARTIES.get(p.party) : null; }
+function partyMsg(pt, text, c) { for (const id of pt.members) { const q = PLAYERS.get(id); if (q) sysMsg(q, text, c || '#9fe8ff'); } }
+function partyLeave(p, why) {
+  const pt = partyOf(p); p.party = null; if (!pt) return;
+  pt.members.delete(p.id); partyMsg(pt, `${p.name}님이 파티를 ${why || '떠났습니다'}.`, '#ccc');
+  if (pt.members.size <= 1) { for (const id of pt.members) { const q = PLAYERS.get(id); if (q) { q.party = null; sysMsg(q, '파티가 해산되었습니다.', '#ccc'); } } PARTIES.delete(pt.id); }
+  else if (pt.leader === p.id) { pt.leader = [...pt.members][0]; const L = PLAYERS.get(pt.leader); if (L) partyMsg(pt, `${L.name}님이 파티장이 되었습니다.`); }
+}
+const SAVE_KEYS = ['plot', 'house', 'name', 'gender', 'hair', 'hairColor', 'skin', 'job', 'lv', 'exp', 'hp', 'mp', 'coins', 'map', 'x', 'y', 'dir', 'inv', 'eq', 'mounts', 'mount', 'storage', 'tent', 'hot', 'kills', 'backPos'];
 let IO = { save() { } };
 function saveAll() {
   for (const p of PLAYERS.values()) SAVES[p.name] = snapshotSave(p);
@@ -432,6 +455,7 @@ function teleport(p, mapId, x, y, near) {
   if (p.summons) for (const s of p.summons) { old.mons.delete(s.id); occDel(old, s.x, s.y); }
   p.map = mapId; const m = MAPS[mapId];
   const pos = near ? nearFree(m, x, y) : { x, y };
+  { const q = nearFreeBody(m, pos.x, pos.y, p); pos.x = q.x; pos.y = q.y; }
   p.x = pos.x; p.y = pos.y; p.lastMove = Date.now(); p.sleeping = false; p.target = null;
   if (p.summons) for (const s of p.summons) { const q = nearFree(m, p.x, p.y); s.x = q.x; s.y = q.y; s.map = mapId; m.mons.set(s.id, s); occAdd(m, s.x, s.y); }
   sendMap(p); p.ws.send({ t: 'pos', x: p.x, y: p.y, snap: 1 });
@@ -454,15 +478,34 @@ function spawnMon(m, type, x, y, o = {}) {
   m.mons.set(mon.id, mon); occAdd(m, x, y);
   return mon;
 }
+// 경험치: 공격 기여도(데미지 비율)로 분배. 함께 싸우면 1인당 +10% 보너스.
+// 파티원은 근처(12칸)에 있으면 파티 몫을 모아 똑같이 나눔 (+파티 인원당 10%).
+function shareExp(m, mon, killer) {
+  const by = mon.dmgBy || {}; const ids = Object.keys(by).filter(id => { const q = PLAYERS.get(id); return q && q.map === m.id && !q.dead; });
+  if (!ids.length && killer) ids.push(killer.id), by[killer.id] = 1;
+  const tot = ids.reduce((a, id) => a + by[id], 0) || 1;
+  const pool = mon.exp * (1 + 0.1 * (ids.length - 1));
+  const gain = new Map(); const add = (q, v) => gain.set(q, (gain.get(q) || 0) + v);
+  const partyPool = new Map();
+  for (const id of ids) {
+    const q = PLAYERS.get(id), v = pool * by[id] / tot; const pt = q.party && PARTIES.get(q.party);
+    if (pt) partyPool.set(pt, (partyPool.get(pt) || 0) + v); else add(q, v);
+  }
+  for (const [pt, v] of partyPool) {
+    const mem = [...pt.members].map(id => PLAYERS.get(id)).filter(q => q && q.map === m.id && !q.dead && dist(q, mon) <= 12);
+    if (!mem.length) continue; const each = v * (1 + 0.1 * (mem.length - 1)) / mem.length;
+    for (const q of mem) add(q, each);
+  }
+  for (const [q, v] of gain) { const e = Math.max(1, Math.round(v)); gainExp(q, e); if (ids.length > 1) sysMsg(q, `경험치 +${fmtN(e)} (기여도 ${Math.round(100 * (by[q.id] || 0) / tot)}%${q.party ? ' · 파티 분배' : ''})`, '#a8e8ff'); }
+}
+const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 function killMon(m, mon, killer) {
   m.mons.delete(mon.id); occDel(m, mon.x, mon.y);
   if (mon.summon) return;
   const def = D.MONS[mon.type];
   fx(m, { k: 'die', x: mon.x, y: mon.y, b: mon.boss ? 1 : 0 });
   if (mon.zone) mon.zone.count--;
-  // 경험치 (주변 동료도 60% 획득)
-  const ps = [...PLAYERS.values()].filter(p => p.map === m.id && !p.dead && dist(p, mon) < 11);
-  for (const p of ps) { gainExp(p, p === killer ? mon.exp : Math.floor(mon.exp * 0.6)); }
+  shareExp(m, mon, killer);
   if (killer) killer.kills = (killer.kills || 0) + 1;
   const luck = killer ? killer.st.luck : 0;
   // 코인 (항상)
@@ -858,6 +901,7 @@ function onConnect(ws) {
   ws.onclose = () => {
     if (!p) return;
     const tr = tradeOf(p); if (tr) tradeEnd(tr, '상대가 접속을 종료해 교환이 취소되었습니다.');
+    partyLeave(p, '떠났습니다(접속 종료)');
     const m = MAPS[p.map]; if (p.summons) for (const s of p.summons) { m.mons.delete(s.id); occDel(m, s.x, s.y); }
     p.summons = [];
     SAVES[p.name] = snapshotSave(p); PLAYERS.delete(p.id);
@@ -869,6 +913,7 @@ function enter(p, ws) {
   p.inv = p.inv || []; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
   if (!MAPS[p.map]) { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; }
   if (!walkable(MAPS[p.map], p.x, p.y)) { const q = nearFree(MAPS[p.map], p.x, p.y); p.x = q.x; p.y = q.y; }
+  { const q = nearFreeBody(MAPS[p.map], p.x, p.y, p); p.x = q.x; p.y = q.y; }
   calc(p); if (p.hp <= 0) p.hp = Math.round(p.st.maxHp * 0.5);
   PLAYERS.set(p.id, p);
   ws.send({ t: 'welcome', id: p.id, atlas: ATLAS });
@@ -884,7 +929,8 @@ function handle(p, msg) {
       if (p.dead) return;
       const x = msg.x | 0, y = msg.y | 0; calc(p);
       const timeOk = msg.ct ? msg.ct - (p.lastCt || 0) >= p.st.spd * 0.6 : now - (p.lastMove || 0) >= p.st.spd * 0.45;
-      const ok = Math.abs(x - p.x) + Math.abs(y - p.y) === 1 && timeOk && walkable(m, x, y) && !m.occ.has(occKey(x, y));
+      const ddx = x - p.x, ddy = y - p.y, diag = Math.abs(ddx) === 1 && Math.abs(ddy) === 1;
+      const ok = (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) && timeOk && walkable(m, x, y) && !m.occ.has(occKey(x, y)) && !bodyAt(m, x, y, p);
       p.dir = clamp(msg.d | 0, 0, 3);
       if (!ok) { p.ws.send({ t: 'pos', x: p.x, y: p.y }); return; }
       p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false;
@@ -952,6 +998,29 @@ function handle(p, msg) {
     case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 5).map(x => typeof x === 'string' && D.CONSUMES[x] ? x : null) : []; dirty(p); break;
     case 'boss': p.ws.send({ t: 'boss', list: bossSchedule() }); break;
     // 교환
+    // 파티
+    case 'partyInv': {
+      const q = PLAYERS.get(msg.id); if (!q || q === p) return;
+      if (q.party && q.party === p.party) return sysMsg(p, '이미 같은 파티입니다.');
+      if (q.party) return sysMsg(p, `${q.name}님은 다른 파티에 있습니다.`);
+      const pt = partyOf(p); if (pt && pt.members.size >= PARTY_MAX) return sysMsg(p, `파티는 최대 ${PARTY_MAX}명입니다.`);
+      q.partyFrom = p.id; q.ws.send({ t: 'partyAsk', from: p.name, id: p.id }); sysMsg(p, `${q.name}님에게 파티를 신청했습니다.`); break;
+    }
+    case 'partyYes': {
+      const q = PLAYERS.get(p.partyFrom); p.partyFrom = null; if (!q) return sysMsg(p, '신청한 사람이 없습니다.');
+      if (p.party) partyLeave(p);
+      let pt = partyOf(q); if (!pt) { pt = { id: PARTY_N++, leader: q.id, members: new Set([q.id]) }; PARTIES.set(pt.id, pt); q.party = pt.id; }
+      if (pt.members.size >= PARTY_MAX) return sysMsg(p, '파티가 가득 찼습니다.');
+      pt.members.add(p.id); p.party = pt.id; partyMsg(pt, `${p.name}님이 파티에 들어왔습니다. 경험치를 함께 얻어요!`); break;
+    }
+    case 'partyNo': { const q = PLAYERS.get(p.partyFrom); p.partyFrom = null; if (q) sysMsg(q, `${p.name}님이 파티를 거절했습니다.`, '#ccc'); break; }
+    case 'partyLeave': partyLeave(p); break;
+    case 'partyKick': { const pt = partyOf(p); const q = PLAYERS.get(msg.id); if (!pt || pt.leader !== p.id || !q || q.party !== pt.id) return; sysMsg(q, '파티에서 내보내졌습니다.', '#ccc'); partyLeave(q, '나갔습니다'); break; }
+    // 장비 보기
+    case 'inspect': {
+      const q = PLAYERS.get(msg.id); if (!q) return; calc(q);
+      p.ws.send({ t: 'insp', id: q.id, name: q.name, lv: q.lv, job: q.job, eq: q.eq, st: { maxHp: q.st.maxHp, maxMp: q.st.maxMp, atk: q.st.atk, def: q.st.def, crit: q.st.crit }, kills: q.kills || 0, a: appear(q) }); break;
+    }
     case 'tradeReq': {
       const q = PLAYERS.get(msg.id); if (!q || q === p || q.map !== p.map || dist(q, p) > 8) return sysMsg(p, '교환하려면 가까이 있어야 합니다.');
       if (tradeOf(p) || tradeOf(q)) return sysMsg(p, '이미 교환 중입니다.');
@@ -999,8 +1068,12 @@ function useItem(p, i) {
   }
   const c = D.CONSUMES[it.id]; if (!c) return;
   if (now < (p.potCd || 0)) return; p.potCd = now + 350;
+  if (c.back && !p.backPos) return sysMsg(p, '돌아갈 위치가 없습니다. 귀환 주문서로 마을에 온 뒤 사용하세요.', '#ffb0b0');
+  if ((c.recall || c.back) && p.dead) return;
   calc(p);
-  if (c.recall) { const t = nearestTown(p); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); sysMsg(p, `${t.name}(으)로 귀환했습니다.`); }
+  if (c.back) { const b = p.backPos; p.backPos = null; teleport(p, MAPS[b.map] ? b.map : 'world', b.x, b.y, 1); sysMsg(p, '귀환 전 위치로 돌아왔습니다.'); }
+  if (c.recall) { const cm = MAPS[p.map]; if (!inTown(cm, p.x, p.y)) p.backPos = { map: p.map, x: p.x, y: p.y };
+    const t = nearestTown(p); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); sysMsg(p, `${t.name}(으)로 귀환했습니다.`); }
   if (c.hp) { const h = Math.min(c.hp, p.st.maxHp - p.hp); p.hp += h; fx(MAPS[p.map], { k: 'heal', x: p.x, y: p.y, v: h }); }
   if (c.mp) { p.mp = Math.min(p.st.maxMp, p.mp + c.mp); fx(MAPS[p.map], { k: 'mana', x: p.x, y: p.y, v: c.mp }); }
   if (c.buff) addBuff(p, c.name, c.buff, c.dur);
@@ -1150,7 +1223,7 @@ function tick() {
     for (const mon of m.mons.values()) if (Math.abs(mon.x - p.x) <= VX && Math.abs(mon.y - p.y) <= VY) M.push({ i: mon.id, t: mon.type, x: mon.x, y: mon.y, d: mon.dir, h: Math.round(100 * mon.hp / mon.maxHp), mu: mon.mutant ? 1 : 0, s: mon.summon ? 1 : 0, lv: mon.lv });
     for (const d of m.drops.values()) if (Math.abs(d.x - p.x) <= VX && Math.abs(d.y - p.y) <= VY) { const it = d.item; Dr.push({ i: d.id, x: d.x, y: d.y, k: it.k, id: it.id, tr: it.tier, c: it.k === 'gear' ? D.TIER_COLOR[it.tier] : it.k === 'use' ? D.CONSUMES[it.id].col : it.k === 'mat' ? (D.MATS[it.id] || {}).c : '#ffd700', r: it.rar || 0, sl: it.slot, wt: it.wt, n: it.k === 'gear' ? it.name : it.k === 'coin' ? it.n + '코인' : (it.k === 'use' ? D.CONSUMES[it.id].name : it.id) + (it.n > 1 ? ' x' + it.n : '') }); }
     const fxs = m.fx.filter(f => Math.abs((f.x ?? f.fx) - p.x) <= VX + 2 && Math.abs((f.y ?? f.fy) - p.y) <= VY + 2);
-    p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
+    const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
   }
   for (const id of activeMaps) MAPS[id].fx = [];
 }

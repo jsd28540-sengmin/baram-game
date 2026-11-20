@@ -369,7 +369,7 @@ function snapshot(m) {
     if (p.a) S.apc[p.i] = p.a; else p.a = S.apc[p.i] || { job: 'warrior', eq: {} };
     let e = S.P.get(p.i);
     if (!e) { e = Object.assign({ rx: p.x, ry: p.y, fx: p.x, fy: p.y, t0: 0, dur: 1 }, p); S.P.set(p.i, e); }
-    else if (e.x !== p.x || e.y !== p.y) { const far = Math.abs(e.x - p.x) + Math.abs(e.y - p.y) > 2; e.fx = far ? p.x : e.rx; e.fy = far ? p.y : e.ry; e.t0 = now; e.dur = p.a.mt ? 140 : 210; e.walkUntil = now + 260; }
+    else if (e.x !== p.x || e.y !== p.y) { const far = Math.abs(e.x - p.x) + Math.abs(e.y - p.y) > 2; e.fx = far ? p.x : e.rx; e.fy = far ? p.y : e.ry; e.t0 = now; e.dur = (p.a.mt ? 140 : 210) * (Math.abs(e.x - p.x) === 1 && Math.abs(e.y - p.y) === 1 ? 1.41 : 1); e.walkUntil = now + 260; }
     Object.assign(e, p);
   }
   for (const k of [...S.P.keys()]) if (!seen.has(k)) S.P.delete(k);
