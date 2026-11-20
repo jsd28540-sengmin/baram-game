@@ -102,7 +102,7 @@ webLobby = function () {
   L.style.marginTop = '8px';
   $('lhost').className = 'btn pri'; $('lhost').innerHTML = ic('home') + '방 만들기'; $('lhost').style.cssText = 'flex:1;height:34px';
   $('ljoin').className = 'btn'; $('ljoin').innerHTML = ic('door') + '참가하기'; $('ljoin').style.cssText = 'flex:1;height:34px';
-  $('lcode').style.cssText = 'width:110px;height:34px;text-align:center;font-size:16px;letter-spacing:4px;font-weight:700';
+  $('lcode').style.cssText = 'width:110px;height:34px;text-align:center;font-size:15px;font-weight:700'; $('lcode').placeholder = '방 코드';
   $('lsolo').className = 'btn sm'; $('lsolo').innerHTML = ic('users') + '혼자 하기';
   L.querySelectorAll('.row').forEach(r => r.style.marginTop = '6px');
   const note = document.createElement('div'); note.className = 'mut'; note.style.cssText = 'text-align:center;margin-top:8px';
