@@ -299,7 +299,7 @@ function renderPanel() {
       h = `<div class="col" style="flex:1"><div class="mut">탈것은 비싸지만 평생 함께합니다. R키(데스크톱) 또는 메뉴의 탈것 버튼으로 타고 내려요.</div><div class="grid" style="grid-template-columns:repeat(4,1fr);gap:8px;flex:1">` +
         Object.entries(GD.MOUNTS).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="card" style="align-items:center;text-align:center"><canvas width="56" height="80" data-mt="${id}" style="width:84px;height:120px"></canvas><div class="nm">${mt.name}</div><small>이동속도 x${mt.spd}</small>${coinH(mt.price)}${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div></div>';
       body.innerHTML = h;
-      body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0); });
+      body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0, 56, 80); });
       body.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => send({ t: 'setMount', id: b.dataset.ride }));
       body.querySelectorAll('[data-bm]').forEach(b => b.onclick = () => uiAsk(`${GD.MOUNTS[b.dataset.bm].name}을(를) ${fmt(GD.MOUNTS[b.dataset.bm].price)}코인에 구매할까요?`, () => send({ t: 'buy', id: b.dataset.bm })));
       return;
@@ -599,7 +599,7 @@ function bindBagCol(body, mode) {
   body.querySelectorAll('canvas[data-ic^="bi:"]').forEach(c => { const it = me.inv[+c.dataset.ic.slice(3)]; if (!it) return; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(it), 0, 0); });
   body.querySelectorAll('[data-eqs]').forEach(c => c.onclick = e => { e.stopPropagation(); const s = c.dataset.eqs; if (mode === 'smith') { S.smithSel = { eq: s }; renderPanel(); return; } showTip(itemDesc(me.eq[s]) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${s}">해제</button></div>`, e); });
   body.querySelectorAll('[data-bi]').forEach(c => c.onclick = e => { e.stopPropagation(); const i = +c.dataset.bi; const it = me.inv[i]; if (mode === 'smith') { if (it.k === 'gear') { S.smithSel = { i }; renderPanel(); } else showTip(itemDesc(it), e); return; } invClick(i, e, mode); });
-  body.querySelectorAll('canvas[data-npcap]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite(NPC_AP[c.dataset.npcap] || NPC_AP.guide, 0, 0), 0, 0); });
+  body.querySelectorAll('canvas[data-npcap]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite(NPC_AP[c.dataset.npcap] || NPC_AP.guide, 0, 0), 0, 0, 56, 80); });
 }
 function renderNpc(P) {
   const me = S.me, d = P.data || {}, body = $('pbody');
@@ -692,7 +692,7 @@ function renderNpc(P) {
   body.querySelectorAll('[data-gi]').forEach(t => t.onclick = e => { e.stopPropagation(); const it = S._gearList[+t.dataset.gi]; showTip(`<div class="nm">${esc(it.name)}</div><div class="mut">${it.lvl}등급 · ${GD.SLOT_NAME[it.slot]}</div>${Object.entries(it.st).map(([k, v]) => `<div>${GD.OPT_NAME[k]} <b>+${v}</b></div>`).join('')}<div style="margin:4px 0">${coinH(it.price)}</div><button class="btn sm pri" data-gbuy="${it.lvl}|${it.slot}|${it.wt || ''}" ${me.coins < it.price ? 'disabled' : ''}>구매</button>`, e); });
   const ai = $('anvilic'); if (ai) { const it = S.smithSel && (S.smithSel.eq ? me.eq[S.smithSel.eq] : me.inv[S.smithSel.i]); if (it) { const g = ai.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(it), 0, 0); } }
   if ($('doupg')) $('doupg').onclick = () => send(Object.assign({ t: 'upgrade' }, S.smithSel));
-  body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0); });
+  body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0, 56, 80); });
   body.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => send({ t: 'setMount', id: b.dataset.ride }));
   body.querySelectorAll('[data-bm]').forEach(b => b.onclick = () => uiAsk(`${GD.MOUNTS[b.dataset.bm].name}을(를) ${fmt(GD.MOUNTS[b.dataset.bm].price)}코인에 구매할까요?`, () => send({ t: 'buy', id: b.dataset.bm })));
   body.querySelectorAll('[data-pro]').forEach(b => b.onclick = () => uiAsk(`[${GD.JOBS[b.dataset.pro].name}](으)로 전직합니다. 되돌릴 수 없습니다.`, () => send({ t: 'promote', id: b.dataset.pro })));

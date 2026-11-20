@@ -159,3 +159,61 @@ charSprite = function (ap, dir, frame) {
   if (glow) { const g = c.getContext('2d'), gc = g.globalCompositeOperation; g.globalCompositeOperation = 'destination-over'; g.fillStyle = Object.values(eq).some(e => e && e[1] >= 4) ? '#ff6a3a38' : '#ffd04a30'; g.beginPath(); g.ellipse(28, 50, 19, 27, 0, 0, 7); g.fill(); g.globalCompositeOperation = gc; }
   charCache2.set(key, c); return c;
 };
+
+// ═══════ 캐릭터 v3: 시안 캐릭터 시트 그대로 + 머리색·갑옷 등급 색·투구 덧입히기 ═══════
+const CH3 = { img: new Image(), ok: false, A: window.CHAR_ATLAS };
+CH3.img.onload = () => { CH3.ok = true; charCache3.clear(); };
+CH3.img.src = 'gfx/chars.png?v=1';
+const charCache3 = new Map();
+const _charV2 = charSprite;
+function rgb2hsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; } return [h, s, l]; }
+function hsl2rgb(h, s, l) { h /= 360; const f = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }; if (!s) return [l * 255, l * 255, l * 255]; const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255]; }
+const hex2rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+// 원래 밝기 비율을 지키며 목표 색으로 칠하기
+function tintPx(d, i, target, baseL) { const [r, g, b] = [d[i], d[i + 1], d[i + 2]]; const [, , l] = rgb2hsl(r, g, b); const [th, ts, tl] = rgb2hsl(...target); const nl = Math.max(0.04, Math.min(0.96, tl * (l / baseL))); const [nr, ng, nb] = hsl2rgb(th, Math.min(1, ts * 1.05), nl); d[i] = nr; d[i + 1] = ng; d[i + 2] = nb; }
+const isSkin = (h, s, l) => h >= 12 && h <= 42 && s > 0.25 && l > 0.55;
+charSprite = function (ap, dir, frame) {
+  if (!CH3.ok || ap.mt) return _charV2(ap, dir, frame);
+  const key = JSON.stringify(ap) + '|' + dir + '|' + frame; let c = charCache3.get(key); if (c) return c;
+  if (charCache3.size > 700) charCache3.clear();
+  const base = GD.JOBS[ap.job] ? GD.JOBS[ap.job].base : 'warrior'; const bk = base + '_' + (ap.g === 'f' ? 'f' : 'm');
+  const FR = CH3.A.frames[bk]; const row = FR[[0, 2, 1, 3][dir] ?? 0]; const n = row.length;
+  const col = frame === 1 ? 1 : frame === 3 ? (n === 4 ? 3 : 2) : 0;
+  const R = CH3.A.rects[row[Math.min(col, n - 1)]];
+  const S2 = 2, s = 0.78 * S2; // 2배 해상도로 그린 뒤 표시는 56x80
+  c = mk(56 * S2, 80 * S2); const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  const dw = R[2] * s, dh = R[3] * s, dx = 28 * S2 - dw / 2, dy = 77 * S2 - dh;
+  g.drawImage(CH3.img, R[0], R[1], R[2], R[3], dx, dy, dw, dh);
+  // 머리색 · 갑옷 색
+  const eq = ap.eq || {}; const hairPal = CH3.A.hairpal[bk]; const hairT = hex2rgb(HAIRC[ap.hc || 0]);
+  const armorT = eq.armor ? hex2rgb(GD.TIER_COLOR[eq.armor[0]]) : null;
+  const def = { warrior_m: 1, warrior_f: 1, mage_m: 0, mage_f: 2, healer_m: 1, healer_f: 3 }[bk];
+  const wantHair = hairPal && (ap.hc || 0) !== def;
+  if (wantHair || armorT) {
+    const id = g.getImageData(0, 0, c.width, c.height), d = id.data, W2 = c.width;
+    const hp = hairPal ? hairPal.filter(p => p[0] + p[1] + p[2] > 150) : []; const hairL = hp.length ? rgb2hsl(...hp[0])[2] : 0.4;
+    const armL = { warrior: 0.45, mage: 0.4, healer: 0.38 }[base];
+    for (let y = Math.floor(dy); y < c.height; y++) { const yr = (y - dy) / dh; for (let x = 0; x < W2; x++) { const i = (y * W2 + x) * 4; if (d[i + 3] < 30) continue; const r = d[i], gg = d[i + 1], b = d[i + 2]; const [h, sat, l] = rgb2hsl(r, gg, b); if (l < 0.12) continue;
+      if (wantHair && yr < 0.5 && !isSkin(h, sat, l)) { let md = 1e9; for (const p of hp) { const dd = (p[0] - r) ** 2 + (p[1] - gg) ** 2 + (p[2] - b) ** 2; if (dd < md) md = dd; } if (md < 34 * 34) { tintPx(d, i, hairT, hairL); continue; } }
+      if (armorT && yr > 0.42) { const hit = base === 'warrior' ? ((h < 18 || h > 335) && sat > 0.35) : base === 'mage' ? (h > 195 && h < 265 && sat > 0.2) : (h > 55 && h < 140 && sat > 0.18); if (hit) tintPx(d, i, armorT, armL); }
+    } }
+    g.putImageData(id, 0, 0);
+  }
+  // 투구 · 모자 · 두건
+  if (eq.helmet) {
+    const t = eq.helmet[0]; const hk = base === 'warrior' ? 'helm' : base === 'mage' ? 'hat' : 'hood';
+    const rowIdx = t === 9 ? 1 : t === 7 ? 2 : 0; const view = dir === 0 ? 0 : dir === 3 ? 4 : 2; const HR = CH3.A.rects[CH3.A.helms[hk][rowIdx][view]];
+    const hw = HR[2] * s, hh = HR[3] * s; const hc = mk(Math.ceil(hw), Math.ceil(hh)), hg = hc.getContext('2d'); hg.imageSmoothingEnabled = true;
+    if (dir === 2) { hg.translate(hw, 0); hg.scale(-1, 1); }
+    hg.drawImage(CH3.img, HR[0], HR[1], HR[2], HR[3], 0, 0, hw, hh); hg.setTransform(1, 0, 0, 1, 0, 0);
+    if (rowIdx === 0) { const T2 = hex2rgb(GD.TIER_COLOR[t]); const id = hg.getImageData(0, 0, hc.width, hc.height), d = id.data; const bl = hk === 'helm' ? 0.62 : hk === 'hat' ? 0.42 : 0.38;
+      for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 30) continue; const [h, sat, l] = rgb2hsl(d[i], d[i + 1], d[i + 2]); if (l < 0.12 || isSkin(h, sat, l)) continue; const hit = hk === 'helm' ? sat < 0.2 && l < 0.97 : hk === 'hat' ? (h > 210 && h < 300) : (h > 55 && h < 140 && sat > 0.15); if (hit) tintPx(d, i, T2, bl); }
+      hg.putImageData(id, 0, 0); }
+    g.drawImage(hc, 28 * S2 - hw / 2 + (dir === 2 ? 1 : dir === 1 ? -1 : 0) * S2, dy - 3 * S2);
+  }
+  // 영웅·전설 광채
+  if (Object.values(eq).some(e => e && (e[1] >= 3 || e[2] >= 7))) { const gc = g.globalCompositeOperation; g.globalCompositeOperation = 'destination-over'; g.fillStyle = Object.values(eq).some(e => e && e[1] >= 4) ? '#ff6a3a38' : '#ffd04a30'; g.beginPath(); g.ellipse(28 * S2, 50 * S2, 19 * S2, 27 * S2, 0, 0, 7); g.fill(); g.globalCompositeOperation = gc; }
+  // 표시 크기 56x80 로 축소 (선명하게 2배 캔버스 유지)
+  c.dispW = 56; c.dispH = 80;
+  charCache3.set(key, c); return c;
+};

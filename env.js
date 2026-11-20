@@ -5,8 +5,8 @@
 const ENV_SUBTILE = 2; // 논리 픽셀 → 화면 2배
 // 땅 팔레트
 const GPAL = {
-  g: { b: '#6cb043', d: '#56993a', dd: '#46852f', l: '#86c656', h: '#a2dc6c' },
-  f: { b: '#4f9338', d: '#3f7c2c', dd: '#326824', l: '#66ab48', h: '#7fc15a' },
+  g: { b: '#76a030', d: '#5e8a26', dd: '#4a7220', l: '#92bc44', h: '#aed060' },
+  f: { b: '#5e6a28', d: '#4c5820', dd: '#3c4618', l: '#768636', h: '#8a9c44' },
   d: { b: '#ecd59a', d: '#dcc083', dd: '#c9a86a', l: '#f8e8b8', h: '#fff4d2' },
   s: { b: '#eef4f9', d: '#d6e3ee', dd: '#bccfdf', l: '#ffffff', h: '#ffffff' },
   w: { b: '#62803e', d: '#506c33', dd: '#40582a', l: '#7a9850', h: '#90ac62' },
@@ -48,6 +48,9 @@ function drawGround(A, u, seed) {
     const n = u === 'f' ? 6 : 5;
     for (let i = 0; i < n; i++) { const x = 1 + r() * 12 | 0, y = 1 + r() * 12 | 0; px(x, y + 2, p.dd); px(x + 1, y + 1, p.dd); px(x + 1, y + 2, p.dd); px(x + 2, y + 2, p.d); px(x + 1, y, p.l); px(x + 3, y + 1, p.l); }
     for (let i = 0; i < 4; i++) px(r() * 16 | 0, r() * 16 | 0, p.h);
+    if (u === 'g' && r() < 0.5) { const fc = ['#ffffff', '#ffe14a', '#ff9ac0', '#b48aff'][r() * 4 | 0]; px(2 + r() * 12 | 0, 2 + r() * 12 | 0, fc); }
+    if (u === 'g' && seed % 9 === 0) { const { ell } = A; ell(8, 10, 4.5, 3.2, '#3e7a2a'); ell(7.5, 9.2, 4, 2.6, '#5aa83a'); ell(6.5, 8.5, 1.8, 1, '#86c856'); px(6, 9, '#ff7a9a'); px(10, 8, '#ffe14a'); }
+    if (u === 'g' && seed % 11 === 0) { for (let i = 0; i < 5; i++) { P(5 + i * 1.4, 7 + (i % 2), 0.8, 5 - (i % 2), i % 2 ? '#4a9a34' : '#6cbc48'); } }
     if (u === 'f' && r() < 0.6) { const x = 2 + r() * 11 | 0, y = 2 + r() * 11 | 0; P(x, y, 2, 1, '#9a7a3a'); px(x + 1, y + 1, '#7a5a2a'); } // 낙엽
     if (u === 'w' && r() < 0.3) { const x = 2 + r() * 9 | 0, y = 3 + r() * 9 | 0; P(x, y, 5, 2, '#566e44'); P(x + 1, y, 3, 1, '#6a8456'); }
   } else if (u === 'd') {
@@ -68,17 +71,18 @@ function drawRoad(A, seed) {
   for (let i = 0; i < 4; i++) { const x = 1 + r() * 13 | 0, y = 1 + r() * 13 | 0; px(x, y, p.dd); px(x + 1, y, '#bfa07a'); px(x, y - 1, p.h); }
   for (let i = 0; i < 3; i++) px(r() * 16 | 0, r() * 16 | 0, p.h);
 }
-function drawFlag(A, seed) { // 마을 바닥 돌판
-  const r = srand(seed), { P, px } = A; const G = '#a8a092';
-  P(0, 0, 16, 16, G);
-  const lay = seed % 2 ? [[0, 0, 9, 7], [9, 0, 7, 7], [0, 7, 6, 9], [6, 7, 10, 9]] : [[0, 0, 7, 8], [7, 0, 9, 8], [0, 8, 10, 8], [10, 8, 6, 8]];
-  for (const [x, y, w, h] of lay) { const c = ['#cdc5b6', '#c6bead', '#d4ccbe'][r() * 3 | 0]; P(x + 0.5, y + 0.5, w - 1, h - 1, c); P(x + 0.5, y + 0.5, w - 1, 0.5, '#e2dcd0'); P(x + 0.5, y + h - 1, w - 1, 0.5, '#b4ac9e'); if (r() < 0.5) { const qx = x + 2 + r() * (w - 4), qy = y + 2 + r() * (h - 4); px(qx, qy, '#bab2a4'); px(qx + 1, qy, '#dcd6ca'); } }
+function drawFlag(A, seed) { // 마을 바닥: 둥근 자갈
+  const r = srand(seed), { P, ell } = A;
+  P(0, 0, 16, 16, '#7e766a');
+  const rows = [[0, 0], [1, 4], [0, 8], [1, 12]];
+  for (const [o, y] of rows) for (let x = -2 + o * 2.5; x < 16; x += 5) { const c = ['#b8ae9c', '#aca290', '#c4baa8', '#a49a88'][r() * 4 | 0]; ell(x + 2.4, y + 2, 2.3, 1.8, c); ell(x + 1.8, y + 1.4, 1.2, 0.7, shade(c, 0.18)); }
 }
 function drawWater(A, seed, frame) {
   const r = srand(seed), { P, px } = A;
   P(0, 0, 16, 16, '#4a94dc');
   for (let i = 0; i < 2; i++) { const y = (3 + i * 7 + frame) % 16, x = (r() * 9 + frame * 2) % 11 | 0; P(x, y, 5, 1, '#6cb2f0'); P(x + 1, y + 1, 3, 1, '#3f88d0'); }
   if ((seed + frame) % 4 === 0) { const x = 2 + r() * 12 | 0, y = 2 + r() * 12 | 0; px(x, y, '#e8f6ff'); }
+  if ((seed >> 2) % 5 === 0) { const { circ } = A; const x = 4 + (seed % 7), y = 5 + (seed % 5); circ(x, y, 2.6, '#3e8a34'); circ(x, y, 2, '#5ab84a'); P(x, y - 2.6, 2.6, 2, '#4a94dc'); px(x - 1, y - 1, '#86d070'); if (seed % 2) { circ(x + 4, y + 3, 1.2, '#ff9ac0'); px(x + 4, y + 3, '#fff'); } }
 }
 function drawFlowers(A, seed) {
   const r = srand(seed), { P, px } = A; const cols = [['#ffffff', '#ffd84a'], ['#ffe14a', '#e08a20'], ['#ff8ab8', '#ffe0ec'], ['#b48aff', '#fff3a0'], ['#ff6a5a', '#ffd84a']];
@@ -228,7 +232,7 @@ function treeSprite(kind, v, u) {
   const s = lowres(W, H, A => {
     const { P, px, circ, ell, poly } = A; const cx = 15, by = 41;
     if (kind === 'oak' || kind === 'dark') {
-      const pal = kind === 'dark' ? ['#2f6a26', '#3d8030', '#4f973a', '#68b04c'] : ['#3f7e2a', '#4f9a34', '#64b244', '#86cc5c'];
+      const pal = kind === 'dark' ? ['#2f6a26', '#3d8030', '#4f973a', '#68b04c'] : (kind === 'oak' && v === 3) ? ['#d0708e', '#e892ac', '#f6b4c8', '#ffd8e4'] : ['#3f7e2a', '#4f9a34', '#64b244', '#86cc5c'];
       const tr = '#7a5232', trd = '#5a3a20', trl = '#9a6a40';
       P(cx - 3, by - 16, 6, 16, tr); P(cx - 3, by - 16, 1.5, 16, trl); P(cx + 1.5, by - 16, 1.5, 16, trd);
       poly([[cx - 5, by], [cx - 3, by - 4], [cx + 3, by - 4], [cx + 5, by]], tr); P(cx - 1, by - 10, 1, 4, trd); P(cx + 1, by - 6, 1, 3, trd);
@@ -239,7 +243,7 @@ function treeSprite(kind, v, u) {
       blobs.forEach(([x, y, rr]) => { circ(x - rr * 0.4, y - rr * 0.45, rr * 0.22, pal[3]); });
       for (let i = 0; i < 26; i++) { const x = 4 + r() * 22 | 0, y = 3 + r() * 24 | 0; const b = blobs.some(([bx, by2, rr]) => Math.hypot(x - bx, y - by2) < rr - 1.5); if (b) { px(x, y, i % 3 ? pal[0] : pal[3]); } }
       if (kind === 'oak' && v === 2) [[9, 13], [19, 11], [14, 19], [22, 17]].forEach(([x, y]) => { px(x, y, '#e8402a'); px(x, y - 1, '#ff8a6a'); });
-      if (kind === 'oak' && v === 3) [[8, 12], [20, 10], [16, 20], [12, 6]].forEach(([x, y]) => { px(x, y, '#fff'); px(x + 1, y, '#ffd0e0'); });
+
     } else if (kind === 'pine') {
       P(cx - 2, by - 8, 4, 8, '#6a4628'); P(cx - 2, by - 8, 1, 8, '#8a5e36');
       const tiers = [[34, 12], [26, 10], [18, 8], [11, 5.5]];
@@ -303,3 +307,80 @@ function drawChestSpark(ch, sx, sy, now) {
   const x = ch.x * TS - sx, y = ch.y * TS - sy; if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
   if (!ch.o) { const d = Math.hypot(ch.x - pos.x, ch.y - pos.y); if (d < 7 || ch.t >= 4) { for (let i = 0; i < 3; i++) { const k = ((now / 700) + i / 3) % 1; const a = i * 2.1 + now / 900; const px_ = x + 16 + Math.cos(a) * 12, py_ = y + 10 - k * 18; ctx.globalAlpha = 1 - k; ctx.fillStyle = ch.L ? '#ffb070' : '#fff6c0'; ctx.fillRect(px_ - 1, py_ - 3, 2, 6); ctx.fillRect(px_ - 3, py_ - 1, 6, 2); } ctx.globalAlpha = 1; } }
 }
+
+// ═══════ 배경 v3: 마을 건물 · 분수 · 성벽 장식 ═══════
+const bldCache = new Map();
+const BLD_KIND = { '잡화상': 'shop', '장비상': 'gear', '대장간': 'smith', '마구간': 'stable', '전직관': 'master', '창고': 'bank' };
+function buildingSprite(kind, rc) {
+  const key = kind + rc; let c = bldCache.get(key); if (c) return c;
+  const s = lowres(80, 82, A => {
+    const { P, px, circ, ell, poly } = A;
+    const rD = shade(rc, -0.3), rDD = shade(rc, -0.5), rL = shade(rc, 0.22);
+    const wall = kind === 'smith' ? '#b8a890' : '#e4c890', wallD = shade(wall, -0.18), beam = '#6a4424', beamL = '#8a5a30';
+    // 벽
+    P(3, 44, 74, 33, wall); P(3, 44, 74, 4, wallD);
+    for (const x of [3, 21, 39.5, 58, 75]) { P(x, 44, 2.5, 33, beam); P(x, 44, 0.8, 33, beamL); }
+    P(3, 59, 74, 2, beam); P(3, 59, 74, 0.6, beamL);
+    // 주춧돌
+    for (let x = 2; x < 78; x += 6) { P(x, 76, 5.5, 5, (x / 6) % 2 ? '#9a948a' : '#8a847a'); P(x, 76, 5.5, 0.8, '#b8b2a6'); }
+    // 창문 (따뜻한 불빛)
+    const win = (x, y) => { P(x - 1, y - 1, 14, 13, '#5a3a1e'); P(x, y, 12, 11, '#ffd46a'); P(x, y, 12, 4, '#ffe8a0'); P(x + 5.5, y, 1, 11, '#7a4a24'); P(x, y + 5, 12, 1, '#7a4a24'); P(x - 2, y + 11, 16, 3, '#8a5a2a'); [[x, '#ff6a8a'], [x + 3, '#ffffff'], [x + 6, '#ffd84a'], [x + 9, '#ff6a8a'], [x + 11, '#b48aff']].forEach(([fx, fc]) => { circ(fx + 0.5, y + 11, 1.2, '#4a8a34'); px(fx, y + 10, fc); }); };
+    if (kind === 'stable') {
+      P(8, 50, 26, 26, '#3a2414'); P(9, 51, 24, 25, '#5a3a1e'); for (let x = 9; x < 33; x += 4) P(x, 51, 0.8, 25, '#4a2e18');
+      ell(21, 70, 8, 5, '#e8c050'); ell(19, 67, 5, 3, '#f8d870'); P(13, 60, 5, 8, '#c8a070'); P(14, 56, 6, 5, '#d8b080'); px(16, 57, '#2a1a10');
+      win(52, 50);
+    } else if (kind === 'smith') {
+      P(46, 50, 26, 24, '#3a2a24'); ell(59, 66, 9, 7, '#ff8a2a'); ell(59, 68, 6, 4, '#ffd04a'); P(48, 50, 22, 3, '#2a1a14');
+      win(9, 50);
+      P(26, 70, 10, 3, '#4a4a54'); P(28, 67, 6, 3, '#6a6a76'); P(24, 66, 14, 2, '#7a7a86');
+    } else win(8, 50), win(58, 50);
+    // 문
+    if (kind !== 'stable') {
+      P(33, 52, 14, 25, '#4a2e18'); ell(40, 53, 7, 4, '#4a2e18'); P(34.5, 53, 11, 24, '#8a5a30'); ell(40, 53.5, 5.5, 3, '#8a5a30');
+      for (let x = 35; x < 45; x += 3) P(x, 53, 0.7, 24, '#6a4424'); circ(43.5, 66, 1, '#ffd84a'); P(31, 77, 18, 3, '#a8a296');
+    }
+    // 차양 (잡화상)
+    if (kind === 'shop') { for (let i = 0; i < 8; i++) P(6 + i * 2, 47, 2, 4, i % 2 ? '#ffffff' : '#d8402a'); for (let i = 0; i < 8; i++) P(56 + i * 2, 47, 2, 4, i % 2 ? '#ffffff' : '#d8402a'); P(6, 51, 16, 1, '#a02a1a'); P(56, 51, 16, 1, '#a02a1a'); }
+    if (kind === 'bank') { [[56, 60], [62, 58], [60, 64]].forEach(([x, y]) => { P(x, y, 6, 5, '#a87a42'); P(x, y, 6, 1, '#c89a5a'); P(x + 2.5, y, 1, 5, '#7a5228'); }); }
+    // 지붕
+    poly([[-1, 47], [81, 47], [71, 13], [9, 13]], rD);
+    poly([[0, 45], [80, 45], [70, 14], [10, 14]], rc);
+    for (let y = 16; y < 45; y += 4) { const t = (y - 14) / 31, x0 = 10 - t * 10, x1 = 70 + t * 10; P(x0, y + 2.6, x1 - x0, 1.2, rD); for (let x = x0 + ((y / 4) % 2) * 3; x < x1; x += 6) P(x, y, 1, 2.6, rDD); P(x0, y, x1 - x0, 0.6, rL); }
+    P(9, 12, 62, 3, rDD); P(9, 12, 62, 1, rL);
+    // 박공 (가운데 앞쪽 삼각 지붕)
+    poly([[26, 47], [54, 47], [40, 27]], rDD); poly([[28, 45], [52, 45], [40, 29]], wall); P(39.2, 31, 1.6, 14, beam); P(30, 41, 20, 1.5, beam);
+    poly([[24, 47.5], [27, 47.5], [41, 26], [39, 25]], rc); poly([[56, 47.5], [53, 47.5], [39, 26], [41, 25]], rD);
+    // 간판
+    P(32, 33, 16, 9, '#7a4a24'); P(33, 34, 14, 7, '#b88a54'); P(33, 34, 14, 1, '#d0a46a');
+    const icx = 40, icy = 37.5;
+    if (kind === 'shop') { P(icx - 1, icy - 3, 2, 1.5, '#c8b080'); ell(icx, icy + 0.5, 2.6, 2.4, '#e8303a'); px(icx - 1, icy, '#ffc0c0'); }
+    if (kind === 'gear') { poly([[icx - 3, icy - 3], [icx + 3, icy - 3], [icx + 3, icy], [icx, icy + 3.5], [icx - 3, icy]], '#4a6ad8'); P(icx - 0.5, icy - 2.5, 1, 5, '#ffd84a'); P(icx - 2.5, icy - 1, 5, 1, '#ffd84a'); }
+    if (kind === 'smith') { P(icx - 4, icy - 1, 8, 2, '#4a4a54'); P(icx - 2, icy + 1, 4, 2, '#4a4a54'); P(icx - 4, icy - 1, 8, 0.6, '#8a8a96'); }
+    if (kind === 'stable') { ell(icx, icy, 3, 3.2, '#6a6a76'); ell(icx, icy + 0.8, 1.6, 2.4, '#b88a54'); }
+    if (kind === 'master') { P(icx - 4, icy - 2.5, 3.8, 5, '#f4ecd8'); P(icx + 0.2, icy - 2.5, 3.8, 5, '#e8dcc0'); P(icx - 0.2, icy - 3, 0.6, 6, '#8a3ad8'); }
+    if (kind === 'bank') { circ(icx, icy, 3, '#e8b830'); circ(icx, icy, 1.8, '#f8d860'); P(icx - 0.4, icy - 1.5, 0.8, 3, '#a87a20'); }
+    // 굴뚝
+    P(58, 2, 8, 16, '#8a7a6a'); P(58, 2, 8, 2, '#a89a8a'); P(57, 1, 10, 2, '#6a5a4a'); for (let y = 5; y < 17; y += 4) P(58, y, 8, 0.6, '#6a5a4a');
+    // 처마 그림자
+    P(3, 47, 74, 2, 'rgba(40,20,10,.35)');
+  });
+  crisp(s, 60); outline1(s, '#2a1810'); c = up2(s); bldCache.set(key, c); return c;
+}
+function drawBuilding(l, sx, sy, now) {
+  const kind = BLD_KIND[l.text]; if (!kind) return;
+  const x = l.bx * TS - sx, y = l.by * TS - sy;
+  if (x < -200 || y < -220 || x > W + 40 || y > H + 40) return;
+  ctx.drawImage(buildingSprite(kind, l.roofC), x, y - 36);
+  if (kind === 'smith' || kind === 'bank' || kind === 'master') { for (let i = 0; i < 3; i++) { const k = ((now / 1800) + i / 3) % 1; ctx.globalAlpha = 0.45 * (1 - k); ctx.fillStyle = '#e8e8ee'; ctx.beginPath(); ctx.arc(x + 124 + Math.sin(k * 6 + i) * 6, y - 34 - k * 40, 4 + k * 8, 0, 7); ctx.fill(); } ctx.globalAlpha = 1; }
+}
+// 분수 (마을 중앙)
+const fountainImg = [0, 1].map(fr => { const s = lowres(48, 48, ({ P, px, circ, ell, poly }) => {
+  poly([[12, 6], [36, 6], [44, 14], [44, 34], [36, 42], [12, 42], [4, 34], [4, 14]], '#8a847a');
+  poly([[13, 9], [35, 9], [41, 15], [41, 33], [35, 39], [13, 39], [7, 33], [7, 15]], '#4a94dc');
+  for (let i = 0; i < 5; i++) P(10 + i * 6 + fr * 2, 18 + (i % 2) * 10, 4, 1, '#8cc8f8');
+  P(4, 14, 40, 1, '#b4ae a4'.replace(' ', '')); ell(24, 24, 5, 5, '#a8a296'); ell(24, 23, 4, 4, '#c8c2b6'); P(22.5, 12, 3, 12, '#b8b2a6'); ell(24, 12, 4, 2, '#c8c2b6');
+  for (let i = 0; i < 6; i++) { const a = i * 1.05 + fr * 0.5; px(24 + Math.cos(a) * (5 + fr), 9 + Math.sin(a) * 2 + fr, '#e8f6ff'); } circ(24, 8 - fr, 1.6, '#cfeaff');
+}); crisp(s, 60); outline1(s, '#2a2420'); return up2(s); });
+function drawFountain(x, y, sx, sy, now) { ctx.drawImage(fountainImg[(now / 400 | 0) % 2], x * TS + 16 - 48 - sx, y * TS + 16 - 48 - sy); }
+// 성벽 위 총안
+const crenImg = (() => { const s = lowres(16, 6, ({ P }) => { for (const x of [0, 8]) { P(x + 1, 0, 6, 6, '#b4ac9c'); P(x + 1, 0, 6, 1, '#d0c8b8'); P(x + 6, 0, 1, 6, '#8a8274'); } }); outline1(s, '#4a4438'); return up2(s); })();

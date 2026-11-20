@@ -619,7 +619,8 @@ function frame(nowMs) {
     else if (!m.biome && id === T.ROCK) under = 'c';
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
     const X0 = x * TS - sx, Y0 = y * TS - sy;
-    ctx.drawImage(tileImg(id, v, m.pal, m.castle, anim, under), X0, Y0);
+    { const ti = tileImg(id, v, m.pal, m.castle, anim, under); if (ti.height > 64) ctx.drawImage(ti, X0, Y0 - 10, TS, ti.height * TS / 64); else ctx.drawImage(ti, X0, Y0, TS, TS); }
+    drawDecor(id, x, y, X0, Y0);
     if (TREEISH.has(id) && !m.castle) trees.push([id, x, y, under]);
     if (!m.castle) drawEdges(id, x, y, X0, Y0);
     const blk = GD.BLOCK.has(id);
@@ -630,6 +631,7 @@ function frame(nowMs) {
       if (AO2(tileAt(x - 1, y))) ctx.drawImage(FX_IMG.aoW, X0, Y0);
       if (AO2(tileAt(x + 1, y))) ctx.drawImage(FX_IMG.aoE, X0, Y0);
     } else if (id === T.HOUSE && tileAt(x, y - 1) === T.ROOF) { ctx.drawImage(FX_IMG.aoN, X0, Y0); ctx.drawImage(FX_IMG.aoN, X0, Y0);
+    } else if (id === T.WALL && !m.dark) { if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0); if (tileAt(x, y - 1) !== T.WALL) ctx.drawImage(crenImg, X0, Y0 - 10);
     } else if (TALL.has(id)) {
       if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0);
       if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
@@ -662,6 +664,9 @@ function frame(nowMs) {
     ents.push({ y: mo.ry, f: () => drawMon(mo, sx, sy, now) });
   }
   for (const [id, x, y, u] of trees) ents.push({ y: y - 0.01, f: () => drawTreeAt(id, x, y, sx, sy, u) });
+  if (!m.dark) for (const l of m.labels) if (l.roofC && BLD_KIND[l.text] && l.bx + 5 >= x0 - 1 && l.bx <= x1 + 1 && l.by >= y0 - 5 && l.by <= y1 + 2) ents.push({ y: l.by + 3.4, f: () => drawBuilding(l, sx, sy, now) });
+  if (m.id === 'world') for (const t of m.towns || []) { if (/주택가/.test(t.name)) continue; const fx = (t.x0 + t.x1) >> 1, fy = (t.y0 + t.y1) >> 1; for (let yy = fy - 1; yy <= fy + 1; yy++) for (let xx = fx - 1; xx <= fx + 1; xx++) if (tileAt(xx, yy) === T.WATER && tileAt(xx - 1, yy) === T.STONE && tileAt(xx + 1, yy) === T.STONE) ents.push({ y: yy + 0.6, f: () => drawFountain(xx, yy, sx, sy, now) }); }
+  drawEntrances(m, sx, sy, ents);
   for (const c of (m.chests || [])) if (c.x >= x0 - 1 && c.x <= x1 + 1 && c.y >= y0 - 1 && c.y <= y1 + 2) ents.push({ y: c.y - 0.02, f: () => drawChest(c, sx, sy, now) });
   ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f());
   for (const c of (m.chests || [])) if (!c.o) drawChestSpark(c, sx, sy, now);
@@ -685,10 +690,10 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   if (p.dd) { ctx.globalAlpha = 0.5; }
   const fr = walking ? 1 + ((now / 130 | 0) % 4) : 0;
   const ap = p.a; let img = charSprite(ap, p.sl ? 0 : dir, p.sl ? 0 : fr === 4 ? 0 : fr === 2 ? 0 : fr);
-  if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 10); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, -40, -28); ctx.restore(); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
+  if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 10); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, -40, -28, 56, 80); ctx.restore(); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
   else {
     const lunge = p.atkT && now - p.atkT < 150 ? 4 : 0; const [dx, dy] = DIRS[dir];
-    shadowAt(x, y, ap.mt ? 18 : 12); ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge));
+    shadowAt(x, y, ap.mt ? 18 : 12); ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge), 56, 80);
   }
   ctx.globalAlpha = 1;
   if (p.bf) { ctx.strokeStyle = `rgba(255,220,120,${0.4 + Math.sin(now / 200) * 0.2})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, 16, 6, 0, 0, 7); ctx.stroke(); }
@@ -706,7 +711,7 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
 }
 function drawNpc(n, sx, sy, now) {
   const x = n.x * TS + 16 - sx, y = n.y * TS + 32 - sy; if (x < -60 || x > W + 60 || y < -80 || y > H + 80) return;
-  shadowAt(x, y, 12); ctx.drawImage(charSprite(NPC_AP[n.kind] || NPC_AP.guide, 0, 0), x - 28, y - 76);
+  shadowAt(x, y, 12); ctx.drawImage(charSprite(NPC_AP[n.kind] || NPC_AP.guide, 0, 0), x - 28, y - 76, 56, 80);
   drawText(n.name, x, y + 15, '#ffe08a', 13);
   const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - 76 + bob, '#ffd000', 18);
 }
@@ -986,7 +991,7 @@ function renderPanel() {
   if (P.kind === 'inv') { body.querySelectorAll('[data-eqi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.eqi]), 0, 0); c.style.width = '46px'; c.style.height = '46px'; }); body.querySelectorAll('[data-eq]').forEach(c => c.onclick = e => { const it = me.eq[c.dataset.eq]; if (!it) return; e.stopPropagation(); showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${c.dataset.eq}">해제</button></div>`, e); }); }
   body.querySelectorAll('[data-ci]').forEach(c => { const g = c.getContext('2d'); g.drawImage(itemIcon({ k: 'use', id: c.dataset.ci }), 0, 0); c.style.width = '36px'; c.style.height = '36px'; });
   if (P.kind === 'gear') body.querySelectorAll('[data-gi]').forEach(c => { const [lv, j] = c.dataset.gi.split('_'); const it = d.items.filter(x => x.lvl == lv)[j]; const g = c.getContext('2d'); g.drawImage(itemIcon(it), 0, 0); c.style.width = '36px'; c.style.height = '36px'; });
-  body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0); });
+  body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0, 56, 80); });
   body.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => send({ t: 'buy', id: b.dataset.buy, n: +b.dataset.n }));
   body.querySelectorAll('[data-gb]').forEach(b => b.onclick = () => { const [lv, slot, wt] = b.dataset.gb.split('|'); send({ t: 'buy', lv: +lv, slot, wt }); });
   body.querySelectorAll('[data-ue]').forEach(b => b.onclick = () => send({ t: 'upgrade', eq: b.dataset.ue }));
