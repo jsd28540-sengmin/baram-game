@@ -385,7 +385,7 @@ function renderBuild(body, T) {
   const mats = ['나무', '돌', '양털', '솜', '횃불', '고기'].map(k => `${k} <b>${haveMat(k)}</b>`).join(' · ');
   const have = s === 'tent' ? me.tent : me.house;
   let top = s === 'tent'
-    ? `<div class="row"><button class="btn pri" data-bb="tent">${ic('tent')}${me.tent ? '여기로 텐트 옮기기' : '여기에 텐트 짓기'}</button><span>${needH(GD.TENT_COST)}</span><div style="flex:1"></div>${me.tent ? `<button class="btn red sm" data-bb="tentDel">${ic('trash')}텐트 철거</button>` : ''}</div><div class="mut">내 위치가 텐트 문이 되고 위쪽으로 9x7칸이 필요해요. 텐트 안은 몬스터가 못 들어오는 안전지대!</div>`
+    ? `<div class="row"><button class="btn pri" data-bb="tent">${ic('tent')}${me.tent ? '여기로 텐트 옮기기' : '여기에 텐트 짓기'}</button><span>${needH(GD.TENT_COST)}</span><div style="flex:1"></div>${me.tent ? `<button class="btn red sm" data-bb="tentDel">${ic('trash')}텐트 철거</button>` : ''}</div><div class="mut">내 위치가 텐트 입구가 되고 위쪽으로 9x7칸이 필요해요. 입구로 들어가면 아늑한 실내가 나오고, <b>가구는 텐트 안에서</b> 자유롭게 배치해요. 안은 몬스터가 못 들어오는 안전지대!${me.tent && S.map.id !== 'tent_' + me.name ? '<br><span style="color:#ffd27a">▶ 지금은 텐트 밖이에요. 텐트 입구로 들어가서 배치하세요.</span>' : ''}</div>`
     : `<div class="mut">${me.house ? '집 안 칸을 눌러 가구를 놓으세요. 창문·문·그림은 벽에 설치합니다.' : '아직 집이 없어요. 마을 서쪽 주택가 공터 표지판에서 땅을 사고 집을 지으세요.'}</div>`;
   let grid = '';
   if (have) {

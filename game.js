@@ -489,8 +489,11 @@ function buildTouch() {
 // ═══════ 이동 ═══════
 function tileAt(x, y) { const m = S.map; if (!m || x < 0 || y < 0 || x >= m.w || y >= m.h) return T.ROCK; return m.t[y * m.w + x]; }
 function structAt(x, y) { for (const t of S.tents) if (x >= t.x && x < t.x + GD.TENT_W && y >= t.y && y < t.y + GD.TENT_H) return t; return null; }
+function isOuterTent(t) { return (t.kind || 'tent') === 'tent' && !t.inner; }
 function structBlock(t, x, y) {
-  const lx = x - t.x, ly = y - t.y; const f = t.furn.find(f => f.x === lx && f.y === ly);
+  const lx = x - t.x, ly = y - t.y;
+  if (isOuterTent(t)) return !(lx === (GD.TENT_W >> 1) && ly === GD.TENT_H - 1);
+  const f = t.furn.find(f => f.x === lx && f.y === ly);
   const wall = lx === 0 || lx === GD.TENT_W - 1 || ly === 0 || ly === GD.TENT_H - 1;
   if (wall) { if (f && f.k === 'door') return false; if (t.kind !== 'house' && ly === GD.TENT_H - 1 && lx === (GD.TENT_W >> 1)) return false; return true; }
   return !!(f && !GD.WALK_FURN.has(f.k));
@@ -676,6 +679,7 @@ function frame(nowMs) {
   if (m.id === 'world') for (const t of m.towns || []) { if (/주택가/.test(t.name)) continue; const fx = (t.x0 + t.x1) >> 1, fy = (t.y0 + t.y1) >> 1; for (let yy = fy - 1; yy <= fy + 1; yy++) for (let xx = fx - 1; xx <= fx + 1; xx++) if (tileAt(xx, yy) === T.WATER && tileAt(xx - 1, yy) === T.STONE && tileAt(xx + 1, yy) === T.STONE) ents.push({ y: yy + 0.6, f: () => drawFountain(xx, yy, sx, sy, now) }); }
   drawEntrances(m, sx, sy, ents);
   for (const c of (m.chests || [])) if (c.x >= x0 - 1 && c.x <= x1 + 1 && c.y >= y0 - 1 && c.y <= y1 + 2) ents.push({ y: c.y - 0.02, f: () => drawChest(c, sx, sy, now) });
+  for (const t of S.tents) if (isOuterTent(t) && t.x + 10 >= x0 && t.x - 1 <= x1 && t.y + 8 >= y0 && t.y - 3 <= y1) ents.push({ y: t.y + 6.4, f: () => drawTentOut(t, sx, sy, now) });
   ents.sort((a, b) => a.y - b.y); ents.forEach(e => e.f());
   for (const c of (m.chests || [])) if (!c.o) drawChestSpark(c, sx, sy, now);
   drawFx(now, sx, sy, 'mid');
@@ -688,6 +692,7 @@ function frame(nowMs) {
   // 이름/말풍선 (조명 위)
   for (const p of S.P.values()) drawBubble(p.i, (p.i === S.myId ? pos.rx : p.rx) * TS + 16 - sx, (p.i === S.myId ? pos.ry : p.ry) * TS - sy - 30, now);
   if (flashC && now - flashT < 200) { ctx.fillStyle = flashC; ctx.globalAlpha = 1 - (now - flashT) / 200; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  if (typeof drawMapFade === 'function') drawMapFade();
   if (S.place) { ctx.font = 'bold 15px sans-serif'; const t = S.place.del ? '철거할 가구를 클릭하세요 (ESC 취소)' : `[${GD.FURNITURE[S.place.k].name}] 놓을 칸을 클릭하세요 — ${GD.FURNITURE[S.place.k].wall ? '벽' : '실내'} (ESC 취소)`; const w = ctx.measureText(t).width + 20; ctx.fillStyle = '#000c'; ctx.fillRect(W / 2 - w / 2, H - 120, w, 28); drawText(t, W / 2, H - 100, '#ffe08a', 15); }
   if (now - (S.hudT || 0) > 100) { S.hudT = now; refreshHud(); drawMini(); }
 }
@@ -760,6 +765,8 @@ function drawPlot(pl, sx, sy) {
   drawText(pl.owner ? `${pl.owner}의 집` : `공터 ${fmt(pl.price)}💰`, px + 16, py - 2, pl.owner ? '#ffe08a' : '#d8ffd0', 11);
 }
 function drawStruct(t, sx, sy, now) {
+  if (isOuterTent(t)) return; // 바깥 텐트는 엔티티 패스에서 통째로 그림
+  if (t.inner) return drawTentInside(t, sx, sy, now);
   const x0 = t.x * TS - sx, y0 = t.y * TS - sy, Wt = GD.TENT_W, Ht = GD.TENT_H;
   if (x0 > W + 50 || y0 > H + 50 || x0 + Wt * TS < -50 || y0 + Ht * TS < -50) return;
   const house = t.kind === 'house';
@@ -787,7 +794,7 @@ function drawStruct(t, sx, sy, now) {
 }
 function myStruct(kind) { return S.tents.find(t => t.owner === S.me.name && (t.kind || 'tent') === kind); }
 function drawPlaceHint(sx, sy) {
-  const t = myStruct(S.place.s); if (!t) return;
+  const t = myStruct(S.place.s); if (!t || isOuterTent(t)) return;
   const f = S.place.k && GD.FURNITURE[S.place.k];
   for (let ly = 0; ly < GD.TENT_H; ly++) for (let lx = 0; lx < GD.TENT_W; lx++) {
     const wall = lx === 0 || lx === GD.TENT_W - 1 || ly === 0 || ly === GD.TENT_H - 1; const corner = (lx === 0 || lx === GD.TENT_W - 1) && (ly === 0 || ly === GD.TENT_H - 1);
@@ -799,18 +806,21 @@ function drawPlaceHint(sx, sy) {
 }
 function placeAt(tx, ty) {
   const t = myStruct(S.place.s); if (!t) { S.place = null; return; }
+  if (isOuterTent(t)) { log('텐트 안에 들어가서 가구를 배치하세요. (텐트 아래 입구로 들어가기)', '#ffd27a'); S.place = null; return; }
   const lx = tx - t.x, ly = ty - t.y; if (lx < 0 || ly < 0 || lx >= GD.TENT_W || ly >= GD.TENT_H) { S.place = null; return; }
   if (S.place.del) send({ t: 'furnDel', s: S.place.s, x: lx, y: ly }); else send({ t: 'furn', s: S.place.s, k: S.place.k, x: lx, y: ly });
 }
 function drawLight(sx, sy, now) {
   const m = S.map; let a = m.dark ? (m.castle ? 0.62 : 0.86) : S.nl * 0.74;
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
+  if (m.inner) a = 0.3;
   if (a < 0.02) return;
-  lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
+  lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = m.inner ? `rgba(20,10,4,${a})` : `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
   lcx.globalCompositeOperation = 'destination-out';
   const L = (x, y, r, i = 1) => { const px = x * TS + 16 - sx, py = y * TS + 10 - sy, R = r * TS; if (px < -R || px > W + R || py < -R || py > H + R) return; const gr = lcx.createRadialGradient(px, py, 0, px, py, R); gr.addColorStop(0, `rgba(0,0,0,${i})`); gr.addColorStop(0.5, `rgba(0,0,0,${i * 0.7})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lcx.fillStyle = gr; lcx.fillRect(px - R, py - R, R * 2, R * 2); };
   const fl = 1 + Math.sin(now / 120) * 0.04;
   L(pos.rx, pos.ry, m.dark ? 5 : 4.5);
+  if (m.inner) { L(5, 3.2, 6.5, 0.85); L(5, 1.4, 3, 0.6); }
   for (const p of S.P.values()) if (p.i !== S.myId) L(p.rx, p.ry, 3.2, 0.8);
   for (const l of m.lights) L(l.x, l.y, l.r * fl);
   for (const t of S.tents) { L(t.x + 4, t.y + 3, 3, 0.5); for (const f of t.furn) if (['torch', 'campfire', 'lantern', 'stove'].includes(f.k)) L(t.x + f.x, t.y + f.y, (f.k === 'lantern' ? 6 : f.k === 'campfire' ? 5.5 : 4.5) * fl); }

@@ -263,7 +263,7 @@
   D.T = { GRASS: 0, FLOWER: 1, TREE: 2, WATER: 3, SAND: 4, SNOW: 5, ROAD: 6, STONE: 7, WALL: 8, SWAMP: 9, ROCK: 10, CAVE: 11, CAVEWALL: 12, CASTLE: 13, CASTLEWALL: 14, FOREST: 15, LAVA: 16, BRIDGE: 17, HOUSE: 18, CACTUS: 19, PINE: 20, CARPET: 21, DOWN: 22, UP: 23, CAVEDOOR: 24, GATE: 25, ASH: 26, DEADTREE: 27, FENCE: 28, ROOF: 29 };
   D.TENT_OVER = new Set([1, 2, 10, 19, 20, 27]); // 텐트로 덮을 수 있는 지형(나무·바위 등)
   D.BLOCK = new Set([2, 3, 8, 10, 12, 14, 16, 18, 19, 20, 27, 28, 29, 30]);
-  D.T.BARS = 30; D.T.RUINWALL = 31; D.BLOCK.add(31);
+  D.T.BARS = 30; D.T.RUINWALL = 31; D.BLOCK.add(31); D.T.TFLOOR = 32; D.T.TWALL = 33; D.BLOCK.add(33);
 
 
   // ═══════════════ 탐험 콘텐츠 ═══════════════
