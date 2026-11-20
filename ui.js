@@ -1151,7 +1151,7 @@ buildTouch = function () {
   // 보조 버튼 줄 (공격·스킬 위)
   let ub = $('utilbar'); if (ub) ub.remove();
   ub = document.createElement('div'); ub.id = 'utilbar';
-  ub.innerHTML = [['grab', 'grab', '줍기'], ['talk', 'talk', '말걸기'], ['target', 'target', '타겟'], ['chat', 'chat', '채팅']].map(([u, i, t]) => `<div class="ubt" data-u="${u}">${ic(i)}<span>${t}</span></div>`).join('');
+  ub.innerHTML = [['chat', 'chat', '채팅'], ['talk', 'talk', '말걸기'], ['target', 'target', '타겟'], ['grab', 'grab', '줍기']].map(([u, i, t]) => `<div class="ubt" data-u="${u}">${ic(i)}<span>${t}</span></div>`).join('');
   $('touch').appendChild(ub);
   ub.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); pressFx(d); const u = d.dataset.u; if (u === 'talk') send({ t: 'interact' }); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
 };
@@ -1257,3 +1257,10 @@ renderPanel = function () {
 const _rhP = refreshHud;
 refreshHud = function (full) { _rhP(full); if (full && S.pOpen != null && !$('panel2').classList.contains('hidden') && $('ptitle2').textContent.startsWith('주머니')) openPouch(S.pOpen); };
 document.addEventListener('pointerdown', e => { if (S.pSel != null && !e.target.closest('[data-pouch],#tip,[data-bag="inv"]')) { S.pSel = null; markSel(); } }, true);
+
+// 닫기(X) 버튼: 터치에서도 확실히 닫히도록 pointerup 으로 처리
+document.addEventListener('pointerup', e => {
+  const x = e.target.closest && e.target.closest('.xbtn'); if (!x) return;
+  e.preventDefault(); e.stopPropagation();
+  if (x.id === 'px') closePanel(); else if (x.id === 'px2') closePanel2(); else if (x.id === 'bmx') closeBigMap(); else x.click();
+}, true);

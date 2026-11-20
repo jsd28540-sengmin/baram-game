@@ -190,19 +190,26 @@ function charSprite(ap, dir, frame) {
   if (helm) {
     const H = GD.TIER_COLOR[helm[0]], Hd = shade(H, -0.35), Hl = shade(H, 0.4);
     if (base === 'warrior') {
-      P(X(hx0 - 1), Y(2), 10, 5, H); P(X(hx0), Y(1), 8, 1, Hl); P(X(hx0 - 1), Y(6), 10, 1, Hd);
-      if (d === 0) { P(X(hx0 + 3), Y(7), 2, 3, H); P(X(hx0 - 1), Y(7), 1, 4, Hd); P(X(hx0 + 8), Y(7), 1, 4, Hd); }
-      if (d === 3) P(X(hx0 - 1), Y(2), 10, 9, H);
-      if (helm[0] >= 3) { P(X(hx0 + 3), Y(-2), 2, 3, helm[0] >= 6 ? '#e02a2a' : Hl); }
-      if (helm[0] >= 6) { P(X(hx0 - 2), Y(2), 1, 3, Hl); P(X(hx0 + 9), Y(2), 1, 3, Hl); }
+      // 머리(hx0~hx0+9)를 정확히 감싸는 철모
+      P(X(hx0 - 1), Y(1), 12, 6, H); P(X(hx0), Y(0), 10, 1, H); P(X(hx0 + 1), Y(0), 7, 1, Hl); P(X(hx0), Y(1), 3, 2, Hl);
+      P(X(hx0 - 1), Y(6), 12, 1, Hd); P(X(hx0 + 10), Y(1), 1, 6, Hd);
+      if (d === 0) { P(X(hx0 + 4), Y(7), 2, 3, H); P(X(hx0 - 1), Y(7), 2, 4, H); P(X(hx0 + 9), Y(7), 2, 4, Hd); }
+      if (d === 2) { P(X(hx0 - 1), Y(7), 6, 4, H); P(X(hx0 + 4), Y(7), 1, 4, Hd); P(X(hx0 + 9), Y(7), 2, 2, H); }
+      if (d === 3) { P(X(hx0 - 1), Y(1), 12, 11, H); P(X(hx0 - 1), Y(11), 12, 1, Hd); }
+      if (helm[0] >= 3) { P(X(hx0 + 4), Y(-3), 2, 3, helm[0] >= 6 ? '#e02a2a' : Hl); }
+      if (helm[0] >= 6) { P(X(hx0 - 2), Y(1), 1, 4, Hl); P(X(hx0 + 11), Y(1), 1, 4, Hl); }
     } else if (base === 'mage') {
-      P(X(hx0 - 2), Y(4), 12, 2, H); P(X(hx0), Y(1), 8, 3, H); P(X(hx0 + 2), Y(-2), 4, 3, H); P(X(hx0 + 3), Y(-4), 3, 2, H); P(X(hx0 + 5), Y(-5), 2, 1, H); P(X(hx0), Y(3), 8, 1, Hd);
-      if (helm[0] >= 4) P(X(hx0 + 3), Y(1), 2, 2, '#ffe04a');
-      if (d === 3) P(X(hx0 - 1), Y(6), 10, 6, hair);
+      P(X(hx0 - 2), Y(4), 14, 2, H); P(X(hx0 - 2), Y(5), 14, 1, Hd); P(X(hx0 + 1), Y(1), 8, 3, H); P(X(hx0 + 3), Y(-2), 5, 3, H); P(X(hx0 + 5), Y(-4), 3, 2, H); P(X(hx0 + 7), Y(-5), 2, 1, H);
+      P(X(hx0 + 1), Y(3), 8, 1, Hd); P(X(hx0 + 2), Y(1), 2, 2, Hl);
+      if (helm[0] >= 4) P(X(hx0 + 4), Y(1), 2, 2, '#ffe04a');
+      if (d === 3) P(X(hx0), Y(6), 10, 6, hair);
     } else {
-      P(X(hx0 - 1), Y(2), 10, 4, H); P(X(hx0 - 1), Y(2), 1, 9, H); P(X(hx0 + 8), Y(2), 1, 9, H); P(X(hx0), Y(1), 8, 1, Hl);
-      if (d === 3) P(X(hx0 - 1), Y(2), 10, 11, H);
-      if (helm[0] >= 5) P(X(hx0 + 3), Y(2), 2, 1, '#7affb0');
+      // 두건: 얼굴 둘레를 감싼다
+      P(X(hx0 - 1), Y(1), 12, 5, H); P(X(hx0), Y(0), 10, 1, H); P(X(hx0 + 1), Y(0), 6, 1, Hl);
+      P(X(hx0 - 1), Y(6), 2, 7, H); P(X(hx0 + 9), Y(6), 2, 7, Hd); P(X(hx0 - 1), Y(5), 12, 1, Hd);
+      if (d === 2) P(X(hx0 - 1), Y(1), 6, 12, H);
+      if (d === 3) { P(X(hx0 - 1), Y(1), 12, 12, H); P(X(hx0 - 1), Y(12), 12, 1, Hd); }
+      if (helm[0] >= 5) P(X(hx0 + 4), Y(2), 2, 1, '#7affb0');
     }
   }
   // 앞쪽 무기/방패

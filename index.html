@@ -244,6 +244,12 @@ html,body{height:var(--vhp,100%)}
 .pouch.flash{animation:pfl .5s}@keyframes pfl{50%{background:#3b82f655;transform:scale(1.05)}}
 .cell.psel{outline:2px solid #fbbf24!important;outline-offset:-2px}
 </style>
+<style id="v11">
+.xbtn{width:38px!important;height:34px!important;position:relative;touch-action:manipulation}
+.xbtn::after{content:'';position:absolute;inset:-8px}
+.xbtn svg{pointer-events:none}
+.panel.full .pn-head{padding-right:14px}
+</style>
 </head>
 <body>
 <canvas id="game"></canvas>
