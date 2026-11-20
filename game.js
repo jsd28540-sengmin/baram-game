@@ -252,7 +252,7 @@ function showCode(code) {
   d.style.cssText = 'margin-top:4px;padding:3px 6px;font-weight:bold;font-size:14px;color:#1a1008;background:#ffd04a;border-radius:4px;text-align:center;cursor:pointer';
   d.textContent = `🔑 방 코드 ${code}`; d.title = '친구에게 이 코드를 알려주세요';
   d.onclick = () => { const url = location.href.split('#')[0] + '#' + code; try { navigator.clipboard.writeText(url).then(() => log('참가 링크를 복사했어요: ' + url, '#9fe8ff')); } catch (e) { log('참가 링크: ' + url, '#9fe8ff'); } };
-  $('status').appendChild(d);
+  $('mini').appendChild(d);
 }
 connect();
 
@@ -638,6 +638,13 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   const jn = GD.JOBS[ap.job] ? GD.JOBS[ap.job].name : '';
   drawText(`${p.n}`, x, y + 14, isMe ? '#ffe86a' : '#9fe8ff', 12);
   ctx.font = '10px sans-serif'; drawText(`Lv${p.lv} ${jn}`, x, y + 26, '#d8d8d8', 10, false);
+  if (isMe && !p.dd) {
+    const by = y - 84 + (ap.mt ? -12 : 0), bw = 36; const yv = S.you;
+    const hr = Math.max(0, Math.min(1, (yv.hp || 0) / (yv.mhp || 1))), mr = Math.max(0, Math.min(1, (yv.mp || 0) / (yv.mmp || 1)));
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x - bw / 2 - 1, by - 1, bw + 2, 9);
+    ctx.fillStyle = '#3a1418'; ctx.fillRect(x - bw / 2, by, bw, 4); ctx.fillStyle = hr < 0.3 ? '#ff2a2a' : '#ef4444'; ctx.fillRect(x - bw / 2, by, bw * hr, 4);
+    ctx.fillStyle = '#141e3a'; ctx.fillRect(x - bw / 2, by + 4, bw, 3); ctx.fillStyle = '#3b82f6'; ctx.fillRect(x - bw / 2, by + 4, bw * mr, 3);
+  }
   if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32 * p.h / 100, 4); }
 }
 function drawNpc(n, sx, sy, now) {
@@ -754,7 +761,9 @@ function refreshHud(full) {
   const bar = (id, v, mx, t) => { const e = $(id); e.querySelector('i').style.width = Math.max(0, Math.min(100, 100 * v / mx)) + '%'; e.querySelector('span').textContent = t; };
   bar('hpb', hp, mhp, `HP ${hp}/${mhp}`); bar('mpb', mp, mmp, `MP ${mp}/${mmp}`);
   bar('xpb', me.exp, me.need, me.lv >= GD.MAX_LEVEL ? 'MAX' : `EXP ${(100 * me.exp / me.need).toFixed(1)}%`);
-  $('scoin').textContent = fmt(me.coins);
+  $('scoin').textContent = fmt(me.coins); $('scoin2').textContent = fmt(me.coins);
+  $('expline').firstElementChild.style.width = (me.lv >= GD.MAX_LEVEL ? 100 : 100 * me.exp / me.need) + '%';
+  $('buffs2').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
   $('buffs').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
   $('deathbox').classList.toggle('hidden', !y.dead);
   const di = S.nl; $('clock').textContent = (S.map && S.map.dark ? '🕯 어두운 던전' : di > 0.5 ? '🌙 밤 (몬스터 강화)' : di > 0 ? '🌆 해질녘' : '☀ 낮') + `  (${pos.x},${pos.y})`;
