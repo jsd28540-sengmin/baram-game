@@ -380,3 +380,28 @@
 
 // 접속 성공 시: 서버에 보낸 삭제 요청 정리, 삭제했던 이름이 다시 목록에 들어오지 않게
 (function () { const _om = onMsg; onMsg = function (m) { const r = _om(m); if (m && m.t === 'welcome') { try { const dl = JSON.parse(localStorage.getItem('baram_del') || '[]').filter(d => d.code !== NET.code); localStorage.setItem('baram_del', JSON.stringify(dl)); } catch (e) { } } return r; }; })();
+// ═══════ 파티·교환 신청: 눈에 띄는 수락/거절 팝업 (20초 후 자동 거절) ═══════
+(function () {
+  const st = document.createElement('style'); st.textContent = `#askcard{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:95;min-width:300px;max-width:92vw;background:linear-gradient(#26303c,#1a2129);border:2px solid #ffd166;border-radius:12px;box-shadow:0 8px 30px #000a,0 0 0 4px #ffd16633;padding:12px 14px;color:#fff;animation:askin .25s ease-out}@keyframes askin{from{transform:translate(-50%,-20px);opacity:0}}#askcard .at{font-size:15px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:6px}#askcard .ad{font-size:12px;color:#b8c4d0;margin-bottom:10px}#askcard .ab{display:flex;gap:8px}#askcard .ab button{flex:1;height:44px;font-size:15px;font-weight:800;border-radius:8px;border:0;color:#fff}#askcard .yes{background:#22a35a}#askcard .no{background:#4a5260}#askcard .bar{height:3px;background:#ffd166;border-radius:2px;margin-top:8px;transition:width 20s linear}`;
+  document.head.appendChild(st);
+  let tm = null;
+  function ask(kind, from) {
+    const old = $('askcard'); if (old) old.remove(); clearTimeout(tm);
+    const isP = kind === 'party';
+    const d = document.createElement('div'); d.id = 'askcard';
+    d.innerHTML = `<div class="at">${ic(isP ? 'users' : 'swap')} ${esc(from)}님의 ${isP ? '파티' : '교환'} 신청</div><div class="ad">${isP ? '수락하면 근처(12칸)에서 경험치를 함께 얻어요.' : '수락하면 교환 창이 열려요.'}</div><div class="ab"><button class="yes">수락</button><button class="no">거절</button></div><div class="bar" style="width:100%"></div>`;
+    document.body.appendChild(d); requestAnimationFrame(() => { const b = d.querySelector('.bar'); if (b) b.style.width = '0%'; });
+    const done = yes => { clearTimeout(tm); d.remove(); send({ t: isP ? (yes ? 'partyYes' : 'partyNo') : (yes ? 'tradeYes' : 'tradeNo') }); };
+    const yb = d.querySelector('.yes'), nb = d.querySelector('.no');
+    yb.addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); done(true); }); nb.addEventListener('pointerup', e => { e.preventDefault(); e.stopPropagation(); done(false); });
+    d.addEventListener('pointerdown', e => e.stopPropagation());
+    tm = setTimeout(() => { if (d.isConnected) done(false); }, 20000);
+    try { SND.play('rare'); } catch (e) { } try { navigator.vibrate && navigator.vibrate([60, 60, 60]); } catch (e) { }
+  }
+  const _om = onMsg;
+  onMsg = function (m) {
+    if (m && m.t === 'partyAsk') { ask('party', m.from); return; }
+    if (m && m.t === 'tradeAsk') { ask('trade', m.from); return; }
+    return _om(m);
+  };
+})();

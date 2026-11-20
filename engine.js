@@ -1169,7 +1169,10 @@ function handle(p, msg) {
       { const per = p.st.spd * 0.8; p.mvTok = Math.min(5, (p.mvTok == null ? 5 : p.mvTok) + (now - (p.mvT || now)) / per); p.mvT = now; }
       const timeOk = p.mvTok >= 1;
       const ddx = x - p.x, ddy = y - p.y, diag = Math.abs(ddx) === 1 && Math.abs(ddy) === 1;
-      const ok = (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) && timeOk && walkable(m, x, y) && !m.occ.has(occKey(x, y)) && !bodyAt(m, x, y, p);
+      // 이동은 폰 쪽을 믿음: 벽·NPC·상자 같은 고정물만 서버가 막음 (몬스터·다른 플레이어는 위치가 잠깐 어긋날 수 있어 막지 않음 → 되돌림 없음)
+      const staticBody = (xx, yy) => m.npcs.some(n => n.x === xx && n.y === yy) || m.chests.some(c => c.x === xx && c.y === yy);
+      const step = Math.max(Math.abs(ddx), Math.abs(ddy));
+      const ok = step >= 1 && step <= 2 && (step === 1 ? (Math.abs(ddx) + Math.abs(ddy) === 1 || (diag && walkable(m, p.x + ddx, p.y) && walkable(m, p.x, p.y + ddy))) : walkable(m, p.x + Math.sign(ddx), p.y + Math.sign(ddy))) && timeOk && walkable(m, x, y) && !staticBody(x, y);
       p.dir = clamp(msg.d | 0, 0, 3);
       if (!ok) { p.ep = (p.ep || 0) + 1; p.ws.send({ t: 'pos', x: p.x, y: p.y, ep: p.ep }); return; }
       p.mvTok -= 1; p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false; if (p.fishing) { p.fishing = null; sysMsg(p, '낚시를 멈췄습니다.', '#ccc'); }
@@ -1292,10 +1295,10 @@ function handle(p, msg) {
     case 'tradeItem': case 'tradeCoin': case 'tradeLock': case 'tradeOk': case 'tradeCancel': {
       const tr = tradeOf(p); if (!tr) return; const side = tr.a === p ? 'a' : 'b';
       if (msg.t === 'tradeCancel') return tradeEnd(tr, '교환이 취소되었습니다.');
-      if (msg.t === 'tradeItem') { if (tr.lock[side]) return; const i = msg.i | 0; const it = p.inv[i]; if (!it) return; const arr = tr.off[side].items; const k = arr.findIndex(o => o.i === i); if (k >= 0) arr.splice(k, 1); if (!msg.remove && arr.length < 10) arr.push({ i, n: it.k === 'gear' ? 1 : clamp(msg.n | 0 || it.n, 1, it.n) }); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
-      if (msg.t === 'tradeCoin') { if (tr.lock[side]) return; tr.off[side].coins = clamp(msg.n | 0, 0, p.coins); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
+      if (msg.t === 'tradeItem') { const i = msg.i | 0; const it = p.inv[i]; if (!it) return; const arr = tr.off[side].items; const k = arr.findIndex(o => o.i === i); if (k >= 0) arr.splice(k, 1); if (!msg.remove && arr.length < 10) arr.push({ i, n: it.k === 'gear' ? 1 : clamp(msg.n | 0 || it.n, 1, it.n) }); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
+      if (msg.t === 'tradeCoin') { tr.off[side].coins = clamp(msg.n | 0, 0, p.coins); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
       if (msg.t === 'tradeLock') tr.lock[side] = 1;
-      if (msg.t === 'tradeOk') { if (!tr.lock.a || !tr.lock.b) return; tr.ok[side] = 1; if (tr.ok.a && tr.ok.b) return tradeExec(tr); }
+      if (msg.t === 'tradeOk') { tr.lock[side] = 1; tr.ok[side] = 1; if (tr.ok.a && tr.ok.b) return tradeExec(tr); }
       tradeSend(tr); break;
     }
   }

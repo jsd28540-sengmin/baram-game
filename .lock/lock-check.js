@@ -21,6 +21,8 @@ must('engine.js', 'function delChar(name, key, ws)', '캐릭터 삭제 기능 �
 must('game.js', 'function loginMsg(n)', '접속 시 삭제 요청 전달 유지');
 must('game.js', 'rtcHostSignal(r, d.rtc', '직접 연결(WebRTC) 유지');
 must('engine.js', 'if (msg.ep != null && p.ep && msg.ep !== p.ep) return;', '위치 되돌림 연쇄 방지 유지');
+must('assets.js', "if (m && m.t === 'partyAsk') { ask('party', m.from); return; }", '파티 신청 팝업 유지');
+must('engine.js', "if (msg.t === 'tradeOk') { tr.lock[side] = 1; tr.ok[side] = 1;", '간단 교환(교환하기 한 번) 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
