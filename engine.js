@@ -880,6 +880,7 @@ function hurt(m, tg, raw, src) {
   const p = tg; if (p.dead) return;
   calc(p);
   let d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) - p.st.def * 0.55));
+  if (D.JOBS[p.job] && D.JOBS[p.job].base === 'warrior') d = Math.max(1, Math.round(d * 0.88)); // 전사 기본 피해 감소 12%
   if (p.sleeping) { p.sleeping = false; }
   p.hp -= d; fx(m, { k: 'dmg', x: p.x, y: p.y, v: d, p: 1 });
   if (p.hp <= 0) {

@@ -11,7 +11,7 @@
 
   // ───────── 직업 ─────────
   D.JOBS = {
-    warrior: { name: '전사', base: 'warrior', tier: 0, hp0: 70, hpL: 17, mp0: 16, mpL: 2.6, atk0: 9, atkL: 2.6, def0: 6, defL: 1.8, crit: 5, desc: '근접 전투 특화. 레벨이 오를수록 데미지가 강력해진다.' },
+    warrior: { name: '전사', base: 'warrior', tier: 0, hp0: 70, hpL: 17, mp0: 16, mpL: 2.6, atk0: 9, atkL: 2.6, def0: 10, defL: 2.6, crit: 5, desc: '근접 전투 특화. 단단한 방어력으로 앞에서 버틴다. 레벨이 오를수록 데미지가 강력해진다.' },
     mage: { name: '마법사', base: 'mage', tier: 0, hp0: 40, hpL: 8, mp0: 55, mpL: 8.5, atk0: 10, atkL: 2.8, def0: 2, defL: 0.7, crit: 5, desc: '강력한 마법과 광역기. 방어력이 약하다.' },
     healer: { name: '치유사', base: 'healer', tier: 0, hp0: 46, hpL: 9.5, mp0: 42, mpL: 7, atk0: 9, atkL: 2.4, def0: 3, defL: 0.9, crit: 7, desc: '주변 모든 아군을 치유하는 핵심 직업. 활·석궁 사용, 방어력이 약하다.' },
     guardian: { name: '수호기사', base: 'warrior', tier: 1, mHp: 1.4, mDef: 1.7, mAtk: 1.0, crit: 5, desc: '철벽 방어형 전사. 어그로를 끌고 동료를 지킨다.' },
