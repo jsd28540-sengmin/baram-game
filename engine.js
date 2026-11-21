@@ -883,7 +883,7 @@ function summonAI(m, s, now, def) {
   const moveInt = Math.max(180, Math.min(380, (owner.st && owner.st.spd) || 300)); // 주인 속도에 맞춰 따라감
   if (tg) {
     const inRange = def.range > 1 ? dist(tg, s) <= def.range : adjacent(s, tg);
-    if (inRange) { if (now >= s.nextAtk) { s.nextAtk = now + 1000; if (def.range > 1) fx(m, { k: 'proj', f: 'fireball', fx: s.x, fy: s.y, tx: tg.x, ty: tg.y, c: '#ff7a1a' }); hitMon(m, tg, owner, s.atk, 1, true); if (def.taunt && tg.target !== s.id) tg.target = s.id; } }
+    if (inRange) { if (now >= s.nextAtk) { s.nextAtk = now + 1000; if (def.range > 1) fx(m, { k: 'proj', f: 'fireball', fx: s.x, fy: s.y, tx: tg.x, ty: tg.y, c: '#a050ff' }); hitMon(m, tg, owner, s.atk, 1, true); if (def.taunt && tg.target !== s.id) tg.target = s.id; } }
     else if (now >= s.nextMove) { s.nextMove = now + moveInt; stepToward(m, s, tg.x, tg.y); }
   } else if (now >= s.nextMove && dist(s, owner) > 1.5) { s.nextMove = now + moveInt; if (!stepToward(m, s, owner.x, owner.y) && dist(s, owner) > 4) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); } }
 }

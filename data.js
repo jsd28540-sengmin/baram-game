@@ -17,7 +17,7 @@
     guardian: { name: '수호기사', base: 'warrior', tier: 1, mHp: 1.4, mDef: 1.7, mAtk: 1.0, crit: 5, desc: '철벽 방어형 전사. 어그로를 끌고 동료를 지킨다.' },
     berserker: { name: '광전사', base: 'warrior', tier: 1, mHp: 1.1, mDef: 0.9, mAtk: 1.45, crit: 15, desc: '공격 특화 전사. 압도적인 근접 화력.' },
     elementalist: { name: '원소술사', base: 'mage', tier: 1, mHp: 1.0, mDef: 1.0, mAtk: 1.4, mMp: 1.2, crit: 8, desc: '불·얼음·번개를 다루는 공격 마법의 대가.' },
-    summoner: { name: '환령술사', base: 'mage', tier: 1, mHp: 1.2, mDef: 1.1, mAtk: 1.1, mMp: 1.3, crit: 5, desc: '늑대·골렘·정령을 소환해 함께 싸운다.' },
+    summoner: { name: '강령술사', base: 'mage', tier: 1, mHp: 1.2, mDef: 1.1, mAtk: 1.1, mMp: 1.3, crit: 5, desc: '해골 늑대·시체 거인·망령을 일으켜 함께 싸운다.' },
     ranger: { name: '신궁', base: 'healer', tier: 1, mHp: 1.05, mDef: 1.0, mAtk: 1.4, crit: 15, desc: '원거리 저격 특화 + 약간의 치유.' },
     priest: { name: '대사제', base: 'healer', tier: 1, mHp: 1.2, mDef: 1.25, mAtk: 1.05, mMp: 1.4, heal: 1.8, crit: 5, desc: '강력한 광역 치유와 축복 + 약간의 공격.' },
   };
@@ -43,9 +43,9 @@
     { id: 'e_meteor', name: '메테오', jobs: ['elementalist'], lv: 15, mp: 42, cd: 10000, kind: 'aoeTarget', range: 5, r: 3, mul: 5.2, fx: 'meteor', col: '#ff3d00', desc: '거대한 운석을 떨어뜨린다. (광역)' },
     { id: 'e_bliz', name: '블리자드', jobs: ['elementalist'], lv: 18, mp: 34, cd: 7000, kind: 'aoeTarget', range: 5, r: 4, mul: 3.1, slow: 1, fx: 'ice', col: '#bdf1ff', desc: '넓은 범위에 눈보라. (광역, 둔화)' },
     { id: 'e_hell', name: '지옥불', jobs: ['elementalist'], lv: 24, mp: 40, cd: 9000, kind: 'aoeSelf', r: 3.5, mul: 4.3, fx: 'flame', col: '#ff5a00', desc: '자신 주변을 불바다로 만든다. (광역)' },
-    { id: 's_wolf', name: '늑대 소환', jobs: ['summoner'], lv: 15, mp: 30, cd: 12000, kind: 'summon', summon: 'sWolf', count: 2, dur: 60000, fx: 'summon', col: '#b47cff', desc: '늑대 2마리를 60초간 소환.' },
-    { id: 's_golem', name: '바위골렘 소환', jobs: ['summoner'], lv: 18, mp: 40, cd: 20000, kind: 'summon', summon: 'sGolem', count: 1, dur: 90000, fx: 'summon', col: '#b47cff', desc: '단단한 골렘을 90초간 소환. (적을 끌어들임)' },
-    { id: 's_spirit', name: '화염정령 소환', jobs: ['summoner'], lv: 24, mp: 45, cd: 20000, kind: 'summon', summon: 'sSpirit', count: 2, dur: 60000, fx: 'summon', col: '#b47cff', desc: '원거리 화염정령 2기를 60초간 소환.' },
+    { id: 's_wolf', name: '해골 늑대 소환', jobs: ['summoner'], lv: 15, mp: 30, cd: 12000, kind: 'summon', summon: 'sWolf', count: 2, dur: 60000, fx: 'summon', col: '#8fd0ff', desc: '해골 늑대 2마리를 60초간 일으킴. (빠른 근접 공격)' },
+    { id: 's_golem', name: '시체 거인 소환', jobs: ['summoner'], lv: 18, mp: 40, cd: 20000, kind: 'summon', summon: 'sGolem', count: 1, dur: 90000, fx: 'summon', col: '#b47cff', desc: '단단한 시체 거인을 90초간 일으킴. (적을 끌어들임)' },
+    { id: 's_spirit', name: '망령 소환', jobs: ['summoner'], lv: 24, mp: 45, cd: 20000, kind: 'summon', summon: 'sSpirit', count: 2, dur: 60000, fx: 'summon', col: '#a050ff', desc: '저주 구슬을 던지는 망령 마법사 2기를 60초간 소환. (원거리)' },
     // 치유사
     { id: 'h_shot', name: '저격', jobs: ['healer', 'ranger', 'priest'], lv: 1, mp: 4, cd: 900, kind: 'proj', range: 6, mul: 2.2, fx: 'arrow', col: '#e8e0c0', desc: '정확하게 조준해 쏜다.' },
     { id: 'h_heal', name: '치유의 빛', jobs: ['healer', 'ranger', 'priest'], lv: 3, mp: 14, cd: 3000, kind: 'heal', r: 5, mul: 2.0, fx: 'heal', col: '#7dff9a', desc: '주변 모든 아군(나 포함)을 치유한다.' },
@@ -62,9 +62,9 @@
 
   // 소환수
   D.SUMMONS = {
-    sWolf: { name: '영혼늑대', kind: 'quad', c: ['#9a7cff', '#d9ccff', '#ffffff'], size: 0.8, hp: 1.2, atk: 0.55, range: 1 },
-    sGolem: { name: '바위골렘', kind: 'golem', c: ['#8a8170', '#b5ab95', '#ffcc33'], size: 1.1, hp: 4.0, atk: 0.5, range: 1, taunt: 1 },
-    sSpirit: { name: '화염정령', kind: 'ghost', c: ['#ff7a1a', '#ffd34d', '#ffffff'], size: 0.8, hp: 0.9, atk: 0.75, range: 4 },
+    sWolf: { name: '해골 늑대', kind: 'quad', c: ['#d8d0bc', '#f2ecdc', '#7fd8ff'], size: 0.8, hp: 1.2, atk: 0.55, range: 1 },
+    sGolem: { name: '시체 거인', kind: 'golem', c: ['#6f7a5a', '#9aa47c', '#c8ff6a'], size: 1.1, hp: 4.0, atk: 0.5, range: 1, taunt: 1 },
+    sSpirit: { name: '망령 마법사', kind: 'ghost', c: ['#5a2a8a', '#b07cff', '#e8d8ff'], size: 0.8, hp: 0.9, atk: 0.75, range: 4 },
   };
 
   // ───────── 몬스터 ─────────
