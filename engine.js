@@ -664,7 +664,8 @@ function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t =
 
 function teleport(p, mapId, x, y, near) {
   const old = MAPS[p.map];
-  if (p.summons) for (const s of p.summons) { old.mons.delete(s.id); occDel(old, s.x, s.y); }
+  if (old && p.summons) for (const s of p.summons) { old.mons.delete(s.id); occDel(old, s.x, s.y); }
+  if (!MAPS[mapId]) { mapId = 'world'; x = MAPS.world.spawn.x; y = MAPS.world.spawn.y; near = 1; }
   p.map = mapId; const m = MAPS[mapId];
   const pos = near ? nearFree(m, x, y) : { x, y };
   { const q = nearFreeBody(m, pos.x, pos.y, p); pos.x = q.x; pos.y = q.y; }
@@ -1145,14 +1146,16 @@ function onConnect(ws) {
 function enter(p, ws) {
   p.id = 'p' + uid(); p.ws = ws; p.buffs = []; p.cds = {}; p.summons = []; p.dead = false; p.riding = false; p.lastMove = 0;
   p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
-  ensureTentMap(p.map || '');
+  // 텐트 안에서 접속이 끊겼으면: 텐트 입구 밖에서 시작 (실내는 그때그때 만드는 임시 공간)
+  if (String(p.map || '').startsWith('tent_')) { let out = null; const owner = p.map.slice(5); for (const mm of Object.values(MAPS)) for (const t of mm.tents || []) if (t.owner === owner && !t.inner && (t.kind || 'tent') === 'tent') out = { map: mm.id, x: t.x + (D.TENT_W >> 1), y: t.y + D.TENT_H }; if (out && MAPS[out.map]) { p.map = out.map; p.x = out.x; p.y = out.y; } else { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; } }
   if (!MAPS[p.map]) { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; }
   if (!walkable(MAPS[p.map], p.x, p.y)) { const q = nearFree(MAPS[p.map], p.x, p.y); p.x = q.x; p.y = q.y; }
   { const q = nearFreeBody(MAPS[p.map], p.x, p.y, p); p.x = q.x; p.y = q.y; }
   calc(p); if (p.hp <= 0) p.hp = Math.round(p.st.maxHp * 0.5);
   PLAYERS.set(p.id, p);
   ws.send({ t: 'welcome', id: p.id, atlas: ATLAS });
-  sendMap(p); ws.send(meData(p)); ws.send({ t: 'pos', x: p.x, y: p.y, snap: 1 });
+  try { sendMap(p); } catch (e) { console.error('sendMap 실패', e); p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; sendMap(p); }
+  ws.send(meData(p)); ws.send({ t: 'pos', x: p.x, y: p.y, snap: 1 });
   announce(`🌬 ${p.name}님(${D.JOBS[p.job].name} Lv.${p.lv})이 바람의 대륙에 들어왔습니다!`, '#9fe8ff');
   sysMsg(p, '안내원 바람이에게 말을 걸면 조작법과 보스 시간표를 볼 수 있어요. (E키)', '#cfe');
 }
@@ -1236,6 +1239,7 @@ function handle(p, msg) {
     case 'tentDel': { if (!p.tent) return; closeTentInterior(p.tent); const tm = MAPS[p.tent.map]; tm.tents = tm.tents.filter(t => t !== p.tent); p.tent = null; if (p.storage.length) sysMsg(p, '보관상자의 물건은 다음 텐트로 옮겨집니다.'); sendTents(tm); dirty(p); sysMsg(p, '텐트를 철거했습니다.'); break; }
     case 'store': { const nb = npcNear(p); if (!(nb && nb.kind === 'bank') && !p.tent && !p.house) return; if (msg.dir === 'in') { const it = p.inv[msg.i | 0]; if (!it) return; if (p.storage.length >= STORE_MAX && it.k === 'gear') return sysMsg(p, '보관상자가 가득 찼습니다.'); p.inv.splice(msg.i | 0, 1); if (!addItem(p, it, 'storage')) p.inv.push(it); } else { const it = p.storage[msg.i | 0]; if (!it) return; if (p.inv.length >= INV_MAX && it.k === 'gear') return sysMsg(p, '가방이 가득 찼습니다.'); p.storage.splice(msg.i | 0, 1); if (!addItem(p, it)) p.storage.push(it); } dirty(p); break; }
     case 'cook': cook(p, msg.id); break;
+    case 'unstuck': { if (Date.now() - (p.unstuckT || 0) < 20000) return sysMsg(p, '잠시 후 다시 시도하세요.'); p.unstuckT = Date.now(); const s = MAPS.world.spawn; teleport(p, 'world', s.x, s.y, 1); sysMsg(p, '마을로 이동했습니다.', '#9fe8ff'); break; }
     // 주머니 (가방 안 정리)
     case 'pouchPut': {
       const pi = msg.pi | 0, i = msg.i | 0; const po = p.pouches[pi], it = p.inv[i]; if (!po || !it) return;
@@ -1508,6 +1512,8 @@ const API = {
   },
   connect: onConnect, saveAll,
   online: () => [...PLAYERS.values()].map(p => p.name),
+  _p: n => [...PLAYERS.values()].find(p => p.name === n),
+  announce: (t, c) => announce(t, c),
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = API; else window.ENGINE = API;
 })();

@@ -287,7 +287,14 @@
     if (pend) return; pend = true;
     const tryApply = () => {
       let n = 1; try { n = ENGINE.online().length; } catch (e) { }
-      const msg = $('svmsg'); if (n > 0) { if (msg) msg.textContent = `새 버전이 있어요. 접속자가 모두 나가면 자동으로 적용돼요 (현재 ${n}명).`; setTimeout(tryApply, 30000); return; }
+      const msg = $('svmsg');
+      if (n > 0 && !window.__svCount) { // 접속자가 있어도 1분 예고 후 업데이트 (오래된 서버로 계속 돌지 않게)
+        window.__svCount = Date.now();
+        try { ENGINE.announce('🔧 1분 뒤 서버가 새 버전으로 업데이트돼요. 잠깐 끊겼다가 자동으로 다시 접속돼요. (저장됨)', '#ffd166'); } catch (e) { }
+        if (msg) msg.textContent = '새 버전 적용 예정: 1분 뒤 저장 후 업데이트';
+        setTimeout(() => { try { ENGINE.announce('🔧 서버 업데이트 중… 잠시만 기다려 주세요.', '#ffd166'); } catch (e) { } tryApply(); }, 60000); return;
+      }
+      if (n > 0 && Date.now() - window.__svCount < 59000) return;
       try { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); } catch (e) { }
       setTimeout(() => { try { history.replaceState(null, '', location.pathname + '#server' + NET.code); } catch (e) { } location.reload(); }, 1500);
     };
@@ -488,4 +495,20 @@
     const cs = $('charsel'); if (cs) $('menu').insertBefore(b, cs); else $('menu').appendChild(b);
   }
   addBtn(); setTimeout(addBtn, 1600);
+})();
+// ═══════ 검은 화면 대비: 맵이 안 오면 [마을로 이동] 버튼 + 화면에 오류 표시(제보용) ═══════
+(function () {
+  let shown = 0;
+  setInterval(() => {
+    const stuck = S.me && (!S.map || !S.map.t);
+    let b = $('unstuckbtn');
+    if (stuck) { shown++; if (shown >= 3 && !b) { b = document.createElement('button'); b.id = 'unstuckbtn'; b.className = 'btn pri'; b.style.cssText = 'position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);z-index:96;height:52px;padding:0 22px;font-size:16px'; b.textContent = '화면이 안 보이나요? 마을로 이동'; b.onclick = () => { send({ t: 'unstuck' }); b.remove(); shown = 0; }; document.body.appendChild(b); } }
+    else { shown = 0; if (b) b.remove(); }
+  }, 1000);
+  let errBox = null, errN = 0;
+  window.addEventListener('error', e => {
+    if (errN++ > 20) return; const msg = (e.message || '') + ' @' + String(e.filename || '').split('/').pop().split('?')[0] + ':' + e.lineno;
+    if (!errBox) { errBox = document.createElement('div'); errBox.style.cssText = 'position:fixed;left:6px;bottom:4px;z-index:99;font:10px monospace;color:#ff8a8a;background:#000a;padding:2px 5px;border-radius:4px;max-width:70vw;pointer-events:none'; document.body.appendChild(errBox); }
+    errBox.textContent = '오류: ' + msg; clearTimeout(errBox._t); errBox._t = setTimeout(() => { errBox.remove(); errBox = null; }, 15000);
+  });
 })();
