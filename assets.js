@@ -1,3 +1,19 @@
+// ═══════ 전직 외형: 전직하면 직업 전용 그림으로 바뀜 (탈것·변신보다 아래 단계) ═══════
+(function () {
+  const CA = window.CLASS_ATLAS; if (!CA) return;
+  const CI = new Image(); CI.onload = () => { CI.ok = true; cc.clear(); }; CI.src = 'gfx/classes.png?v=' + (window.BUILDV || 1);
+  const T = { guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74 };
+  const _csC = charSprite, cc = new Map();
+  charSprite = function (ap, dir, frame) {
+    const A = ap && !ap.mt && CI.ok && CA[ap.job]; if (!A) return _csC(ap, dir, frame);
+    const key = ap.job + ap.g + dir + '|' + frame; let c = cc.get(key); if (c) return c;
+    const r = (A[ap.g === 'f' ? 'f' : 'm'] || A.m)[['down', 'left', 'right', 'up'][dir] || 'down'];
+    const K = 2, s = T[ap.job] / A.m.down[3]; c = document.createElement('canvas'); c.width = 70 * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    const bob = frame === 1 || frame === 3 ? 1.5 : 0, w = r[2] * s, h = r[3] * s;
+    g.drawImage(CI, r[0], r[1], r[2], r[3], (35 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
+    c.dw = 70; c.dh = 100; cc.set(key, c); return c;
+  };
+})();
 // ═══════ GPT 아이템·가구·텐트·이펙트·말·버튼 ═══════
 (function () {
   const V = '?v=' + (window.BUILDV || 1);
