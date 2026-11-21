@@ -544,10 +544,11 @@
 // ═══════ 변신 모습: 크기 커짐 + 직업색 갑옷 빛 + 오라 (전용 그림이 오면 교체) ═══════
 (function () {
   const mkc = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-  const _cs3 = charSprite, fc = new Map();
+  const _cs3 = charSprite, fc = new Map(); const FA = window.FORM_ATLAS || {}; const FI = new Image(); FI.onload = () => { FI.ok = true; fc.clear(); }; FI.src = 'gfx/forms.png?v=' + (window.BUILDV || 1);
   charSprite = function (ap, dir, frame) {
     if (!ap || !ap.fm || !GD.FORMS[ap.fm]) return _cs3(ap, dir, frame);
     const F = GD.FORMS[ap.fm]; const key = JSON.stringify(ap) + dir + frame; let c = fc.get(key); if (c) return c; if (fc.size > 200) fc.clear();
+    if (!ap.mt && FI.ok && FA[ap.fm]) { const r = FA[ap.fm][['down', 'left', 'right', 'up'][dir] || 'down']; const bob = frame === 1 || frame === 3 ? 2 : 0; c = mkc(r[2], r[3] + 3); const g = c.getContext('2d'); g.drawImage(FI, r[0], r[1], r[2], r[3], 0, 3 - bob, r[2], r[3]); const dh = 84 * F.scale; c.dh = dh * (r[3] + 3) / r[3]; c.dw = r[2] * dh / r[3]; c._form = F; fc.set(key, c); return c; }
     const base = _cs3(Object.assign({}, ap, { fm: 0 }), dir, frame); const bw = base.dw || 56, bh = base.dh || 80, W2 = base.width, H2 = base.height;
     c = mkc(W2, H2); const g = c.getContext('2d'); g.drawImage(base, 0, 0);
     // 갑옷 색 입히기 (얼굴은 살짝만)

@@ -800,7 +800,7 @@ function drawMon(mo, sx, sy, now) {
   const def = mo.s ? GD.SUMMONS[mo.t] : GD.MONS[mo.t]; if (!def) return;
   const x = mo.rx * TS + 16 - sx, y = mo.ry * TS + 32 - sy; if (x < -150 || x > W + 150 || y < -150 || y > H + 150) return;
   const walking = now < (mo.walkUntil || 0); const fr = walking ? (now / 140 | 0) % 2 : (now / 500 | 0) % 2;
-  const img = (!mo.s && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const IW = img.dw || img.width, IH = img.dh || img.height, OXX = img.ox || 0;
+  const img = ((!mo.s || (window.MON_ATLAS && MON_ATLAS[mo.t])) && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const IW = img.dw || img.width, IH = img.dh || img.height, OXX = img.ox || 0;
   // 보스/돌연변이 오라
   if (def.boss || mo.mu || mo.s) {
     const ac = def.boss ? def.aura : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;

@@ -4,7 +4,7 @@
   const img = new Image(); let ok = false; img.onload = () => ok = true; img.src = 'gfx/mons.png?v=' + (window.BUILDV || 1);
   const SC = 1.5, cache = new Map(), atk = new Map();
   // 몬스터 공격 순간 기록 (mhit fx)
-  const _af = addFx; addFx = function (f) { if (f.k === 'mhit') for (const mo of S.M.values()) if (mo.x === f.x && mo.y === f.y) { atk.set(mo.i, performance.now()); mo.flip = f.tx < f.x ? true : f.tx > f.x ? false : mo.flip; } return _af(f); };
+  const _af = addFx; addFx = function (f) { if (f.k === 'satk') { for (const mo of S.M.values()) if (mo.s && mo.x === f.x && mo.y === f.y) { atk.set(mo.i, performance.now()); mo.flip = f.tx < f.x ? true : f.tx > f.x ? false : mo.flip; } return; } if (f.k === 'mhit') for (const mo of S.M.values()) if (mo.x === f.x && mo.y === f.y) { atk.set(mo.i, performance.now()); mo.flip = f.tx < f.x ? true : f.tx > f.x ? false : mo.flip; } return _af(f); };
   function frameCanvas(t, fi, flip, mu, wh) {
     const k = t + '|' + fi + '|' + flip + '|' + mu + '|' + (wh || 0); let c = cache.get(k); if (c) return c;
     const r = A[t][fi]; c = document.createElement('canvas'); c.width = r[2]; c.height = r[3]; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
