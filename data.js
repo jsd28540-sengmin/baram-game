@@ -160,7 +160,7 @@
     let atk = Math.floor(5 + l * 3.1);
     let def = Math.floor(l * 1.45);
     let exp = Math.floor(8 + Math.pow(l, 1.65) * 3.2);
-    if (m.boss) { hp *= 30; atk *= 1.7; def *= 1.4; exp *= 25; }
+    if (m.boss) { hp *= 42; atk *= 2.05; def *= 1.55; exp *= 30; }
     if (night) { hp *= 1.15; atk *= 1.15; }
     if (mutant) { hp *= 2.2; atk *= 1.45; def *= 1.3; exp *= 3; }
     return { hp: Math.floor(hp), atk: Math.floor(atk), def: Math.floor(def), exp: Math.floor(exp), coin: Math.floor(6 + l * 4.5) };

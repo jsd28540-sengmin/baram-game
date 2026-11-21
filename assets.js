@@ -139,8 +139,24 @@
     const rb = riderBox(rider); const rH = rb.h * 0.68, RS = 1.0; const rw = rb.w * RS, rh = rH * RS;
     const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
-    if (d === 'down') { const sy2 = hy + hh * (MK === 'ostrich' ? 0.3 : 0.2); drawRiderAt(seatX, sy2); g.save(); g.beginPath(); g.rect(hx, hy + hh * 0.18, hw, hh); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); if (MK === 'ostrich') { g.save(); g.beginPath(); g.rect(hx + hw * 0.3, hy + hh * 0.12, hw * 0.4, hh * 0.3); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); } g.save(); g.beginPath(); g.rect(hx, hy, hw, hh * 0.18); g.clip(); g.globalAlpha = 1; g.restore(); }
-    else { g.drawImage(hor, hx, hy, hw, hh); drawRider(); }
+    // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
+    const S2 = 0.9, rw2 = rb.w * S2, up = rb.h * 0.6, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.78;
+    if (d === 'left' || d === 'right') {
+      const fw = d === 'left' ? -1 : 1, waist = seatY + 10 + (SEAT[1] || 0) * 0;
+      g.drawImage(hor, hx, hy, hw, hh);
+      g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - rw2 * 0.4 + fw * rw2 * 0.1, waist - 8, rw2 * 0.8, lh); // 다리 (탈것 옆구리로 내려옴)
+      g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, waist - uh, rw2, uh); // 상체
+    } else {
+      if (d === 'down') { // 앞모습: 탈것 머리가 라이더 몸통을 가림, 얼굴은 머리 위로 보임
+        const by = hy + uh * 0.18 + (MK === 'goldScorpion' ? hh * 0.12 : MK === 'battleBear' || MK === 'frostWolf' ? hh * 0.06 : 0);
+        g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh); g.drawImage(hor, hx, hy, hw, hh);
+        if (MK === 'ostrich') g.drawImage(rider, rb.x, rb.y, rb.w, up * 0.55, seatX - rw2 / 2, by - uh, rw2, uh * 0.55);
+      } else { // 뒷모습: 라이더는 탈것 머리 앞, 엉덩이(아래쪽)가 라이더 허리를 가림
+        const by = hy + hh * 0.36; g.drawImage(hor, hx, hy, hw, hh);
+        g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh);
+        const cy = by - uh * 0.18; g.save(); g.beginPath(); g.rect(hx, cy, hw, hy + hh - cy); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore();
+      }
+    }
     c.dw = 110; c.dh = 110; hc.set(key, c); return c;
   };
 
@@ -589,3 +605,20 @@
 
 // ═══════ 탈것 아이템 설명 ═══════
 (function () { const _d = itemDesc; itemDesc = function (it) { if (it && it.k === 'mount') { const mt = GD.MOUNTS[it.id] || {}; const on = S.me && S.me.mount === it.id; return `<div class="nm" style="color:#ffd27a">${esc(mt.name || it.id)}${it.n > 1 ? ' x' + it.n : ''}</div><div style="color:#a7b0bf">${mt.boss ? '👑 보스 탈것' : '탈것'} · 이동속도 x${mt.spd || 1}</div><div>${on ? '장착 중 — 탈것 버튼·R로 타고 내려요.' : '장착하면 장비창 탈것 칸에 들어가요. 교환 가능 · 판매·버리기 불가'}</div>`; } return _d(it); }; })();
+
+// ═══════ 보스 경고 장판: 빨간 원이 차오르면 피하세요 ═══════
+(function () {
+  const W = [];
+  const _af = addFx; addFx = function (f) { if (f && f.k === 'warn') { W.push({ x: f.x, y: f.y, r: f.r || 2, t0: performance.now(), ms: f.ms || 1200 }); return; } return _af(f); };
+  const _df = drawFx; drawFx = function (now, sx, sy, layer) {
+    if (layer === 'mid' && W.length) { const t = performance.now();
+      for (let i = W.length - 1; i >= 0; i--) { const w = W[i], k = (t - w.t0) / w.ms; if (k >= 1) { W.splice(i, 1); continue; }
+        const x = w.x * TS + TS / 2 - sx, y = w.y * TS + TS / 2 - sy, R = (w.r + 0.4) * TS; const g = ctx; g.save();
+        g.globalAlpha = 0.18 + 0.1 * Math.sin(t / 70); g.fillStyle = '#ff1a1a'; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill();
+        g.globalAlpha = 0.42; g.fillStyle = '#ff3a1a'; g.beginPath(); g.arc(x, y, R * k, 0, 7); g.fill();
+        g.globalAlpha = 0.95; g.strokeStyle = '#ff2a2a'; g.lineWidth = 3; g.setLineDash([8, 6]); g.lineDashOffset = -t / 30; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke();
+        if (k > 0.55) { g.globalAlpha = 1; g.font = '900 20px sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.setLineDash([]); g.strokeStyle = '#000'; g.strokeText('!', x, y + 7); g.fillStyle = '#ffdd33'; g.fillText('!', x, y + 7); }
+        g.restore(); } }
+    return _df(now, sx, sy, layer);
+  };
+})();

@@ -750,12 +750,13 @@ function killMon(m, mon, killer) {
   dropAt(m, mon.x, mon.y, { k: 'coin', n: coin }, killer);
   // 장비 (낮은 확률)
   const itemChance = (mon.boss ? 100 : mon.mutant ? 12 : 4.2) * (1 + luck / 100);
-  const nItems = mon.boss ? 2 + ri(0, 2) : (R() * 100 < itemChance ? 1 : 0);
+  const crew = mon.boss ? (() => { const ids = new Set(Object.keys(mon.dmgBy || {})); for (const q of PLAYERS.values()) if (q.map === m.id && !q.dead && dist(q, mon) <= 13) ids.add(q.id); if (killer) { const pt = killer.party && PARTIES.get(killer.party); if (pt) for (const id of pt.members) { const q = PLAYERS.get(id); if (q && q.map === m.id && dist(q, mon) <= 20) ids.add(id); } } return [...ids].map(id => PLAYERS.get(id)).filter(Boolean).slice(0, 8); })() : [];
+  const nItems = mon.boss ? Math.max(2 + ri(0, 1), crew.length + 1) : (R() * 100 < itemChance ? 1 : 0);
   for (let i = 0; i < nItems; i++) {
-    const job = pick(['warrior', 'mage', 'healer']); // 일반 몬스터는 직업 무관 랜덤 → 교환으로 해결
+    const who = crew[i]; const job = who ? D.JOBS[who.job].base : crew.length ? D.JOBS[pick(crew).job].base : pick(['warrior', 'mage', 'healer']); // 보스: 참여자마다 자기 직업 장비 1개 + 1개 더 // 일반 몬스터는 직업 무관 랜덤 → 교환으로 해결
     const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield');
     const lvl = clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 50);
-    dropAt(m, mon.x, mon.y, makeGear(job, pick(slots), lvl, { luck, bonus: mon.boss ? 20 : mon.mutant ? 8 : 0, minRar: mon.boss ? 1 : 0 }), killer);
+    dropAt(m, mon.x, mon.y, makeGear(job, pick(slots), lvl, { luck, bonus: mon.boss ? 20 : mon.mutant ? 8 : 0, minRar: mon.boss ? 1 : 0 }), who || killer);
   }
   // 강화 재료
   const ore = D.oreFor(def.lv);
@@ -854,6 +855,7 @@ function monAI(m, mon, now) {
     if (best) { mon.target = best.id; tg = best; }
   }
   const slow = mon.slowUntil > now ? 1.7 : 1;
+  if (mon.boss) { if (tg) { mon.lastFight = now; bossPattern(m, mon, def, now); } else if (mon.hp < mon.maxHp && now - (mon.lastFight || 0) > 8000 && now > (mon.regenT || 0)) { mon.regenT = now + 1000; mon.hp = Math.min(mon.maxHp, mon.hp + Math.round(mon.maxHp * 0.03)); if (mon.hp >= mon.maxHp) { mon.enraged = 0; mon.called = 0; mon.atk = mon.baseAtk || mon.atk; mon.dmgBy = {}; } } }
   const moveInt = (mon.boss ? 520 : def.kind === 'bat' || def.kind === 'quad' ? 520 : def.kind === 'golem' || def.kind === 'zombie' || def.kind === 'slime' ? 900 : 700) * slow;
   if (tg) {
     const rng2 = def.rng || 1;
@@ -861,12 +863,12 @@ function monAI(m, mon, now) {
     if (inRange) {
       mon.dir = Math.abs(tg.x - mon.x) > Math.abs(tg.y - mon.y) ? (tg.x > mon.x ? 2 : 1) : (tg.y > mon.y ? 0 : 3);
       if (now >= mon.nextAtk) {
-        mon.nextAtk = now + (mon.boss ? 1150 : 1350);
+        mon.nextAtk = now + (mon.boss ? (mon.enraged ? 850 : 1050) : 1350);
         if (rng2 > 1) fx(m, { k: 'proj', f: 'mshot', fx: mon.x, fy: mon.y, tx: tg.x, ty: tg.y, c: def.c[2] });
         else fx(m, { k: 'mhit', x: mon.x, y: mon.y, tx: tg.x, ty: tg.y });
         hurt(m, tg, mon.atk, mon);
         // 보스 광역 공격
-        if (mon.boss && R() < 0.3) {
+        if (mon.boss && R() < 0.15) {
           fx(m, { k: 'skill', f: 'quake', x: mon.x, y: mon.y, r: 3, c: def.aura });
           for (const p of PLAYERS.values()) if (p.map === m.id && !p.dead && p !== tg && dist(p, mon) <= 3.2) hurt(m, p, Math.floor(mon.atk * 0.7), mon);
         }
@@ -902,6 +904,31 @@ function summonAI(m, s, now, def) {
   } else if (now >= s.nextMove && dist(s, owner) > 1.5) { s.nextMove = now + moveInt; if (!stepToward(m, s, owner.x, owner.y) && dist(s, owner) > 4) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); } }
 }
 
+// ═══ 보스 패턴: 경고 장판 → 피할 수 있는 광역기 · 체력 60% 졸개 소환 · 30% 분노 ═══
+function bossPattern(m, mon, def, now) {
+  if (!mon.baseAtk) mon.baseAtk = mon.atk;
+  const live = () => m.mons.has(mon.id) && mon.hp > 0;
+  const near = r => [...PLAYERS.values()].filter(p => p.map === m.id && !p.dead && dist(p, mon) <= r);
+  if (!mon.enraged && mon.hp < mon.maxHp * 0.3) { mon.enraged = 1; mon.atk = Math.round(mon.baseAtk * 1.35); fx(m, { k: 'skill', f: 'flame', x: mon.x, y: mon.y, r: 3.5, c: '#ff3020' }); announce(`🔥 [${def.name}]이(가) 분노했습니다! 공격이 더 빠르고 강해집니다!`, '#ff5a3a'); }
+  if (!mon.called && mon.hp < mon.maxHp * 0.6) {
+    mon.called = 1; const pool = Object.keys(D.MONS).filter(k => { const v = D.MONS[k]; return !v.boss && !v.p && v.lv <= def.lv && v.lv >= def.lv - 18; });
+    if (pool.length) { const t = pick(pool); for (let i = 0; i < 3 + (near(10).length > 2 ? 1 : 0); i++) { const q = nearFreeMon(m, mon.x + ri(-2, 2), mon.y + ri(-2, 2)); const mo = spawnMon(m, t, q.x, q.y); if (mo) { mo.target = mon.target; fx(m, { k: 'skill', f: 'summon', x: q.x, y: q.y, c: def.aura }); } } announce(`⚠ [${def.name}]이(가) 부하를 불렀습니다!`, '#ffb020'); }
+  }
+  if (!mon.nextSkill) { mon.nextSkill = now + 2500; return; }
+  if (now < mon.nextSkill) return;
+  const ps = near(9); if (!ps.length) return;
+  mon.nextSkill = now + (mon.enraged ? 4200 : 6000) + ri(0, 1500);
+  const roll = R(), A = mon.atk;
+  if (roll < 0.4) { // 대지 강타: 보스 주변, 1.2초 뒤 (밖으로 피하면 안 맞음)
+    const r = 3.5; fx(m, { k: 'warn', x: mon.x, y: mon.y, r, ms: 1200 });
+    setTimeout(() => { if (!live()) return; fx(m, { k: 'skill', f: 'quake', x: mon.x, y: mon.y, r, c: def.aura }); for (const p of near(r + 0.4)) hurt(m, p, Math.round(A * 1.6), mon); }, 1200);
+  } else if (roll < 0.8) { // 낙하 폭발: 플레이어 발밑 최대 3곳, 1.3초 뒤
+    for (const t of ps.sort(() => R() - 0.5).slice(0, 3)) { const c = { x: t.x, y: t.y }; fx(m, { k: 'warn', x: c.x, y: c.y, r: 1.5, ms: 1300 });
+      setTimeout(() => { if (!live()) return; fx(m, { k: 'skill', f: 'meteor', x: c.x, y: c.y, r: 1.5, c: def.aura }); for (const p of PLAYERS.values()) if (p.map === m.id && !p.dead && dist(p, c) <= 1.8) hurt(m, p, Math.round(A * 1.9), mon); }, 1300); }
+  } else { // 포효: 주변 모두 피해 (피할 수 없음 → 치유가 필요)
+    fx(m, { k: 'skill', f: 'ring', x: mon.x, y: mon.y, r: 7, c: def.aura }); for (const p of near(7)) { hurt(m, p, Math.round(A * 0.75), mon); }
+  }
+}
 function hurt(m, tg, raw, src) {
   if (tg.summon) { const K = 50 + ((src && src.lv) || 10) * 14; const d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) * K / (K + (tg.def || 0)))); tg.hp -= d; fx(m, { k: 'dmg', x: tg.x, y: tg.y, v: d, p: 1 }); return; }
   const p = tg; if (p.dead) return;
