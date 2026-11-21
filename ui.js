@@ -330,7 +330,7 @@ function renderPanel() {
     case 'boss': {
       T('skull', '보스 출현 시간표', `<div style="flex:1"></div><span class="mut">협력한 모두에게 직업별 보스 전용 장비</span>`);
       const L = S.bossList || [];
-      h = `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + L.map(b => `<div class="card" style="flex-direction:row;align-items:center;gap:8px"><canvas width="40" height="40" data-bm2="${b.name}" style="width:40px;height:40px;background:var(--bg3);border-radius:3px"></canvas><div style="flex:1;min-width:0"><div class="nm">${b.name} <span class="mut">Lv${b.lv}</span></div><small>${b.where}</small><div>${b.alive ? '<b class="rl">출현 중!</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div></div></div>`).join('') + '</div>';
+      h = `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + L.map(b => `<div class="card" style="flex-direction:row;align-items:center;gap:8px"><canvas width="112" height="112" data-bm2="${b.name}" style="width:56px;height:56px;flex:none;background:radial-gradient(circle at 50% 60%,#ffffff1a,var(--bg3) 70%);border-radius:6px"></canvas><div style="flex:1;min-width:0"><div class="nm">${b.name} <span class="mut">Lv${b.lv}</span></div><small>${b.where}</small><div>${b.alive ? '<b class="rl">출현 중!</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div></div></div>`).join('') + '</div>';
       body.innerHTML = h; paintBossFaces(body); return;
     }
     case 'chest': {
@@ -379,10 +379,10 @@ function renderPanel() {
     case 'build': { renderBuild(body, T); return; }
   }
 }
-function bossRows(list) { return '<div class="col" style="gap:2px">' + list.map(b => `<div class="row box" style="padding:3px 7px"><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>${b.name}</b> <span class="mut">${b.where}</span></span>${b.alive ? '<b class="rl">출현 중</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분</span>`}</div>`).join('') + '</div>'; }
+function bossRows(list) { setTimeout(() => paintBossFaces(document), 0); return '<div class="col" style="gap:2px">' + list.map(b => `<div class="row box" style="padding:3px 7px;gap:6px;align-items:center"><canvas width="64" height="64" data-bm2="${b.name}" style="width:32px;height:32px;flex:none"></canvas><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>${b.name}</b> <span class="mut">${b.where}</span></span>${b.alive ? '<b class="rl">출현 중</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분</span>`}</div>`).join('') + '</div>'; }
 function paintBossFaces(root) {
   const byName = {}; for (const k in GD.MONS) byName[GD.MONS[k].name] = k;
-  root.querySelectorAll('canvas[data-bm2]').forEach(c => { const key = byName[c.dataset.bm2]; if (!key) return; const img = monSprite(key, false, 0, false); const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const s = Math.min(38 / img.width, 38 / img.height); g.drawImage(img, (40 - img.width * s) / 2, 40 - img.height * s, img.width * s, img.height * s); });
+  root.querySelectorAll('canvas[data-bm2]').forEach(c => { const key = byName[c.dataset.bm2]; if (!key) return; const img = (window.monPortrait && monPortrait(key)) || monSprite(key, false, 0, false); const W = c.width, g = c.getContext('2d'); g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; const s = Math.min((W - 2) / img.width, (W - 2) / img.height); g.drawImage(img, (W - img.width * s) / 2, W - 1 - img.height * s, img.width * s, img.height * s); });
 }
 function bossTable(list) { return bossRows(list); }
 
