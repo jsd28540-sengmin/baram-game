@@ -30,6 +30,11 @@
     { id: 'w_smash', name: '강타', jobs: ['warrior', 'guardian', 'berserker'], lv: 1, mp: 4, cd: 1500, kind: 'melee', mul: 2.3, fx: 'slash', col: '#ffd34d', desc: '앞의 적을 강하게 내려친다.' },
     { id: 'w_spin', name: '회전베기', jobs: ['warrior', 'guardian', 'berserker'], lv: 5, mp: 10, cd: 4000, kind: 'aoeSelf', r: 1.6, mul: 1.7, fx: 'spin', col: '#ffffff', desc: '주변 모든 적을 벤다. (광역)' },
     { id: 'w_roar', name: '기합', jobs: ['warrior', 'guardian', 'berserker'], lv: 10, mp: 14, cd: 25000, kind: 'buff', buff: { atk: 0.3 }, dur: 20000, fx: 'buff', col: '#ff6a3d', desc: '20초간 공격력 +30%' },
+    // ── 변신 (3분 유지, 끝난 뒤 1분 쿨타임) ──
+    { id: 'g_knight', name: '수호기사 변신', jobs: ['guardian'], lv: 15, mp: 40, cd: 240000, kind: 'buff', form: 'gKnight', buff: { def: 0.6, hp: 0.3, atk: 0.1 }, dur: 180000, fx: 'buff', col: '#7fb2ff', desc: '3분간 철갑 기사로 변신 · 방어 +60% 체력 +30% 공격 +10% (크기 커짐)' },
+    { id: 'g_king', name: '수호왕 강림', jobs: ['guardian'], lv: 40, mp: 80, cd: 240000, kind: 'buff', form: 'gKing', buff: { def: 1.2, hp: 0.6, atk: 0.25 }, dur: 180000, fx: 'buff', col: '#ffd34d', desc: '3분간 수호의 왕으로 변신 · 방어 +120% 체력 +60% 공격 +25% (크기 커짐)' },
+    { id: 'b_knight', name: '광기의 흑기사', jobs: ['berserker'], lv: 15, mp: 40, cd: 240000, kind: 'buff', form: 'bKnight', buff: { atk: 0.45, crit: 10, spd: 0.05 }, dur: 180000, fx: 'buff', col: '#ff5a4a', desc: '3분간 흑기사로 변신 · 공격 +45% 치명 +10 속도 +5% (크기 커짐)' },
+    { id: 'b_king', name: '광전왕 각성', jobs: ['berserker'], lv: 40, mp: 80, cd: 240000, kind: 'buff', form: 'bKing', buff: { atk: 0.9, crit: 20, spd: 0.12, def: 0.15 }, dur: 180000, fx: 'buff', col: '#ff3030', desc: '3분간 피의 왕으로 변신 · 공격 +90% 치명 +20 속도 +12% 방어 +15% (크기 커짐)' },
     { id: 'g_wall', name: '철벽', jobs: ['guardian'], lv: 15, mp: 20, cd: 30000, kind: 'buff', buff: { def: 0.9 }, dur: 15000, fx: 'buff', col: '#7fb2ff', desc: '15초간 방어력 +90%' },
     { id: 'g_taunt', name: '도발의 함성', jobs: ['guardian'], lv: 18, mp: 18, cd: 8000, kind: 'taunt', r: 4, mul: 1.3, fx: 'ring', col: '#ff4d4d', desc: '주변 적을 끌어모으며 피해. (광역)' },
     { id: 'g_quake', name: '대지분쇄', jobs: ['guardian'], lv: 24, mp: 30, cd: 9000, kind: 'aoeSelf', r: 2.6, mul: 3.0, fx: 'quake', col: '#c9a26b', desc: '땅을 내리찍어 넓은 범위 피해. (광역)' },
@@ -57,8 +62,9 @@
     { id: 'p_bless', name: '수호의 축복', jobs: ['priest'], lv: 18, mp: 32, cd: 25000, kind: 'partyBuff', r: 7, buff: { def: 0.5, atk: 0.15 }, dur: 30000, fx: 'bless', col: '#ffe98a', desc: '주변 아군 30초간 방어 +50%, 공격 +15%' },
     { id: 'p_holy', name: '성광', jobs: ['priest'], lv: 22, mp: 30, cd: 7000, kind: 'aoeSelf', r: 3, mul: 2.6, healToo: 1.2, fx: 'holy', col: '#fff6b0', desc: '성스러운 빛으로 적을 태우고 아군을 치유. (광역)' },
   ];
+  D.FORMS = { gKnight: { name: '수호기사', scale: 1.15, col: '#7fb2ff' }, gKing: { name: '수호왕', scale: 1.3, col: '#ffd34d' }, bKnight: { name: '흑기사', scale: 1.15, col: '#ff5a4a' }, bKing: { name: '광전왕', scale: 1.3, col: '#ff3030' } };
   D.SKILL = {}; D.SKILLS.forEach(s => D.SKILL[s.id] = s);
-  D.skillsFor = job => D.SKILLS.filter(s => s.jobs.includes(job));
+  D.skillsFor = job => { const l = D.SKILLS.filter(s => s.jobs.includes(job)); return l.filter(s => !s.form).concat(l.filter(s => s.form)); }; // 변신 스킬은 7·8번 칸
 
   // 소환수
   D.SUMMONS = {

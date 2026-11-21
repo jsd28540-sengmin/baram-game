@@ -629,9 +629,10 @@ function calc(p) {
   let maxHp = B.hp0 + B.hpL * L, maxMp = B.mp0 + B.mpL * L, atk = B.atk0 + B.atkL * L, def = B.def0 + B.defL * L, crit = J.crit || 5, luck = 0;
   if (J.tier) { maxHp *= J.mHp || 1; def *= J.mDef || 1; atk *= J.mAtk || 1; maxMp *= J.mMp || 1; }
   for (const s of D.SLOTS) { const it = p.eq[s]; if (!it) continue; const g = gearPower(it, p.lv); atk += g.atk || 0; def += g.def || 0; maxHp += g.hp || 0; maxMp += g.mp || 0; crit += g.crit || 0; luck += g.luck || 0; }
-  let ba = 0, bd = 0, bc = 0, bl = 0, bs = 0, be = 0; const now = Date.now();
+  let ba = 0, bd = 0, bc = 0, bl = 0, bs = 0, be = 0, bh = 0; const now = Date.now();
   p.buffs = (p.buffs || []).filter(b => b.until > now);
-  for (const b of p.buffs) { ba += b.atk || 0; bd += b.def || 0; bc += b.crit || 0; bl += b.luck || 0; bs += b.spd || 0; be += b.exp || 0; }
+  for (const b of p.buffs) { ba += b.atk || 0; bd += b.def || 0; bc += b.crit || 0; bl += b.luck || 0; bs += b.spd || 0; be += b.exp || 0; bh += b.hp || 0; }
+  maxHp *= 1 + bh;
   atk *= 1 + ba; def *= Math.max(0.2, 1 + bd);
   let spd = D.BASE_SPEED; if (p.riding && p.mount) spd /= D.MOUNTS[p.mount].spd; spd /= 1 + bs; crit += bc; luck += bl;
   p.st = { maxHp: Math.round(maxHp), maxMp: Math.round(maxMp), atk: Math.round(atk), def: Math.round(def), crit: Math.min(60, crit), luck, spd: Math.round(spd), heal: J.heal || 1, expB: be };
@@ -645,7 +646,8 @@ function canEquip(p, it) {
 function appear(p) {
   const eq = {};
   for (const s of D.SLOTS) { const it = p.eq[s]; if (it) eq[s] = [it.tier, it.rar, it.plus, it.wt || 0]; }
-  return { job: p.job, g: p.gender, h: p.hair, hc: p.hairColor, sk: p.skin, eq, mt: p.riding && p.mount ? p.mount : 0 };
+  const fb = (p.buffs || []).find(b => b.form && b.until > Date.now());
+  return { job: p.job, g: p.gender, h: p.hair, hc: p.hairColor, sk: p.skin, eq, mt: p.riding && p.mount ? p.mount : 0, fm: fb ? fb.form : 0 };
 }
 function meData(p) {
   calc(p);
@@ -1027,7 +1029,7 @@ function useSkill(p, sid) {
     case 'aoeTarget': { const t = pickTarget(m, p, sk.range); if (!t) { ok = false; sysMsg(p, '사거리 안에 적이 없습니다.', '#bbb'); break; } faceTo(p, t); const c = { x: t.x, y: t.y }; fx(m, { k: 'skill', f: sk.fx, x: c.x, y: c.y, r: sk.r, c: sk.col, id: p.id }); for (const x of [...m.mons.values()]) if (!x.summon && dist(x, c) <= sk.r + 0.3) { hitMon(m, x, p, A, sk.mul); if (sk.slow && m.mons.has(x.id)) x.slowUntil = now + 4000; } break; }
     case 'line': { const [dx, dy] = DIRS[p.dir]; fx(m, { k: 'skill', f: 'pierce', x: p.x, y: p.y, d: p.dir, r: sk.range, c: sk.col }); for (const x of [...m.mons.values()]) { if (x.summon) continue; const rx = x.x - p.x, ry = x.y - p.y; const along = rx * dx + ry * dy, across = Math.abs(rx * dy - ry * dx); if (along > 0 && along <= sk.range && across <= 0.6) hitMon(m, x, p, A, sk.mul); } break; }
     case 'heal': { fx(m, { k: 'skill', f: sk.fx, x: p.x, y: p.y, r: sk.r, c: sk.col }); healAround(m, p, sk.r, sk.mul); break; }
-    case 'buff': { addBuff(p, sk.name, sk.buff, sk.dur); fx(m, { k: 'skill', f: 'buff', x: p.x, y: p.y, c: sk.col }); break; }
+    case 'buff': { if (sk.form) { p.buffs = (p.buffs || []).filter(b => !b.form); p.riding = false; } addBuff(p, sk.name, sk.form ? Object.assign({ form: sk.form }, sk.buff) : sk.buff, sk.dur); if (sk.form) { p.hp = Math.min(p.st.maxHp, p.hp + Math.round(p.st.maxHp * (sk.buff.hp || 0))); announce(`✨ ${p.name}님이 [${D.FORMS[sk.form].name}](으)로 변신했습니다!`, D.FORMS[sk.form].col); } fx(m, { k: 'skill', f: 'buff', x: p.x, y: p.y, c: sk.col }); break; }
     case 'partyBuff': { fx(m, { k: 'skill', f: 'bless', x: p.x, y: p.y, r: sk.r, c: sk.col }); for (const q of PLAYERS.values()) if (q.map === p.map && !q.dead && dist(q, p) <= sk.r) { addBuff(q, sk.name, sk.buff, sk.dur); if (q !== p) sysMsg(q, `${p.name}님의 [${sk.name}]!`, '#ffe98a'); } break; }
     case 'summon': {
       p.summons = (p.summons || []).filter(s => m.mons.has(s.id));
@@ -1519,6 +1521,7 @@ function tick() {
     for (const mon of m.mons.values()) if (Math.abs(mon.x - p.x) <= VX && Math.abs(mon.y - p.y) <= VY) M.push({ i: mon.id, t: mon.type, x: mon.x, y: mon.y, d: mon.dir, h: Math.round(100 * mon.hp / mon.maxHp), mu: mon.mutant ? 1 : 0, s: mon.summon ? 1 : 0, lv: mon.lv });
     for (const d of m.drops.values()) if (Math.abs(d.x - p.x) <= VX && Math.abs(d.y - p.y) <= VY) { const it = d.item; Dr.push({ i: d.id, x: d.x, y: d.y, k: it.k, id: it.id, tr: it.tier, c: it.k === 'gear' ? D.TIER_COLOR[it.tier] : it.k === 'use' ? D.CONSUMES[it.id].col : it.k === 'mat' ? (D.MATS[it.id] || {}).c : '#ffd700', r: it.rar || 0, sl: it.slot, wt: it.wt, n: it.k === 'gear' ? it.name : it.k === 'coin' ? it.n + '코인' : (it.k === 'use' ? D.CONSUMES[it.id].name : it.id) + (it.n > 1 ? ' x' + it.n : '') }); }
     const fxs = m.fx.filter(f => Math.abs((f.x ?? f.fx) - p.x) <= VX + 2 && Math.abs((f.y ?? f.fy) - p.y) <= VY + 2);
+    { const fb = (p.buffs || []).find(b => b.form && b.until > now); const f = fb ? fb.form : 0; if (f !== (p._fm || 0)) { p._fm = f; calc(p); if (p.hp > p.st.maxHp) p.hp = p.st.maxHp; dirty(p); if (!f) sysMsg(p, '변신이 풀렸습니다.', '#bbb'); } }
     const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, x: q.x, y: q.y, m: q.map, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
   }
   for (const id of activeMaps) MAPS[id].fx = [];

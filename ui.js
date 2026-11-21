@@ -502,7 +502,7 @@ function buildTouch() {
   dp.onpointerup = dp.onpointercancel = () => { touchDir = -1; };
   const acts = $('acts'); acts.innerHTML = '<div id="skillgrid"></div>'; S.touchCd = []; S.touchBtns = null; S._skKey = '';
   const g = $('skillgrid');
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) { // 7·8번 칸은 변신 스킬이 있는 직업만 보임
     const d = document.createElement('div'); d.className = 'tb'; d.innerHTML = `<span class="kn">${i + 1}</span><span class="si">${ic('lock')}</span><div class="cdm"></div>`;
     d.addEventListener('pointerdown', e => { e.preventDefault(); castSkill(i); });
     g.appendChild(d); S.touchCd[i] = d;

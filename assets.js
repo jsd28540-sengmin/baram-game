@@ -141,6 +141,7 @@
   const artCache = {};
   function skillArt(sk) {
     let nm = null, item = null; const b = sk.jobs[0];
+    if (sk.form) { const k = 'form' + sk.id; if (artCache[k]) return artCache[k]; const ik = { gKnight: 'a_helmet_6', gKing: 'a_helmet_9', bKnight: 'a_helmet_5', bKing: 'a_helmet_7' }[sk.form]; const c = mkc(96, 96), g = c.getContext('2d'); if (IA[ik]) { const gr = g.createRadialGradient(48, 48, 4, 48, 48, 46); gr.addColorStop(0, sk.col + 'cc'); gr.addColorStop(1, sk.col + '00'); g.fillStyle = gr; g.fillRect(0, 0, 96, 96); _di.call(g, IT, IA[ik][0], IA[ik][1], 64, 64, 10, 10, 76, 76); } return (artCache[k] = c.toDataURL()); }
     switch (sk.kind) {
       case 'melee': nm = 'slash'; break; case 'aoeSelf': case 'taunt': nm = 'whirl'; break;
       case 'proj': if (b === 'healer') item = 'w_bow_6'; else nm = 'fire'; break;
@@ -157,7 +158,9 @@
   }
   function paintSkillBtns() {
     if (!S.touchCd || !S.me || !FXI.ok || !IT.ok) return;
+    const n8 = S.me.skills.length > 6; const gr = $('skillgrid'); if (gr) { if (n8) gr.style.setProperty('grid-template-columns', 'repeat(4,56px)', 'important'); else gr.style.removeProperty('grid-template-columns'); }
     S.touchCd.forEach((d, i) => {
+      d.style.display = i >= 6 && !S.me.skills[i] ? 'none' : '';
       const sk = GD.SKILL[S.me.skills[i]]; const si = d.querySelector('.si'); if (!si) return;
       const on = sk && S.me.lv >= sk.lv; const key = (sk ? sk.name : '') + on;
       if (si.dataset.k === key && si.innerHTML === si._h) return; si.dataset.k = key;
@@ -535,5 +538,29 @@
       const r = ENGINE.adminGive(name.trim(), what.trim()); alert(r);
     };
     document.body.appendChild(b);
+  };
+})();
+
+// ═══════ 변신 모습: 크기 커짐 + 직업색 갑옷 빛 + 오라 (전용 그림이 오면 교체) ═══════
+(function () {
+  const mkc = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const _cs3 = charSprite, fc = new Map();
+  charSprite = function (ap, dir, frame) {
+    if (!ap || !ap.fm || !GD.FORMS[ap.fm]) return _cs3(ap, dir, frame);
+    const F = GD.FORMS[ap.fm]; const key = JSON.stringify(ap) + dir + frame; let c = fc.get(key); if (c) return c; if (fc.size > 200) fc.clear();
+    const base = _cs3(Object.assign({}, ap, { fm: 0 }), dir, frame); const bw = base.dw || 56, bh = base.dh || 80, W2 = base.width, H2 = base.height;
+    c = mkc(W2, H2); const g = c.getContext('2d'); g.drawImage(base, 0, 0);
+    // 갑옷 색 입히기 (얼굴은 살짝만)
+    const t = mkc(W2, H2), tg = t.getContext('2d'); tg.drawImage(base, 0, 0); tg.globalCompositeOperation = 'source-atop'; tg.fillStyle = F.col; tg.globalAlpha = ap.fm.endsWith('King') ? 0.38 : 0.3; tg.fillRect(0, Math.round(H2 * 0.38), W2, H2);
+    g.drawImage(t, 0, 0);
+    // 왕: 금관
+    if (ap.fm.endsWith('King')) { const cx = W2 / 2, cy = H2 * 0.08; g.fillStyle = '#3a2216'; g.fillRect(cx - 21, cy + 1, 42, 15); g.fillStyle = '#ffd34d'; g.fillRect(cx - 19, cy + 6, 38, 8); for (const dx of [-17, -6, 5, 16]) { g.fillStyle = '#3a2216'; g.fillRect(cx + dx - 3, cy - 6, 8, 12); g.fillStyle = '#ffd34d'; g.fillRect(cx + dx - 1, cy - 4, 4, 10); } g.fillStyle = '#ff3b3b'; g.fillRect(cx - 3, cy + 8, 6, 4); }
+    c.dw = bw * F.scale; c.dh = bh * F.scale; c._form = F; fc.set(key, c); return c;
+  };
+  // 발밑 오라
+  const _dp = drawPlayer;
+  drawPlayer = function (p, rx, ry, dir, walking, sx, sy, now, isMe) {
+    if (p.a && p.a.fm && GD.FORMS[p.a.fm]) { const F = GD.FORMS[p.a.fm]; const x = rx * TS + 16 - sx, y = ry * TS + 30 - sy; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(now / 220) * 0.12; const gr = ctx.createRadialGradient(x, y, 2, x, y, 30 * F.scale); gr.addColorStop(0, F.col); gr.addColorStop(1, F.col + '00'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, y, 30 * F.scale, 11 * F.scale, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    return _dp(p, rx, ry, dir, walking, sx, sy, now, isMe);
   };
 })();

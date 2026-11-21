@@ -420,7 +420,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (k === 'Enter') { chatin.classList.remove('hidden'); chatin.focus(); e.preventDefault(); return; }
   if (k === 'Escape') { if (S.place) { S.place = null; return; } closePanel(); closePanel2(); hideTip(); return; }
-  if (k >= '1' && k <= '6') { castSkill(+k - 1); return; }
+  if (k >= '1' && k <= '8') { castSkill(+k - 1); return; }
   const pot = { '7': 'hp', '8': 'mp', '9': 'buffAtk', '0': 'buffDef' }[k]; if (pot) { usePot(pot); return; }
   hotkey(k.toLowerCase());
 });
