@@ -92,7 +92,7 @@ function fsHint() {
   d.innerHTML = `${ic('info')}<span>주소창 없이 하려면: 아래 <b>공유</b> 버튼 → <b>홈 화면에 추가</b> → 홈 화면의 <b>바람의 대륙</b> 아이콘으로 실행하세요.</span><button class="btn sm" id="fsok">확인</button>`;
   document.body.appendChild(d);
   $('fsok').onclick = () => { d.remove(); try { localStorage.setItem('baram_fshint', '1'); } catch (e) { } };
-  setTimeout(() => d.remove(), 20000);
+  setTimeout(() => d.remove(), 8000); try { localStorage.setItem('baram_fshint', '1'); } catch (e) { } // 한 번만, 8초 뒤 자동으로 사라짐
 }
 // 안드로이드: 터치를 뗄 때(사용자 동작) 전체화면 요청 — 주소창 숨김. 전체화면이 풀리면 다음 터치에 다시 요청
 (function () {

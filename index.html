@@ -138,7 +138,7 @@ input:focus{outline:none;border-color:var(--acc)}
 #rotate{display:none;position:fixed;inset:0;z-index:100;background:#1c2026;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px}
 #rotate svg.ic{width:56px;height:56px;color:var(--gold)}
 @media (orientation:portrait) and (pointer:coarse){#rotate{display:flex}}
-#fshint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;max-width:94vw}
+#fshint{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:30;pointer-events:none;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;max-width:94vw}
 /* v3: 미니맵만, 퀵슬롯 창, NPC 전체화면 분할 */
 #mini{width:auto;padding:4px}#mini canvas{width:92px;height:92px}#mapname,#clock,#coinline{display:none!important}
 #roomcode{position:absolute;left:8px;top:46px;height:22px;padding:0 8px;margin:0}
@@ -181,6 +181,7 @@ html,body{height:var(--vhp,100%)}
 #dpad #joy{width:auto;height:auto;display:block;position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08),rgba(20,24,30,.55));border:2px solid rgba(255,255,255,.22);box-shadow:inset 0 0 12px rgba(0,0,0,.5)}
 #dpad #knob{display:block;position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7b8494,#3a404a);border:2px solid rgba(255,255,255,.35);box-shadow:0 3px 8px rgba(0,0,0,.5);transition:transform .06s}
 .touchmode #qs{left:150px;bottom:12px}
+#fshint button{pointer-events:auto}
 </style>
 <style id="v5">
 :where(canvas[data-one],canvas[data-sm-ic],canvas[data-ci],canvas[data-qi],canvas[data-icon],canvas[data-eqi],canvas[data-gi]){width:30px;height:30px}
@@ -298,24 +299,24 @@ html,body{height:var(--vhp,100%)}
 <div id="panel2" class="panel small win hidden"><div class="pn-head"><div class="t" id="ptitle2"></div><button class="xbtn" id="px2"></button></div><div id="pbody2" style="padding:10px 12px"></div></div>
 <div id="tip" class="win hidden"></div>
 <div id="rotate"><span id="rotic"></span><div style="font-size:18px;font-weight:800">가로로 돌려주세요</div><div style="font-size:12px;opacity:.7">바람의 대륙은 가로 화면 전용이에요</div></div>
-<script>window.BUILD="web";window.BUILDV="1795222204";</script>
-<script src="mqtt.min.js?v=1795222204"></script>
-<script src="data.js?v=1795222204"></script>
-<script src="engine.js?v=1795222204"></script>
-<script src="sprites.js?v=1795222204"></script>
-<script src="env.js?v=1795222204"></script>
-<script src="gfx/chars.js?v=1795222204"></script>
-<script src="chars.js?v=1795222204"></script>
-<script src="gfx/atlas.js?v=1795222204"></script>
-<script src="gfx.js?v=1795222204"></script>
-<script src="tent.js?v=1795222204"></script>
-<script src="game.js?v=1795222204"></script>
-<script src="net-rtc.js?v=1795222204"></script>
-<script src="smooth.js?v=1795222204"></script>
-<script src="gfx/mons.js?v=1795222204"></script>
-<script src="monsters.js?v=1795222204"></script>
-<script src="ui.js?v=1795222204"></script>
-<script src="gfx/items.js?v=1795222204"></script>
-<script src="assets.js?v=1795222204"></script>
+<script>window.BUILD="web";window.BUILDV="1795222917";</script>
+<script src="mqtt.min.js?v=1795222917"></script>
+<script src="data.js?v=1795222917"></script>
+<script src="engine.js?v=1795222917"></script>
+<script src="sprites.js?v=1795222917"></script>
+<script src="env.js?v=1795222917"></script>
+<script src="gfx/chars.js?v=1795222917"></script>
+<script src="chars.js?v=1795222917"></script>
+<script src="gfx/atlas.js?v=1795222917"></script>
+<script src="gfx.js?v=1795222917"></script>
+<script src="tent.js?v=1795222917"></script>
+<script src="game.js?v=1795222917"></script>
+<script src="net-rtc.js?v=1795222917"></script>
+<script src="smooth.js?v=1795222917"></script>
+<script src="gfx/mons.js?v=1795222917"></script>
+<script src="monsters.js?v=1795222917"></script>
+<script src="ui.js?v=1795222917"></script>
+<script src="gfx/items.js?v=1795222917"></script>
+<script src="assets.js?v=1795222917"></script>
 </body>
 </html>
