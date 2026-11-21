@@ -73,12 +73,12 @@ function genWorld() {
     const b = biomeAt(n, x, y); m.biome[y * WW + x] = b;
     const v = r(), nn = n(x, y, 7);
     let t = T.GRASS;
-    if (b === 'grass') t = v < 0.035 ? T.TREE : v < 0.09 ? T.FLOWER : T.GRASS;
-    else if (b === 'forest') t = (nn > 0.45 && v < 0.33) || v < 0.08 ? T.TREE : v < 0.14 ? T.FLOWER : T.FOREST;
-    else if (b === 'desert') t = v < 0.025 ? T.CACTUS : v < 0.035 ? T.ROCK : T.SAND;
-    else if (b === 'snow') t = (nn > 0.55 && v < 0.3) || v < 0.04 ? T.PINE : T.SNOW;
-    else if (b === 'swamp') t = nn > 0.68 ? T.WATER : v < 0.06 ? T.DEADTREE : T.SWAMP;
-    else if (b === 'volcano') t = nn > 0.7 ? T.LAVA : v < 0.05 ? T.ROCK : T.ASH;
+    if (b === 'grass') t = v < 0.012 ? T.TREE : v < 0.09 ? T.FLOWER : T.GRASS;
+    else if (b === 'forest') t = (nn > 0.6 && v < 0.16) || v < 0.025 ? T.TREE : v < 0.14 ? T.FLOWER : T.FOREST;
+    else if (b === 'desert') t = v < 0.01 ? T.CACTUS : v < 0.016 ? T.ROCK : T.SAND;
+    else if (b === 'snow') t = (nn > 0.65 && v < 0.15) || v < 0.015 ? T.PINE : T.SNOW;
+    else if (b === 'swamp') t = nn > 0.68 ? T.WATER : v < 0.025 ? T.DEADTREE : T.SWAMP;
+    else if (b === 'volcano') t = nn > 0.7 ? T.LAVA : v < 0.022 ? T.ROCK : T.ASH;
     m.t[y * WW + x] = t;
   }
   // 강
