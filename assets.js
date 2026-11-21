@@ -70,10 +70,10 @@
   };
   window.drawTentInside = function (t, sx, sy, now) {
     if (!TIN.ok) return _ti(t, sx, sy, now);
-    const w = 11 * TS, h = w * TIN.height / TIN.width; const cx = (t.x + 4.5) * TS - sx, by = (t.y + 6.25) * TS - sy;
+    const tw = t.w || GD.TENT_W, th = t.h || GD.TENT_H; const w = 11 * TS * tw / 9, h = w * TIN.height / TIN.width; const cx = (t.x + tw / 2) * TS - sx, by = (t.y + th - 0.75) * TS - sy;
     ctx.imageSmoothingEnabled = true; ctx.drawImage(TIN, Math.round(cx - w / 2), Math.round(by - h), w, h); ctx.imageSmoothingEnabled = false;
     // 전구 반짝임
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.16 + Math.sin(now / 260) * 0.06; const gg = ctx.createRadialGradient(cx, by - h * 0.62, 0, cx, by - h * 0.62, w * 0.45); gg.addColorStop(0, 'rgba(255,190,90,.9)'); gg.addColorStop(1, 'rgba(255,150,60,0)'); ctx.fillStyle = gg; ctx.fillRect(cx - w / 2, by - h, w, h); ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.07 + Math.sin(now / 260) * 0.03; const gg = ctx.createRadialGradient(cx, by - h * 0.62, 0, cx, by - h * 0.62, w * 0.45); gg.addColorStop(0, 'rgba(255,190,90,.9)'); gg.addColorStop(1, 'rgba(255,150,60,0)'); ctx.fillStyle = gg; ctx.fillRect(cx - w / 2, by - h, w, h); ctx.restore();
     for (const f of t.furn) drawFurn(ctx, f.k, (t.x + f.x) * TS - sx, (t.y + f.y) * TS - sy, now);
     drawText('⛺ ' + t.owner + '의 텐트 안', cx, by - h - 6, '#ffe0a0', 12);
   };

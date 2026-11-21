@@ -493,14 +493,15 @@ function buildTouch() {
 
 // ═══════ 이동 ═══════
 function tileAt(x, y) { const m = S.map; if (!m || x < 0 || y < 0 || x >= m.w || y >= m.h) return T.ROCK; return m.t[y * m.w + x]; }
-function structAt(x, y) { for (const t of S.tents) if (x >= t.x && x < t.x + GD.TENT_W && y >= t.y && y < t.y + GD.TENT_H) return t; return null; }
+const SW_ = t => t.w || GD.TENT_W, SH_ = t => t.h || GD.TENT_H;
+function structAt(x, y) { for (const t of S.tents) if (x >= t.x && x < t.x + SW_(t) && y >= t.y && y < t.y + SH_(t)) return t; return null; }
 function isOuterTent(t) { return (t.kind || 'tent') === 'tent' && !t.inner; }
 function structBlock(t, x, y) {
   const lx = x - t.x, ly = y - t.y;
-  if (isOuterTent(t)) return !(lx === (GD.TENT_W >> 1) && ly === GD.TENT_H - 1);
+  if (isOuterTent(t)) return !(lx === (GD.TENT_W >> 1) && ly === GD.TENT_H - 1); // 바깥 텐트 크기는 고정
   const f = t.furn.find(f => f.x === lx && f.y === ly);
-  const wall = lx === 0 || lx === GD.TENT_W - 1 || ly === 0 || ly === GD.TENT_H - 1;
-  if (wall) { if (f && f.k === 'door') return false; if (t.kind !== 'house' && ly === GD.TENT_H - 1 && lx === (GD.TENT_W >> 1)) return false; return true; }
+  const wall = lx === 0 || lx === SW_(t) - 1 || ly === 0 || ly === SH_(t) - 1;
+  if (wall) { if (f && f.k === 'door') return false; if (t.kind !== 'house' && ly === SH_(t) - 1 && lx === (SW_(t) >> 1)) return false; return true; }
   return !!(f && !GD.WALK_FURN.has(f.k));
 }
 function canWalk(x, y) {
@@ -711,6 +712,7 @@ function frame(nowMs) {
   drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr);
   for (let y = y0; y <= Math.min(m.h - 1, y1 + 2); y++) for (let x = x0; x <= x1; x++) {
     const id = m.t[y * m.w + x]; if (!TREEISH.has(id)) continue;
+    if (S.tents.length) { const st_ = structAt(x, y); if (st_ && isOuterTent(st_)) continue; } // 텐트 자리의 나무는 그리지 않음
     if (y > y1) { trees.push([id, x, y, m.biome ? biomeChar(x, y) : '']); continue; }
     if (m.castle) continue;
     let under = ''; if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y); else if (!m.biome && id === T.ROCK) under = 'c';
@@ -864,8 +866,8 @@ function myStruct(kind) { return S.tents.find(t => t.owner === S.me.name && (t.k
 function drawPlaceHint(sx, sy) {
   const t = myStruct(S.place.s); if (!t || isOuterTent(t)) return;
   const f = S.place.k && GD.FURNITURE[S.place.k];
-  for (let ly = 0; ly < GD.TENT_H; ly++) for (let lx = 0; lx < GD.TENT_W; lx++) {
-    const wall = lx === 0 || lx === GD.TENT_W - 1 || ly === 0 || ly === GD.TENT_H - 1; const corner = (lx === 0 || lx === GD.TENT_W - 1) && (ly === 0 || ly === GD.TENT_H - 1);
+  for (let ly = 0; ly < SH_(t); ly++) for (let lx = 0; lx < SW_(t); lx++) {
+    const wall = lx === 0 || lx === SW_(t) - 1 || ly === 0 || ly === SH_(t) - 1; const corner = (lx === 0 || lx === SW_(t) - 1) && (ly === 0 || ly === SH_(t) - 1);
     const occ = t.furn.some(o => o.x === lx && o.y === ly);
     let ok = S.place.del ? occ : (f.wall ? wall && !corner && !occ : !wall && !occ);
     if (!ok) continue;
@@ -875,20 +877,20 @@ function drawPlaceHint(sx, sy) {
 function placeAt(tx, ty) {
   const t = myStruct(S.place.s); if (!t) { S.place = null; return; }
   if (isOuterTent(t)) { log('텐트 안에 들어가서 가구를 배치하세요. (텐트 아래 입구로 들어가기)', '#ffd27a'); S.place = null; return; }
-  const lx = tx - t.x, ly = ty - t.y; if (lx < 0 || ly < 0 || lx >= GD.TENT_W || ly >= GD.TENT_H) { S.place = null; return; }
+  const lx = tx - t.x, ly = ty - t.y; if (lx < 0 || ly < 0 || lx >= SW_(t) || ly >= SH_(t)) { S.place = null; return; }
   if (S.place.del) send({ t: 'furnDel', s: S.place.s, x: lx, y: ly }); else send({ t: 'furn', s: S.place.s, k: S.place.k, x: lx, y: ly });
 }
 function drawLight(sx, sy, now) {
   const m = S.map; let a = m.dark ? (m.castle ? 0.42 : 0.66) : S.nl * 0.7;
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
-  if (m.inner) a = 0.3;
+  if (m.inner) a = 0.5;
   if (a < 0.02) return;
   lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = m.inner ? `rgba(20,10,4,${a})` : `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
   lcx.globalCompositeOperation = 'destination-out';
   const L = (x, y, r, i = 1) => { const px = x * TS + 16 - sx, py = y * TS + 10 - sy, R = r * TS; if (px < -R || px > W + R || py < -R || py > H + R) return; const gr = lcx.createRadialGradient(px, py, 0, px, py, R); gr.addColorStop(0, `rgba(0,0,0,${i})`); gr.addColorStop(0.5, `rgba(0,0,0,${i * 0.7})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lcx.fillStyle = gr; lcx.fillRect(px - R, py - R, R * 2, R * 2); };
   const fl = 1 + Math.sin(now / 120) * 0.04;
   L(pos.rx, pos.ry, m.dark ? 6.5 : 5);
-  if (m.inner) { L(5, 3.2, 6.5, 0.85); L(5, 1.4, 3, 0.6); }
+  if (m.inner) { L(4.5, 2.6, 3.6, 0.75); }
   for (const p of S.P.values()) if (p.i !== S.myId) L(p.rx, p.ry, 3.2, 0.8);
   for (const l of m.lights) L(l.x, l.y, l.r * fl);
   for (const t of S.tents) { L(t.x + 4, t.y + 3, 3, 0.5); for (const f of t.furn) if (['torch', 'campfire', 'lantern', 'stove'].includes(f.k)) L(t.x + f.x, t.y + f.y, (f.k === 'lantern' ? 6 : f.k === 'campfire' ? 5.5 : 4.5) * fl); }
