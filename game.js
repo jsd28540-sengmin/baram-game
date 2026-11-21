@@ -315,7 +315,7 @@ function uiAsk(text, onYes, opt = {}) {
 const CR = { g: 'm', h: 0, hc: 0, sk: 0, job: 'warrior' };
 $('go').onclick = () => { const n = $('nm').value.trim(); if (!n) return; if ((ART || window.BUILD === 'web') && NET.mode !== 'host' && !NET.hostPeer) { $('lerr').textContent = '아직 방장의 게임에 연결되지 않았어요.'; return; } try { localStorage.setItem('baram_name', n); } catch (e) { } if (NET.mode === 'host' && NET.room) NET.room.presence({ host: 1, hn: n }).catch(() => { }); if (NET.mode === 'host') NET.hostName = n; send(loginMsg(n)); };
 $('nm').onkeydown = e => { if (e.key === 'Enter') $('go').click(); };
-$('back').onclick = () => { $('step2').classList.add('hidden'); $('step1').classList.remove('hidden'); };
+$('back').onclick = () => { /* 이미 방에 연결된 상태라 첫 화면만 다시 보여주면 버튼이 먹통 → 깨끗하게 다시 시작 */ $('back').disabled = true; $('back').textContent = '돌아가는 중…'; setTimeout(() => location.reload(), 50); };
 $('make').onclick = () => send({ t: 'create', key: devKey(), name: $('nm').value.trim(), gender: CR.g, hair: CR.h, hairColor: CR.hc, skin: CR.sk, job: CR.job });
 function opts(el, list, key) {
   el.innerHTML = list.map((o, i) => `<div class="opt ${CR[key] === o.v ? 'on' : ''}" data-v="${i}">${o.html}</div>`).join('');

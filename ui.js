@@ -1261,10 +1261,18 @@ function openPouch(k) {
 const _rpP = renderPanel;
 renderPanel = function () {
   _rpP();
+  { const old = $('qshead'); if (old) old.remove(); }
   const P = S.panel; if (!P || P.kind !== 'inv' || !S.me) return;
   const body = $('pbody'); const st = body.querySelector('.box.stat'); if (!st) return;
   st.classList.add('stat2');
   st.insertAdjacentHTML('afterend', pouchesH());
+  $('ptitle').insertAdjacentHTML('afterend', `<div id="qshead" style="flex:1;display:flex;justify-content:center;min-width:0">${qsEditH()}</div>`);
+  const qh = $('qshead');
+  qh.querySelectorAll('canvas[data-qi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon({ k: 'use', id: c.dataset.qi }), 0, 0, 32, 32); });
+  qh.querySelectorAll('[data-qe]').forEach(d => d.onclick = e => { e.stopPropagation(); qsEditTap(+d.dataset.qe); });
+  { const qc = qh.querySelector('[data-qclr]'); if (qc) qc.onclick = e => { e.stopPropagation(); const h = hotList(); h[S.qsSel] = null; S.me.hot = h; send({ t: 'hot', hot: h }); S.qsSel = null; renderQS(true); renderPanel(); }; }
+  body.querySelectorAll('canvas[data-qi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon({ k: 'use', id: c.dataset.qi }), 0, 0, 32, 32); });
+  body.querySelectorAll('[data-qe]').forEach(d => d.onclick = e => { e.stopPropagation(); qsEditTap(+d.dataset.qe); });
   paintOne(body); markSel();
   body.querySelectorAll('[data-pouch]').forEach(d => d.onclick = e => {
     e.stopPropagation(); const k = +d.dataset.pouch;
@@ -1272,10 +1280,25 @@ renderPanel = function () {
     else openPouch(k);
   });
 };
+// ═══════ 가방 안 퀵슬롯 편집: 칸을 눌러 고르고 다른 칸을 누르면 자리 바꿈 · 가방 아이템을 누른 뒤 칸을 누르면 등록 ═══════
+function qsEditH() {
+  const hot = hotList(), sel = S.qsSel;
+  const cells = hot.map((id, i) => `<div data-qe="${i}" style="position:relative;width:40px;height:40px;flex:none;border-radius:7px;background:#0007;border:2px solid ${sel === i ? '#ffd34d' : '#ffffff26'};box-shadow:${sel === i ? '0 0 10px #ffd34d88' : 'none'};display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="position:absolute;left:3px;top:0;font-size:10px;color:#9fe8ff;font-weight:700">${[7, 8, 9, 0, '-'][i]}</span>${id ? `<canvas width="32" height="32" data-qi="${id}" style="width:32px;height:32px"></canvas><span style="position:absolute;right:3px;bottom:0;font-size:10px;font-weight:700">${useCount(id)}</span>` : ic('plus', 14)}</div>`).join('');
+  const hint = sel != null ? '바꿀 칸을 누르세요 (같은 칸 = 취소)' : S.pSel != null && S.me.inv[S.pSel] && S.me.inv[S.pSel].k === 'use' ? '등록할 칸을 누르세요' : '칸을 눌러 고른 뒤 다른 칸을 누르면 순서가 바뀌어요';
+  return `<div class="qsedit" style="display:flex;align-items:center;gap:6px;margin:0;flex-wrap:nowrap"><b style="font-size:12px;color:#9fe8ff;white-space:nowrap">${ic('zap', 13)}퀵슬롯</b>${cells}${sel != null && hot[sel] ? '<button class="btn sm" data-qclr>비우기</button>' : ''}</div>`;
+}
+function qsEditTap(i) {
+  const it = S.pSel != null && S.me.inv[S.pSel];
+  if (it && it.k === 'use' && GD.CONSUMES[it.id] && S.qsSel == null) { setHot(i, it.id); S.pSel = null; hideTip(); log(`[${GD.CONSUMES[it.id].name}] 퀵슬롯 ${i + 1}번에 등록`, '#9fe8ff'); renderPanel(); return; }
+  if (S.qsSel == null) { S.qsSel = i; log('바꿀 퀵슬롯 칸을 누르세요 (같은 칸을 누르면 취소 · [비우기]로 칸 비우기)', '#9fe8ff'); }
+  else if (S.qsSel === i) { S.qsSel = null; }
+  else { const h = hotList(); const a = S.qsSel; [h[a], h[i]] = [h[i], h[a]]; S.me.hot = h; send({ t: 'hot', hot: h }); S.qsSel = null; renderQS(true); }
+  renderPanel();
+}
 // 주머니 창이 열려 있으면 내용 갱신
 const _rhP = refreshHud;
 refreshHud = function (full) { _rhP(full); if (full && S.pOpen != null && !$('panel2').classList.contains('hidden') && $('ptitle2').textContent.startsWith('주머니')) openPouch(S.pOpen); };
-document.addEventListener('pointerdown', e => { if (S.pSel != null && !e.target.closest('[data-pouch],#tip,[data-bag="inv"]')) { S.pSel = null; markSel(); } }, true);
+document.addEventListener('pointerdown', e => { if (S.pSel != null && !e.target.closest('[data-pouch],#tip,[data-bag="inv"],[data-qe]')) { S.pSel = null; markSel(); } }, true);
 
 // 닫기(X) 버튼: 터치에서도 확실히 닫히도록 pointerup 으로 처리
 document.addEventListener('pointerup', e => {
