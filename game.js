@@ -116,7 +116,7 @@ function makeSaver(db) {
   const last = {}; let busy = false;
   return { save(S) {
     if (!db) {
-      const pack = JSON.stringify({ t: Date.now(), saves: S });
+      const pack = JSON.stringify({ t: Date.now(), saves: S, srv: NET.serverOnly ? 1 : 0, solo: NET.serverOnly ? 0 : 1 });
       try { localStorage.setItem(NET.code ? 'baram_saves_' + NET.code : 'baram_saves', pack); } catch (e) { }
       // 인터넷 백업 (중계 서버에 보관) — 방장 폰 데이터가 지워져도 복구 가능
       if (NET.mq && NET.code) { const j = JSON.stringify(S); const now = Date.now(); if (j !== NET._lastBk && (!NET._bkT || now - NET._bkT > 20000)) { NET._lastBk = j; NET._bkT = now; try { NET.mq.publish(TP + NET.code + '/save', pack, { retain: true, qos: 1 }); } catch (e) { } } }
@@ -226,6 +226,18 @@ function webLobby() {
     c.on('message', onPre); c.subscribe([TP + code + '/host', TP + code + '/save']);
     await new Promise(r => setTimeout(r, 2200));
     c.removeListener('message', onPre); c.unsubscribe([TP + code + '/host', TP + code + '/save']);
+    // 서버(아이패드) 방과 혼자 하는 방은 저장을 절대 섞지 않음
+    if (!NET.serverOnly) {
+      let lastG = false; try { lastG = (mem.role === 'guest' && mem.code === code) || JSON.parse(localStorage.getItem('baram_srvcodes') || '[]').includes(code); } catch (e) { }
+      if ((backup && backup.srv) || (otherHost && otherHost.srv) || lastG) {
+        if (!(otherHost && otherHost.sid !== NET.sid)) {
+          c.end(true); unlock(); let solo = null; try { solo = localStorage.getItem('baram_solo'); } catch (e) { }
+          if (!solo || solo === code) { solo = String(1000 + Math.floor(Math.random() * 9000)); if (solo === code) solo = String((+solo % 9000) + 1000); try { localStorage.setItem('baram_solo', solo); } catch (e) { } }
+          setNetStatus(`${code}번은 아이패드 서버 방이라 혼자 하기는 따로 ${solo}번 방으로 열어요. (서버 캐릭터와 별개)`, '#ffe08a'); $('lcode').value = '';
+          return hostRoom(n, solo);
+        }
+      }
+    } else if (backup && backup.solo) backup = null; // 서버는 혼자 하기 백업을 가져오지 않음
     if (otherHost && otherHost.sid !== NET.sid) { c.end(true); unlock(); setNetStatus(`${otherHost.n}님이 이미 ${code}번 방을 열어 두었어요. [참가하기]로 들어가세요.`, '#ffe08a'); $('lcode').value = code; return; }
     // 저장 데이터: 이 폰의 저장 vs 인터넷 백업 중 최신 것
     let local = null; try { local = JSON.parse(localStorage.getItem('baram_saves_' + code) || 'null'); } catch (e) { }
@@ -236,7 +248,7 @@ function webLobby() {
     try { localStorage.setItem('baram_last', JSON.stringify(NET.serverOnly ? { role: 'server', code, name: '서버' } : { role: 'host', code, name: n })); } catch (e) { }
     startHost(null, '', () => {
       c.subscribe(TP + code + '/h');
-      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n || '서버', t: Date.now(), sid: NET.sid }), { retain: true });
+      const pubHost = () => c.publish(TP + code + '/host', JSON.stringify({ n: NET.hostName || n || '서버', t: Date.now(), sid: NET.sid, srv: NET.serverOnly ? 1 : 0 }), { retain: true });
       pubHost(); setInterval(pubHost, 5000);
       c.on('connect', () => { c.subscribe(TP + code + '/h'); pubHost(); });
       c.on('message', (topic, buf) => {
@@ -275,10 +287,10 @@ function webLobby() {
         const str = buf.toString(); if (!str) { NET.hostPeer = null; setNetStatus('⚠ 방장이 나갔습니다', '#ff8a8a'); if (S.me) announce('방장(호스트)이 게임을 닫았습니다', '#ff8a8a'); return; }
         let d; try { d = JSON.parse(str); } catch (e) { return; }
         if (d.t && Date.now() - d.t > 60000) return; // 오래된 방장 정보는 무시
-        lastHost = Date.now(); NET.hostPeer = 'host';
+        lastHost = Date.now(); NET.hostPeer = 'host'; if (d.srv) { try { const sc = JSON.parse(localStorage.getItem('baram_srvcodes') || '[]'); if (!sc.includes(code)) { sc.push(code); localStorage.setItem('baram_srvcodes', JSON.stringify(sc.slice(-10))); } } catch (e) { } }
         if (!found || (d.sid && NET.hostSid && d.sid !== NET.hostSid)) {
           const re = found; found = true; NET.hostSid = d.sid; setNetStatus(`✅ ${d.n}님의 방(${code})에 연결됨`);
-          try { localStorage.setItem('baram_last', JSON.stringify({ role: 'guest', code, name: n })); } catch (e) { }
+          try { localStorage.setItem('baram_last', JSON.stringify({ role: 'guest', code, name: n })); const sc = JSON.parse(localStorage.getItem('baram_srvcodes') || '[]'); if (!sc.includes(code)) { sc.push(code); localStorage.setItem('baram_srvcodes', JSON.stringify(sc.slice(-10))); } } catch (e) { }
           send(loginMsg(n)); if (re) { announce('방장이 다시 방을 열었어요. 이어서 플레이합니다!', '#9fe8ff'); if (window.rtcClientStart) setTimeout(() => rtcClientStart(o => c.publish(TP + code + '/h', JSON.stringify(Object.assign({ cid }, o)))), 1500); }
         } else NET.hostSid = d.sid;
         return;

@@ -40,6 +40,8 @@ must('engine.js', "t = v < 0.012 ? T.TREE : v < 0.09 ? T.FLOWER : T.GRASS;", '�
 must('game.js', "setTimeout(() => location.reload(), 50); };", '캐릭터 만들기 뒤로가기 = 새로고침 (먹통 방지)');
 must('chars.js', "// 치유사 두건은 머리색을 따라감", '치유사 외형 색 변경 유지');
 must('ui.js', "function qsEditTap(i)", '가방 안 퀵슬롯 순서 편집 유지');
+must('game.js', "} else if (backup && backup.solo) backup = null; // 서버는 혼자 하기 백업을 가져오지 않음", '서버 방·혼자 하기 저장 분리 유지');
+must('game.js', "saves: S, srv: NET.serverOnly ? 1 : 0, solo: NET.serverOnly ? 0 : 1 }", '백업에 서버/혼자 표시 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

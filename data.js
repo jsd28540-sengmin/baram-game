@@ -254,7 +254,7 @@
     horse: { name: '갈색 말', price: 30000, spd: 1.5, c: ['#7a4a22', '#2a1a0a'], kind: 'horse' },
     camel: { name: '사막 낙타', price: 70000, spd: 1.65, c: ['#d0a860', '#8a6a3a'], kind: 'camel' },
     ostrich: { name: '질주 타조', price: 120000, spd: 1.85, c: ['#2a2a2a', '#f0e8d8'], kind: 'ostrich' },
-    whiteHorse: { name: '천리 치타', price: 250000, spd: 2.1, c: ['#e8b23a', '#3a2a10'], kind: 'horse', tint: '#e0a530' },
+    whiteHorse: { name: '천리 치타', price: 250000, spd: 2.1, c: ['#e8b23a', '#3a2a10'], kind: 'horse' },
     // 보스 전용 (상점 판매 안 함, 보스 처치 시 낮은 확률로 '탈것 증표' 획득)
     battleBear: { name: '전투곰', boss: 1, spd: 1.7, c: ['#6a4022', '#2a1a0a'], kind: 'horse', tint: '#7a4a22', from: '거대곰왕' },
     goldScorpion: { name: '황금 전갈', boss: 1, spd: 1.85, c: ['#e0b040', '#8a6a1a'], kind: 'horse', tint: '#e8b830', from: '황금전갈왕' },

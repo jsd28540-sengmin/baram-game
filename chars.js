@@ -196,8 +196,8 @@ charSprite = function (ap, dir, frame) {
     const hp = hairPal ? hairPal.filter(p => p[0] + p[1] + p[2] > 150) : []; const hairL = hp.length ? rgb2hsl(...hp[0])[2] : 0.4;
     const armL = { warrior: 0.45, mage: 0.4, healer: 0.38 }[base];
     for (let y = Math.floor(dy); y < c.height; y++) { const yr = (y - dy) / dh; for (let x = 0; x < W2; x++) { const i = (y * W2 + x) * 4; if (d[i + 3] < 30) continue; const r = d[i], gg = d[i + 1], b = d[i + 2]; const [h, sat, l] = rgb2hsl(r, gg, b); if (l < 0.12) continue;
-      if (wantHood && yr < 0.55 && h > 55 && h < 140 && sat > 0.15) { tintPx(d, i, hairT, 0.36); continue; } // 치유사 두건은 머리색을 따라감
-      if (wantHood && !hairPal && yr < 0.42 && h >= 15 && h <= 62 && sat > 0.2 && (!isSkin(h, sat, l) || (ap.g === 'f' && h > 34))) { tintPx(d, i, hairT, 0.42); continue; }
+      if (wantHood && yr < (ap.g === 'f' ? 0.32 : 0.27) && l > 0.1) { tintPx(d, i, hairT, 0.36); continue; } // 머리 윗부분(두건+앞머리) 통째로
+      if (wantHood && yr < 0.5 && sat > 0.12 && ((h > 52 && h < 150) || (h > 42 && h <= 52 && (ap.g !== 'f' ? sat > 0.35 && l > 0.42 && yr < 0.3 : l < 0.5)))) { tintPx(d, i, hairT, 0.36); continue; } // 치유사 두건은 머리색을 따라감
       if (wantHair && yr < 0.5 && !isSkin(h, sat, l)) { let md = 1e9; for (const p of hp) { const dd = (p[0] - r) ** 2 + (p[1] - gg) ** 2 + (p[2] - b) ** 2; if (dd < md) md = dd; } if (md < 34 * 34) { tintPx(d, i, hairT, hairL); continue; } }
       if (armorT && yr > 0.42) { const hit = base === 'warrior' ? ((h < 18 || h > 335) && sat > 0.35) : base === 'mage' ? (h > 195 && h < 265 && sat > 0.2) : (h > 55 && h < 140 && sat > 0.18); if (hit) tintPx(d, i, armorT, armL); }
     } }
