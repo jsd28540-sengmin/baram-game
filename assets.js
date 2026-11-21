@@ -113,13 +113,17 @@
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
     if (ap.mt === 'whiteHorse') { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
     const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 110 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
-    const cut = 96; // 라이더 상체 (112x160 중 위쪽)
-    const drawRider = () => g.drawImage(rider, 0, 0, 112, cut, seatX - 56, seatY - cut + 22, 112, cut);
-    if (d === 'down') { const sy2 = hy + hh * SEAT[1]; g.drawImage(rider, 0, 0, 112, cut, seatX - 56, sy2 - cut + 22, 112, cut); g.save(); g.beginPath(); g.rect(hx, hy + hh * 0.18, hw, hh); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); if (MK === 'ostrich') { g.save(); g.beginPath(); g.rect(hx + hw * 0.3, hy + hh * 0.12, hw * 0.4, hh * 0.3); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); } g.save(); g.beginPath(); g.rect(hx, hy, hw, hh * 0.18); g.clip(); g.globalAlpha = 1; g.restore(); }
+    // 라이더: 실제 그림 영역(bbox)을 찾아 머리~허리(위 68%)만 잘라 안장 위에 앉힘
+    const rb = riderBox(rider); const rH = rb.h * 0.68, RS = 1.0; const rw = rb.w * RS, rh = rH * RS;
+    const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
+    const drawRider = () => drawRiderAt(seatX, seatY + 10);
+    if (d === 'down') { const sy2 = hy + hh * (MK === 'ostrich' ? 0.3 : 0.2); drawRiderAt(seatX, sy2); g.save(); g.beginPath(); g.rect(hx, hy + hh * 0.18, hw, hh); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); if (MK === 'ostrich') { g.save(); g.beginPath(); g.rect(hx + hw * 0.3, hy + hh * 0.12, hw * 0.4, hh * 0.3); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore(); } g.save(); g.beginPath(); g.rect(hx, hy, hw, hh * 0.18); g.clip(); g.globalAlpha = 1; g.restore(); }
     else { g.drawImage(hor, hx, hy, hw, hh); drawRider(); }
     c.dw = 110; c.dh = 110; hc.set(key, c); return c;
   };
 
+  const rbCache = new WeakMap();
+  function riderBox(cv) { let b = rbCache.get(cv); if (b) return b; const w = cv.width, h = cv.height; let x0 = w, y0 = h, x1 = 0, y1 = 0; try { const d = cv.getContext('2d').getImageData(0, 0, w, h).data; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } } catch (e) { } if (x1 < x0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; } b = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }; rbCache.set(cv, b); return b; }
   // ── NPC (GPT 그림, 가까우면 플레이어 쪽을 봄) ──
   const _dn = drawNpc;
   drawNpc = function (n, sx, sy, now) {
