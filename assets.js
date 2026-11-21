@@ -107,7 +107,7 @@
     const MD = GD.MOUNTS[ap.mt] || {}; const MK = HA[ap.mt] ? ap.mt : (ap.mt === 'whiteHorse' || MD.tint) ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
     const rider = _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
-    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = { horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0] }[MK];
+    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
     c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
     const hw = r[2] * 1.75, hh = r[3] * 1.75; const hx = 110 - hw / 2, hy = 218 - hh;
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
