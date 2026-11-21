@@ -33,6 +33,9 @@ must('game.js', 'if (m.x === x && m.y === y && !m.s) return false; // 소환수�
 must('engine.js', "p.coins -= mt.price; giveMount(p, msg.id);", '탈것 구매 시 가방으로 들어감 유지');
 must('engine.js', "if (it.k === 'mount') return sysMsg(p, '탈것은 버릴 수 없어요.'", '탈것 버리기 차단 유지(분실 방지)');
 must('ui.js', "if (s === 'mount') { eq += me.mount ?", '장비창 탈것 칸 유지');
+must('index.html', '.touchmode #qs{left:auto!important;right:12px!important;bottom:198px!important}', '퀵슬롯은 보조버튼 줄 위 유지');
+must('ui.js', "st.insertAdjacentHTML('afterend', pouchesH());", '장비창 주머니 표시 유지');
+must('ui.js', "const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', 'prev', 'boots', 'mount'];", '장비창 미리보기는 빈칸 안에(주머니 밀림 방지)');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
