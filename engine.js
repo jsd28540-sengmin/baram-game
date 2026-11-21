@@ -1078,18 +1078,24 @@ function tradeOf(p) { return TRADES.get(p.name); }
 function tradeSend(tr) {
   for (const side of ['a', 'b']) {
     const me = tr[side], other = tr[side === 'a' ? 'b' : 'a'];
-    const view = s => ({ items: tr.off[s].items.map(o => { const it = tr[s].inv[o.i]; return it ? Object.assign({}, it, it.k === 'gear' ? {} : { n: o.n }) : null; }).filter(Boolean), coins: tr.off[s].coins, lock: tr.lock[s], ok: tr.ok[s] });
-    me.ws.send({ t: 'trade', with: other.name, mine: view(side), theirs: view(side === 'a' ? 'b' : 'a'), myIdx: tr.off[side].items.map(o => o.i) });
+    // 아이템은 '가방 몇 번째 칸'이 아니라 아이템 자체로 기억 → 교환 중 가방이 바뀌어도 엉뚱한 것이 가지 않음
+    tr.off[side].items = tr.off[side].items.filter(o => tr[side].inv.includes(o.ref));
+    const view = s => ({ items: tr.off[s].items.map(o => Object.assign({}, o.ref, o.ref.k === 'gear' ? {} : { n: Math.min(o.n, o.ref.n) })), coins: tr.off[s].coins, lock: tr.lock[s], ok: tr.ok[s] });
+    me.ws.send({ t: 'trade', with: other.name, mine: view(side), theirs: view(side === 'a' ? 'b' : 'a'), myIdx: tr.off[side].items.map(o => tr[side].inv.indexOf(o.ref)) });
   }
 }
 function tradeEnd(tr, msg) { TRADES.delete(tr.a.name); TRADES.delete(tr.b.name); for (const p of [tr.a, tr.b]) { p.ws.send({ t: 'trade', close: 1 }); if (msg) sysMsg(p, msg); } }
 function tradeExec(tr) {
   const A = tr.a, B = tr.b;
   if (A.coins < tr.off.a.coins || B.coins < tr.off.b.coins) return tradeEnd(tr, '코인이 부족해 교환이 취소되었습니다.');
-  const takeOut = (P, offs) => { const out = []; for (const o of offs) { const it = P.inv[o.i]; if (!it) continue; if (it.k === 'gear' || o.n >= it.n) { out.push(it); it._rm = 1; } else { it.n -= o.n; out.push(Object.assign({}, it, { n: o.n })); } } P.inv = P.inv.filter(x => !x._rm); return out; };
+  // 올린 아이템이 그대로 있는지 확인 (없거나 개수가 줄었으면 취소)
+  for (const [P, s] of [[A, 'a'], [B, 'b']]) for (const o of tr.off[s].items) if (!P.inv.includes(o.ref) || (o.ref.k !== 'gear' && o.ref.n < o.n)) return tradeEnd(tr, '올린 아이템이 바뀌어 교환이 취소되었습니다. 다시 시도해 주세요.');
+  const takeOut = (P, offs) => { const out = []; const rm = new Set(); for (const o of offs) { const it = o.ref; if (it.k === 'gear' || o.n >= it.n) { out.push(it); rm.add(it); } else { it.n -= o.n; out.push(Object.assign({}, it, { n: o.n })); } } P.inv = P.inv.filter(x => !rm.has(x)); return out; };
   if (A.inv.length + tr.off.b.items.length > INV_MAX + tr.off.a.items.length || B.inv.length + tr.off.a.items.length > INV_MAX + tr.off.b.items.length) return tradeEnd(tr, '가방이 가득 차 교환이 취소되었습니다.');
   const ia = takeOut(A, tr.off.a.items), ib = takeOut(B, tr.off.b.items);
-  ia.forEach(x => addItem(B, x)); ib.forEach(x => addItem(A, x));
+  // 받는 쪽 가방이 차면: 창고 → 그래도 없으면 발밑에 떨어뜨림 (절대 사라지지 않게)
+  const give = (P, x) => { delete x._rm; if (addItem(P, x)) return; if (addItem(P, x, 'storage')) return sysMsg(P, `가방이 가득 차서 [${x.name || x.id}]은(는) 마을 창고로 보냈습니다.`, '#ffd166'); dropAt(MAPS[P.map], P.x, P.y, x, P.name); sysMsg(P, `가방이 가득 차서 [${x.name || x.id}]을(를) 발밑에 내려놓았습니다.`, '#ffd166'); };
+  ia.forEach(x => give(B, x)); ib.forEach(x => give(A, x));
   A.coins += tr.off.b.coins - tr.off.a.coins; B.coins += tr.off.a.coins - tr.off.b.coins;
   dirty(A); dirty(B); tradeEnd(tr, '🤝 교환이 완료되었습니다!');
 }
@@ -1150,6 +1156,7 @@ function onConnect(ws) {
 function enter(p, ws) {
   p.id = 'p' + uid(); p.ws = ws; p.buffs = []; p.cds = {}; p.summons = []; p.dead = false; p.riding = false; p.lastMove = 0;
   p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
+  for (const it of p.inv) if (it && it._rm) delete it._rm; // 예전 교환 버그 표시 정리
   // 텐트 안에서 접속이 끊겼으면: 텐트 입구 밖에서 시작 (실내는 그때그때 만드는 임시 공간)
   if (String(p.map || '').startsWith('tent_')) { let out = null; const owner = p.map.slice(5); for (const mm of Object.values(MAPS)) for (const t of mm.tents || []) if (t.owner === owner && !t.inner && (t.kind || 'tent') === 'tent') out = { map: mm.id, x: t.x + (D.TENT_W >> 1), y: t.y + D.TENT_H }; if (out && MAPS[out.map]) { p.map = out.map; p.x = out.x; p.y = out.y; } else { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; } }
   if (!MAPS[p.map]) { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; }
@@ -1303,7 +1310,7 @@ function handle(p, msg) {
     case 'tradeItem': case 'tradeCoin': case 'tradeLock': case 'tradeOk': case 'tradeCancel': {
       const tr = tradeOf(p); if (!tr) return; const side = tr.a === p ? 'a' : 'b';
       if (msg.t === 'tradeCancel') return tradeEnd(tr, '교환이 취소되었습니다.');
-      if (msg.t === 'tradeItem') { const i = msg.i | 0; const it = p.inv[i]; if (!it) return; const arr = tr.off[side].items; const k = arr.findIndex(o => o.i === i); if (k >= 0) arr.splice(k, 1); if (!msg.remove && arr.length < 10) arr.push({ i, n: it.k === 'gear' ? 1 : clamp(msg.n | 0 || it.n, 1, it.n) }); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
+      if (msg.t === 'tradeItem') { const i = msg.i | 0; const it = p.inv[i]; if (!it) return; const arr = tr.off[side].items; const k = arr.findIndex(o => o.ref === it); if (k >= 0) arr.splice(k, 1); if (!msg.remove && arr.length < 10) arr.push({ ref: it, n: it.k === 'gear' ? 1 : clamp(msg.n | 0 || it.n, 1, it.n) }); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
       if (msg.t === 'tradeCoin') { tr.off[side].coins = clamp(msg.n | 0, 0, p.coins); tr.lock = { a: 0, b: 0 }; tr.ok = { a: 0, b: 0 }; }
       if (msg.t === 'tradeLock') tr.lock[side] = 1;
       if (msg.t === 'tradeOk') { tr.lock[side] = 1; tr.ok[side] = 1; if (tr.ok.a && tr.ok.b) return tradeExec(tr); }
