@@ -153,6 +153,11 @@
     demonLord: B('마왕 무저갱', 62, 'demon', ['#3a001a', '#ff2050', '#ffd000'], { aura: '#ff0040', size: 2.8, crown: 1 }),
   });
 
+  // 몬스터 특성 스킬: 레벨 10↑ 1개, 30↑ 2개, 50↑ 3개 (돌연변이 +1)
+  D.MSK = { poison: '독', charge: '돌진', slam: '내려찍기', frenzy: '광폭', drain: '흡혈', blink: '순간이동', curse: '저주', heal: '치유', summon: '부하소환', breath: '브레스' };
+  D.MSK_POOL = { quad: ['charge', 'frenzy', 'drain'], boar: ['charge', 'frenzy'], bear: ['slam', 'frenzy', 'charge'], golem: ['slam', 'frenzy', 'heal'], scorpion: ['poison', 'charge', 'frenzy'], spider: ['poison', 'blink', 'summon'], snake: ['poison', 'charge'], toad: ['poison', 'slam'], lizard: ['poison', 'charge'], slime: ['poison', 'slam', 'heal'], humanoid: ['charge', 'curse', 'frenzy'], yeti: ['slam', 'frenzy', 'charge'], bat: ['drain', 'blink'], skeleton: ['charge', 'curse', 'slam'], zombie: ['poison', 'frenzy', 'summon'], ghost: ['blink', 'curse', 'drain'], ogre: ['slam', 'frenzy', 'charge'], knight: ['charge', 'slam', 'curse'], gargoyle: ['slam', 'blink', 'frenzy'], mage: ['curse', 'heal', 'summon'], demon: ['blink', 'curse', 'slam'], dragon: ['breath', 'slam', 'frenzy'] };
+  D.monSkills = (m, mutant) => { if (!m || m.boss || m.lv < 10) return []; const n = (m.lv >= 50 ? 3 : m.lv >= 30 ? 2 : 1) + (mutant ? 1 : 0); return (D.MSK_POOL[m.kind] || []).slice(0, n); };
+
   // 몬스터 스탯 계산
   D.monStats = (m, night, mutant) => {
     const l = m.lv;

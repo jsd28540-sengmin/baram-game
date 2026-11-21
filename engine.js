@@ -860,7 +860,8 @@ function monAI(m, mon, now) {
   if (tg) {
     const rng2 = def.rng || 1;
     const inRange = rng2 > 1 ? (dist(tg, mon) <= rng2 && los(m, mon, tg)) : adjacent(mon, tg);
-    if (inRange) {
+    if (!mon.boss && monSkill(m, mon, def, tg, now)) { /* 특성 스킬 사용 */ }
+    else if (inRange) {
       mon.dir = Math.abs(tg.x - mon.x) > Math.abs(tg.y - mon.y) ? (tg.x > mon.x ? 2 : 1) : (tg.y > mon.y ? 0 : 3);
       if (now >= mon.nextAtk) {
         mon.nextAtk = now + (mon.boss ? (mon.enraged ? 850 : 1050) : 1350);
@@ -904,6 +905,27 @@ function summonAI(m, s, now, def) {
   } else if (now >= s.nextMove && dist(s, owner) > 1.5) { s.nextMove = now + moveInt; if (!stepToward(m, s, owner.x, owner.y) && dist(s, owner) > 4) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); } }
 }
 
+// ═══ 몬스터 특성 스킬 (레벨이 높을수록 많아짐) ═══
+function monSkill(m, mon, def, tg, now) {
+  const sk = mon.sk || (mon.sk = D.monSkills(def, mon.mutant)); if (!sk.length) return false;
+  const A = mon.atk, d = dist(tg, mon); const live = () => m.mons.has(mon.id) && mon.hp > 0; mon.scd = mon.scd || {};
+  const ready = (k, cd) => { if ((mon.scd[k] || 0) > now) return false; mon.scd[k] = now + cd + ri(0, 1500); return true; };
+  const isP = tg.ws !== undefined || PLAYERS.has(tg.id);
+  for (const k of sk) {
+    if (k === 'frenzy') { if (!mon.fz && mon.hp < mon.maxHp * 0.4) { mon.fz = 1; mon.atk = Math.round(mon.atk * 1.4); fx(m, { k: 'skill', f: 'buff', x: mon.x, y: mon.y, c: '#ff3020' }); } continue; }
+    if (k === 'heal' && mon.hp < mon.maxHp * 0.7 && ready(k, 9000)) { fx(m, { k: 'skill', f: 'heal', x: mon.x, y: mon.y, r: 3, c: '#7dff9a' }); for (const o of m.mons.values()) if (!o.summon && dist(o, mon) <= 3.5) { const h = Math.round(o.maxHp * 0.18); o.hp = Math.min(o.maxHp, o.hp + h); fx(m, { k: 'heal', x: o.x, y: o.y, v: h }); } return true; }
+    if (k === 'charge' && d >= 2 && d <= 5 && ready(k, 7000)) { const q = nearFreeMon(m, tg.x - Math.sign(tg.x - mon.x), tg.y - Math.sign(tg.y - mon.y)); if (dist(q, tg) > 1.5) continue; fx(m, { k: 'warn', x: tg.x, y: tg.y, r: 0.6, ms: 600 }); setTimeout(() => { if (!live()) return; moveMon(m, mon, q.x, q.y); fx(m, { k: 'skill', f: 'slash', x: tg.x, y: tg.y, c: '#ffd34d' }); if (dist(tg, mon) <= 1.6) hurt(m, tg, Math.round(A * 1.5), mon); }, 600); return true; }
+    if (k === 'blink' && d >= 2.5 && d <= 7 && ready(k, 8000)) { const q = nearFreeMon(m, tg.x + Math.sign(tg.x - mon.x), tg.y + Math.sign(tg.y - mon.y)); fx(m, { k: 'skill', f: 'summon', x: mon.x, y: mon.y, c: '#b07cff' }); moveMon(m, mon, q.x, q.y); fx(m, { k: 'skill', f: 'summon', x: q.x, y: q.y, c: '#b07cff' }); mon.nextAtk = now + 400; return true; }
+    if (k === 'slam' && d <= 1.6 && ready(k, 8000)) { const r = 1.6; fx(m, { k: 'warn', x: mon.x, y: mon.y, r, ms: 900 }); setTimeout(() => { if (!live()) return; fx(m, { k: 'skill', f: 'quake', x: mon.x, y: mon.y, r, c: '#c9a26b' }); for (const p of PLAYERS.values()) if (p.map === m.id && !p.dead && dist(p, mon) <= r + 0.4) hurt(m, p, Math.round(A * 1.4), mon); }, 900); mon.nextAtk = now + 1500; return true; }
+    if (k === 'breath' && d <= 5 && ready(k, 9000)) { const c = { x: tg.x, y: tg.y }; fx(m, { k: 'warn', x: c.x, y: c.y, r: 1.8, ms: 1100 }); setTimeout(() => { if (!live()) return; fx(m, { k: 'proj', f: 'fireball', fx: mon.x, fy: mon.y, tx: c.x, ty: c.y, c: '#ff5a00' }); fx(m, { k: 'skill', f: 'flame', x: c.x, y: c.y, r: 1.8, c: '#ff5a00' }); for (const p of PLAYERS.values()) if (p.map === m.id && !p.dead && dist(p, c) <= 2.1) hurt(m, p, Math.round(A * 1.7), mon); }, 1100); return true; }
+    if (k === 'summon' && !mon.called && mon.hp < mon.maxHp * 0.7 && ready(k, 60000)) { mon.called = 1; const pool = Object.keys(D.MONS).filter(t => { const v = D.MONS[t]; return !v.boss && !v.p && v.lv <= def.lv - 8 && v.lv >= def.lv - 22; }); if (!pool.length) continue; const t = pick(pool); for (let i = 0; i < 2; i++) { const q = nearFreeMon(m, mon.x + ri(-1, 1), mon.y + ri(-1, 1)); const mo = spawnMon(m, t, q.x, q.y); if (mo) { mo.target = mon.target; fx(m, { k: 'skill', f: 'summon', x: q.x, y: q.y, c: '#b07cff' }); } } return true; }
+    if (!isP) continue;
+    if (k === 'curse' && d <= 5 && ready(k, 12000)) { fx(m, { k: 'proj', f: 'mshot', fx: mon.x, fy: mon.y, tx: tg.x, ty: tg.y, c: '#a050ff' }); fx(m, { k: 'skill', f: 'ring', x: tg.x, y: tg.y, r: 1, c: '#a050ff' }); addBuff(tg, '저주', { def: -0.3, atk: -0.15 }, 8000); sysMsg(tg, `☠ ${def.name}의 저주! 8초간 방어 -30% 공격 -15%`, '#d08aff'); return true; }
+    if (k === 'poison' && d <= 1.6 && ready(k, 9000)) { fx(m, { k: 'skill', f: 'ring', x: tg.x, y: tg.y, r: 0.8, c: '#7aff3b' }); hurt(m, tg, Math.round(A * 0.8), mon); const pd = Math.max(1, Math.round(A * 0.22)); sysMsg(tg, `🟢 ${def.name}의 독! 4초간 체력이 줄어요`, '#9aff6a'); for (let i = 1; i <= 4; i++) setTimeout(() => { if (!tg.dead && tg.map === m.id) hurt(m, tg, pd, mon); }, i * 1000); mon.nextAtk = now + 1200; return true; }
+    if (k === 'drain' && d <= 1.6 && ready(k, 8000)) { fx(m, { k: 'skill', f: 'ring', x: tg.x, y: tg.y, r: 0.8, c: '#ff2a5a' }); const before = tg.hp; hurt(m, tg, Math.round(A * 1.3), mon); const got = Math.max(0, before - tg.hp); const h = Math.round(got * 0.8 + mon.maxHp * 0.04); mon.hp = Math.min(mon.maxHp, mon.hp + h); fx(m, { k: 'heal', x: mon.x, y: mon.y, v: h }); mon.nextAtk = now + 1200; return true; }
+  }
+  return false;
+}
 // ═══ 보스 패턴: 경고 장판 → 피할 수 있는 광역기 · 체력 60% 졸개 소환 · 30% 분노 ═══
 function bossPattern(m, mon, def, now) {
   if (!mon.baseAtk) mon.baseAtk = mon.atk;
@@ -1246,7 +1268,7 @@ function handle(p, msg) {
       const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
       break;
     }
-    case 'dbg': if (!ENV.DEBUG) return; if (msg.lv) { p.lv = msg.lv; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
+    case 'dbg': if (!ENV.DEBUG) return; if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
     case 'face': p.dir = clamp(msg.d | 0, 0, 3); break;
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;

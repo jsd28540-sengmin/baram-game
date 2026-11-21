@@ -817,7 +817,7 @@ function drawMon(mo, sx, sy, now) {
   if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
   else {
     if (mo.h < 100 || S.target === mo.i) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, top, 32, 4); ctx.fillStyle = mo.s ? '#b47cff' : '#ff4a4a'; ctx.fillRect(x - 16, top, 32 * mo.h / 100, 4); }
-    if (S.target === mo.i || mo.mu || mo.s) drawText((mo.mu ? '돌연변이 ' : '') + def.name + (mo.s ? '' : ` Lv${mo.lv}`), x, top - 4, mo.mu ? '#d08aff' : mo.s ? '#d8c0ff' : '#ffb0b0', 11);
+    if (S.target === mo.i || mo.mu || mo.s) drawText((mo.mu ? '돌연변이 ' : '') + def.name + (mo.s ? '' : ` Lv${mo.lv}`) + (mo.s ? '' : (sk => sk.length ? ' [' + sk.map(k => GD.MSK[k]).join('·') + ']' : '')(GD.monSkills ? GD.monSkills(def, mo.mu) : [])), x, top - 4, mo.mu ? '#d08aff' : mo.s ? '#d8c0ff' : '#ffb0b0', 11);
   }
   });
 }
