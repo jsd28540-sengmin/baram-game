@@ -301,7 +301,7 @@
       }
       if (n > 0 && Date.now() - window.__svCount < 59000) return;
       try { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); } catch (e) { }
-      setTimeout(() => { try { history.replaceState(null, '', location.pathname + '#server' + NET.code); } catch (e) { } location.reload(); }, 1500);
+      setTimeout(() => { try { NET._bkT = 0; NET._lastBk = null; ENGINE.saveAll(); } catch (e) { } /* 새로고침 직전에 한 번 더 저장 */ try { history.replaceState(null, '', location.pathname + '#server' + NET.code); } catch (e) { } location.reload(); }, 1500);
     };
     tryApply();
   };
@@ -369,7 +369,7 @@
               sel = -1; render(); return;
             }
             sel = k; render();
-            if (c) { $('nm').value = c.name; $('lcode').value = c.code; if (c.role === 'host' && $('lhost')) $('lhost').click(); else if ($('ljoin')) $('ljoin').click(); }
+            if (c) { $('nm').value = c.name; $('lcode').value = c.code; if ($('ljoin')) $('ljoin').click(); /* 플레이어 폰은 항상 참가 (두 번째 방이 몰래 열려 저장이 갈라지는 것 방지) */ }
             else { $('nm').value = ''; $('nm').placeholder = '새 캐릭터 이름 (최대 10자)'; $('nm').focus(); }
           };
         });
@@ -520,3 +520,20 @@
 
 // 탈것 버튼: 타기/내리기 표시
 (function () { setInterval(() => { if (!S.me) return; const b = [...document.querySelectorAll('#menu .mbtn')].find(e => /탈것|타기|내리기/.test(e.textContent)); if (!b) return; const sp = b.querySelector('span'); const t = !S.me.mounts || !S.me.mounts.length ? '탈것' : S.me.riding ? '내리기' : '타기'; if (sp && sp.textContent !== t) sp.textContent = t; }, 500); })();
+
+// 서버 기기: 페이지가 닫히거나 숨겨질 때 저장 + 관리자 지급 버튼
+(function () {
+  addEventListener('pagehide', () => { try { if (window.ENGINE && NET.mode === 'host') ENGINE.saveAll(); } catch (e) { } });
+  const _sd2 = showServerDash;
+  showServerDash = function (code, restored) {
+    _sd2(code, restored);
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = '관리자: 아이템·탈것 되돌려주기';
+    b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:72;height:36px;font-size:12px';
+    b.onclick = () => {
+      const name = prompt('플레이어 이름'); if (!name) return;
+      const what = prompt('지급할 것\n탈것: ' + Object.entries(GD.MOUNTS).map(([k, v]) => k + '(' + v.name + ')').join(', ') + '\n코인: coin:숫자'); if (!what) return;
+      const r = ENGINE.adminGive(name.trim(), what.trim()); alert(r);
+    };
+    document.body.appendChild(b);
+  };
+})();
