@@ -881,10 +881,12 @@ function summonAI(m, s, now, def) {
 }
 
 function hurt(m, tg, raw, src) {
-  if (tg.summon) { const d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) - tg.def * 0.5)); tg.hp -= d; fx(m, { k: 'dmg', x: tg.x, y: tg.y, v: d, p: 1 }); return; }
+  if (tg.summon) { const K = 50 + ((src && src.lv) || 10) * 14; const d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) * K / (K + (tg.def || 0)))); tg.hp -= d; fx(m, { k: 'dmg', x: tg.x, y: tg.y, v: d, p: 1 }); return; }
   const p = tg; if (p.dead) return;
   calc(p);
-  let d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) - p.st.def * 0.55));
+  // 방어력은 '빼기'가 아니라 '비율'로 줄임 → 방어력이 아무리 높아도 공격 레벨에 맞는 피해는 들어옴(1 고정 없음)
+  const aLv = (src && src.lv) || p.lv; const K = 50 + aLv * 14;
+  let d = Math.max(1, Math.round(raw * (0.85 + R() * 0.3) * K / (K + p.st.def)));
   if (D.JOBS[p.job] && D.JOBS[p.job].base === 'warrior') d = Math.max(1, Math.round(d * 0.88)); // 전사 기본 피해 감소 12%
   if (p.sleeping) { p.sleeping = false; }
   p.hp -= d; fx(m, { k: 'dmg', x: p.x, y: p.y, v: d, p: 1 });
