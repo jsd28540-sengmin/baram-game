@@ -38,6 +38,11 @@
     return null;
   }
   itemIcon = function (it) {
+    if (it && it.k === 'mount') { const ck = 'mt|' + it.id + '|' + (HO.ok ? 1 : 0); let c = cache.get(ck); if (c) return c; c = mkc(64, 64); const MD = GD.MOUNTS[it.id] || {}; const MK = HA[it.id] ? it.id : 'horse';
+      if (HO.ok && HA[MK]) { const r = HA[MK].right[0]; const k = Math.min(60 / r[2], 60 / r[3]); const w = r[2] * k, h = r[3] * k; const t = mkc(64, 64), tg = t.getContext('2d'); tg.drawImage(HO, r[0], r[1], r[2], r[3], 32 - w / 2, 62 - h, w, h);
+        if (!HA[it.id] && (MD.tint || it.id === 'whiteHorse')) { tg.globalCompositeOperation = 'color'; tg.fillStyle = MD.tint || '#e8e8f0'; tg.fillRect(0, 0, 64, 64); tg.globalCompositeOperation = 'destination-in'; tg.drawImage(HO, r[0], r[1], r[2], r[3], 32 - w / 2, 62 - h, w, h); }
+        c.getContext('2d').drawImage(t, 0, 0); } else { const g = c.getContext('2d'); g.font = '40px serif'; g.textAlign = 'center'; g.fillText('🐎', 32, 48); }
+      c._ic64 = 1; if (HO.ok) cache.set(ck, c); return c; }
     const k = iconKey(it); if (!k || !IT.ok || !IA[k[0]]) return _icon(it);
     const ck = k.join('|'); let c = cache.get(ck); if (c) return c;
     c = mkc(64, 64); const g = c.getContext('2d'); const [x, y] = IA[k[0]];
@@ -581,3 +586,6 @@
     return _dp(p, rx, ry, dir, walking, sx, sy, now, isMe);
   };
 })();
+
+// ═══════ 탈것 아이템 설명 ═══════
+(function () { const _d = itemDesc; itemDesc = function (it) { if (it && it.k === 'mount') { const mt = GD.MOUNTS[it.id] || {}; const on = S.me && S.me.mount === it.id; return `<div class="nm" style="color:#ffd27a">${esc(mt.name || it.id)}${it.n > 1 ? ' x' + it.n : ''}</div><div style="color:#a7b0bf">${mt.boss ? '👑 보스 탈것' : '탈것'} · 이동속도 x${mt.spd || 1}</div><div>${on ? '장착 중 — 탈것 버튼·R로 타고 내려요.' : '장착하면 장비창 탈것 칸에 들어가요. 교환 가능 · 판매·버리기 불가'}</div>`; } return _d(it); }; })();

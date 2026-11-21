@@ -212,7 +212,7 @@ function showTip(html, ev) {
 
 // ── 공통 조각 ──
 const CS = 36;
-function iname(it) { return it.k === 'gear' ? it.name : it.k === 'use' ? (GD.CONSUMES[it.id] || {}).name || it.id : it.id; }
+function iname(it) { return it.k === 'mount' ? ((GD.MOUNTS[it.id] || {}).name || it.id) : it.k === 'gear' ? it.name : it.k === 'use' ? (GD.CONSUMES[it.id] || {}).name || it.id : it.id; }
 function cellH(it, i, cls = '', attr = 'data-i') {
   if (!it) return `<div class="cell empty"></div>`;
   return `<div class="cell ${it.k === 'gear' ? 'r' + it.rar : ''} ${cls}" ${attr}="${i}"><canvas width="32" height="32" data-ic="${attr}:${i}"></canvas><span class="inm">${esc(iname(it))}</span>${it.k !== 'gear' && it.n > 1 ? `<span class="n">${it.n}</span>` : ''}${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>`;
@@ -242,15 +242,18 @@ function renderPanel() {
   switch (P.kind) {
     case 'inv': {
       T('bag', '가방과 장비', `<div style="flex:1"></div>${coinH(me.coins)}`);
-      const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
+      const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', 'mount'];
       let eq = '<div class="grid" style="grid-template-columns:repeat(3,42px)">';
-      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:42px;height:42px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
+      order.forEach(s => { if (!s) { eq += '<div></div>'; return; } if (s === 'mount') { eq += me.mount ? `<div class="cell r3" style="width:42px;height:42px" data-eqm="1" title="탈것"><canvas width="32" height="32" data-ic="eqm" style="width:34px;height:34px"></canvas></div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">탈것</span></div>`; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:42px;height:42px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
       eq += '</div>';
       const st = me.st;
-      h = `<div class="col" style="width:150px">${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
+      h = `<div class="col" style="width:150px"><canvas id="eqprev" width="120" height="72" style="width:120px;height:72px;align-self:center;background:radial-gradient(#ffffff14,#0000 70%);border-radius:10px"></canvas>${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
         <div class="col" style="flex:1">${bagH('inv', 9, 52)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 누른 뒤 주머니를 누르면 주머니에 넣어요.</div></div>`;
       body.innerHTML = h; bindBag(body, 'inv');
       body.querySelectorAll('canvas[data-ic^="eq:"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.ic.slice(3)]), 0, 0); });
+      { const pv = $('eqprev'); if (pv) { const g = pv.getContext('2d'); g.imageSmoothingEnabled = true; const ap = { job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: Object.fromEntries(GD.SLOTS.filter(s => me.eq[s]).map(s => [s, [me.eq[s].tier, me.eq[s].rar, me.eq[s].plus, me.eq[s].wt || 0]])), mt: me.mount || 0 }; const im = charSprite(ap, me.mount ? 2 : 0, 0); const W = im.dw || 56, H = im.dh || 80, k = Math.min(116 / W, 70 / H); g.drawImage(im, 60 - W * k / 2, 71 - H * k, W * k, H * k); } }
+      body.querySelectorAll('canvas[data-ic="eqm"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.drawImage(itemIcon({ k: 'mount', id: me.mount, n: 1 }), 0, 0, 32, 32); });
+      body.querySelectorAll('[data-eqm]').forEach(c => c.onclick = e => { e.stopPropagation(); showTip(itemDesc({ k: 'mount', id: me.mount, n: 1 }) + `<div class="row" style="margin-top:6px;gap:6px"><button class="btn sm pri" data-a="ride">${me.riding ? '내리기' : '타기'}</button><button class="btn sm" data-a="uneq" data-s="mount">해제</button></div>`, e); });
       body.querySelectorAll('[data-eq]').forEach(c => c.onclick = e => { e.stopPropagation(); const it = me.eq[c.dataset.eq]; showTip(itemDesc(it) + `<div style="margin-top:6px"><button class="btn sm" data-a="uneq" data-s="${c.dataset.eq}">해제</button></div>`, e); });
       return;
     }
@@ -555,13 +558,14 @@ function sellPrice(it) { if (it.k === 'use' && GD.CONSUMES[it.id] && GD.CONSUMES
 function invClick(i, ev, mode) {
   const it = S.me.inv[i]; if (!it) return;
   let btns = '';
-  if (mode === 'shop') btns = `<button class="btn sm pri" data-a="sell" data-i="${i}">${ic('coin')}판매 ${fmt(sellPrice(it))}</button>`;
+  if (it.k === 'mount' && mode !== 'trade' && mode !== 'chest' && mode !== 'inv' && mode) btns = `<span class="mut">탈것은 팔 수 없어요</span>`;
+  else if (mode === 'shop') btns = `<button class="btn sm pri" data-a="sell" data-i="${i}">${ic('coin')}판매 ${fmt(sellPrice(it))}</button>`;
   else if (mode === 'chest') btns = `<button class="btn sm pri" data-a="store" data-i="${i}">보관상자에 넣기</button>`;
   else if (mode === 'trade') btns = S.trade && S.trade.myIdx.includes(i) ? `<button class="btn sm red" data-a="untrade" data-i="${i}">교환에서 빼기</button>` : `<button class="btn sm pri" data-a="trade" data-i="${i}">${ic('swap')}교환에 올리기</button>`;
   else {
-    if (it.k !== 'mat') btns += `<button class="btn sm pri" data-a="use" data-i="${i}">${it.k === 'gear' ? '착용' : '사용'}</button> `;
+    if (it.k !== 'mat') btns += `<button class="btn sm pri" data-a="use" data-i="${i}">${it.k === 'gear' ? '착용' : it.k === 'mount' ? '장착' : '사용'}</button> `;
     if (it.k === 'use') btns += hotList().includes(it.id) ? `<button class="btn sm" data-qrm="${it.id}">퀵슬롯 해제</button> ` : `<button class="btn sm" data-qadd="${it.id}">${ic('plus')}퀵슬롯 등록</button> `;
-    btns += `<button class="btn sm red" data-a="drop" data-i="${i}">${ic('trash')}</button>`;
+    if (it.k !== 'mount') btns += `<button class="btn sm red" data-a="drop" data-i="${i}">${ic('trash')}</button>`;
   }
   showTip(itemDesc(it) + `<div class="row" style="margin-top:7px;flex-wrap:wrap">${btns}</div>`, ev);
 }

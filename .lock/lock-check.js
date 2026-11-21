@@ -30,6 +30,9 @@ must('engine.js', 'const takeOut = (P, offs) => { const out = []; const rm = new
 must('index.html', 'z-index:30;pointer-events:none;', '아이폰 안내문이 버튼을 가리지 않게 유지');
 must('engine.js', 'const K = 50 + aLv * 14;', '비율 방어 공식 유지(피해 1 고정 방지)');
 must('game.js', 'if (m.x === x && m.y === y && !m.s) return false; // 소환수는 통과 가능', '소환수 통과 유지');
+must('engine.js', "p.coins -= mt.price; giveMount(p, msg.id);", '탈것 구매 시 가방으로 들어감 유지');
+must('engine.js', "if (it.k === 'mount') return sysMsg(p, '탈것은 버릴 수 없어요.'", '탈것 버리기 차단 유지(분실 방지)');
+must('ui.js', "if (s === 'mount') { eq += me.mount ?", '장비창 탈것 칸 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

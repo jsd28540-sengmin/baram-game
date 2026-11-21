@@ -618,6 +618,18 @@ function addItem(p, it, list = 'inv') {
   if (arr.length >= max) return false;
   arr.push(it); return true;
 }
+function mountItems(p) { return [p.inv || [], p.storage || [], ...(p.pouches || [])].flat().filter(o => o && o.k === 'mount'); }
+function ownsMount(p, id) { return p.mount === id || mountItems(p).some(o => o.id === id); }
+function ownedMounts(p) { const s = new Set(mountItems(p).map(o => o.id)); if (p.mount) s.add(p.mount); return [...s]; }
+function giveMount(p, id) { if (!addItem(p, { k: 'mount', id, n: 1 }) && !addItem(p, { k: 'mount', id, n: 1 }, 'storage')) p.inv.push({ k: 'mount', id, n: 1 }); }
+function equipMount(p, i) {
+  const it = p.inv[i]; if (!it || it.k !== 'mount' || !D.MOUNTS[it.id]) return; const id = it.id;
+  if (p.mount === id) { p.riding = true; calc(p); dirty(p); return; }
+  if (--it.n <= 0) p.inv.splice(i, 1);
+  if (p.mount && D.MOUNTS[p.mount]) giveMount(p, p.mount);
+  p.mount = id; p.riding = true; calc(p); dirty(p);
+  sysMsg(p, `[${D.MOUNTS[id].name}] 장착! 장비창 탈것 칸에 들어갔어요. (탈것 버튼·R로 타고 내리기)`, '#ffd27a');
+}
 function countMat(p, id) { return p.inv.filter(o => (o.k === 'mat' || o.k === 'use') && o.id === id).reduce((a, o) => a + o.n, 0); }
 function hasMats(p, need) { return Object.entries(need).every(([k, v]) => countMat(p, k) >= v); }
 function takeMats(p, need) {
@@ -651,7 +663,7 @@ function appear(p) {
 }
 function meData(p) {
   calc(p);
-  const tc = p.tmapTarget && CHESTS.get(p.tmapTarget); return { t: 'me', pouches: p.pouches, tmark: tc ? { map: tc.map, x: tc.x, y: tc.y } : null, name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: p.mounts, mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills, hot: Array.isArray(p.hot) && p.hot.length ? p.hot : ['hp1', 'mp1'] };
+  const tc = p.tmapTarget && CHESTS.get(p.tmapTarget); return { t: 'me', pouches: p.pouches, tmark: tc ? { map: tc.map, x: tc.x, y: tc.y } : null, name: p.name, job: p.job, lv: p.lv, exp: p.exp, need: D.expNeed(p.lv), hp: p.hp, mp: p.mp, st: p.st, coins: p.coins, inv: p.inv, eq: p.eq, mounts: ownedMounts(p), mount: p.mount, riding: !!p.riding, storage: p.storage, tent: p.tent ? { map: p.tent.map, x: p.tent.x, y: p.tent.y } : null, house: p.house ? { map: p.house.map, x: p.house.x, y: p.house.y } : null, plot: p.plot || null, skills: D.skillsFor(p.job).map(s => s.id), cds: p.cds, gender: p.gender, hair: p.hair, hairColor: p.hairColor, skin: p.skin, kills: p.kills, hot: Array.isArray(p.hot) && p.hot.length ? p.hot : ['hp1', 'mp1'] };
 }
 const dirty = p => { p.dirty = true; };
 function sysMsg(p, text, c = '#ffe28a') { if (p.ws) p.ws.send({ t: 'msg', text, c }); }
@@ -1072,7 +1084,7 @@ function openNpc(p, n) {
       return p.ws.send({ t: 'dlg', kind: 'gear', npc: n.name, text: `${D.JOBS[base].name}용 장비라네. 쓸 만은 하지만... 진짜 좋은 옵션 장비는 몬스터가 갖고 있지.`, items: list });
     }
     case 'smith': return p.ws.send({ t: 'dlg', kind: 'smith', npc: n.name, text: '쇠는 두드려야 강해지는 법! 장비를 +10까지 강화해 주지.\n\n[강화 재료] 몬스터를 사냥하면 떨어진다네.\n· 철광석 : 장비 1~15등급 (초원·숲·박쥐동굴·해골굴)\n· 은광석 : 장비 16~30등급 (사막·늪·설원·해골굴·광산)\n· 마력석 : 장비 31~45등급 (도깨비굴·흑요성·마왕성)\n· 용의비늘 : 장비 46~50등급 (마왕성·고레벨 보스)\n\n강화 단계가 높을수록 재료가 많이 들고 성공률이 떨어진다네. 실패하면 재료와 돈만 날아가고 장비는 무사하니 걱정 말게.', rates: D.UPG_RATE });
-    case 'stable': return p.ws.send({ t: 'dlg', kind: 'stable', npc: n.name, text: '탈것은 비싸지만 한번 사면 평생 함께라네. [R]키로 타고 내릴 수 있지.', items: Object.entries(D.MOUNTS).map(([id, v]) => ({ id, ...v, owned: p.mounts.includes(id) })) });
+    case 'stable': return p.ws.send({ t: 'dlg', kind: 'stable', npc: n.name, text: '탈것은 비싸지만 한번 사면 평생 함께라네. [R]키로 타고 내릴 수 있지.', items: Object.entries(D.MOUNTS).map(([id, v]) => ({ id, ...v, owned: ownsMount(p, id) })) });
     case 'bank': return p.ws.send({ t: 'dlg', kind: 'chest', bank: 1, npc: n.name, text: '맡길 물건이 있으면 언제든 오게. 마을 창고와 내 집 보관상자는 같은 창고라네.' });
     case 'master': {
       const J = D.JOBS[p.job];
@@ -1167,7 +1179,7 @@ function onConnect(ws) {
 }
 function enter(p, ws) {
   p.id = 'p' + uid(); p.ws = ws; p.buffs = []; p.cds = {}; p.summons = []; p.dead = false; p.riding = false; p.lastMove = 0;
-  p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || [];
+  p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || []; if (p.mount && !D.MOUNTS[p.mount]) p.mount = null; if (p.mounts.length) { for (const id of p.mounts) if (D.MOUNTS[id] && id !== p.mount && !mountItems(p).some(o => o.id === id)) giveMount(p, id); p.mounts = []; }
   for (const it of p.inv) if (it && it._rm) delete it._rm; // 예전 교환 버그 표시 정리
   // 텐트 안에서 접속이 끊겼으면: 텐트 입구 밖에서 시작 (실내는 그때그때 만드는 임시 공간)
   if (String(p.map || '').startsWith('tent_')) { let out = null; const owner = p.map.slice(5); for (const mm of Object.values(MAPS)) for (const t of mm.tents || []) if (t.owner === owner && !t.inner && (t.kind || 'tent') === 'tent') out = { map: mm.id, x: t.x + (D.TENT_W >> 1), y: t.y + D.TENT_H }; if (out && MAPS[out.map]) { p.map = out.map; p.x = out.x; p.y = out.y; } else { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; } }
@@ -1216,13 +1228,13 @@ function handle(p, msg) {
     case 'chat': { const text = String(msg.text || '').slice(0, 80); if (!text) return; broadcast({ t: 'chat', id: p.id, name: p.name, text, map: p.map }); break; }
     case 'use': useItem(p, msg.i | 0); break;
     case 'useId': { const i = p.inv.findIndex(o => o.k === 'use' && o.id === msg.id); if (i >= 0) useItem(p, i); else sysMsg(p, `${D.CONSUMES[msg.id].name}이(가) 없습니다.`, '#bbb'); break; }
-    case 'unequip': { const it = p.eq[msg.slot]; if (!it) return; if (p.inv.length >= INV_MAX) return sysMsg(p, '가방이 가득 찼습니다.'); delete p.eq[msg.slot]; p.inv.push(it); calc(p); dirty(p); break; }
-    case 'drop': { const it = p.inv[msg.i | 0]; if (!it) return; p.inv.splice(msg.i | 0, 1); dropAt(m, p.x, p.y, it, null); dirty(p); break; }
+    case 'unequip': { if (msg.slot === 'mount') { if (!p.mount) return; if (p.inv.length >= INV_MAX && !p.inv.some(o => o.k === 'mount' && o.id === p.mount)) return sysMsg(p, '가방이 가득 찼습니다.'); giveMount(p, p.mount); p.mount = null; p.riding = false; calc(p); dirty(p); break; } const it = p.eq[msg.slot]; if (!it) return; if (p.inv.length >= INV_MAX) return sysMsg(p, '가방이 가득 찼습니다.'); delete p.eq[msg.slot]; p.inv.push(it); calc(p); dirty(p); break; }
+    case 'drop': { const it = p.inv[msg.i | 0]; if (!it) return; if (it.k === 'mount') return sysMsg(p, '탈것은 버릴 수 없어요.', '#bbb'); p.inv.splice(msg.i | 0, 1); dropAt(m, p.x, p.y, it, null); dirty(p); break; }
     case 'interact': interact(p); break;
     case 'openChest': openChest(p, CHESTS.get(msg.id)); break;
     case 'npc': { const n = npcNear(p); if (n) openNpc(p, n); break; }
     case 'buy': buy(p, msg); break;
-    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || !['shop', 'gear'].includes(n.kind)) return; const price = it.k === 'use' && D.CONSUMES[it.id] && D.CONSUMES[it.id].sell ? D.CONSUMES[it.id].sell * it.n : it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
+    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || !['shop', 'gear'].includes(n.kind)) return; if (it.k === 'mount') return sysMsg(p, '탈것은 팔 수 없어요. (교환은 가능)', '#bbb'); const price = it.k === 'use' && D.CONSUMES[it.id] && D.CONSUMES[it.id].sell ? D.CONSUMES[it.id].sell * it.n : it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
     case 'upgrade': upgrade(p, msg); break;
     case 'promote': {
       const n = npcNear(p); if (!n || n.kind !== 'master') return;
@@ -1232,10 +1244,10 @@ function handle(p, msg) {
       p.ws.send({ t: 'dlg', close: 1 }); break;
     }
     case 'ride': {
-      if (!p.mount) return sysMsg(p, '탈것이 없습니다. 마을의 마구간에서 구매하세요.', '#bbb');
+      if (!p.mount) { const mi = p.inv.findIndex(o => o.k === 'mount'); if (mi >= 0) { equipMount(p, mi); return; } return sysMsg(p, '장착한 탈것이 없습니다. 마구간에서 구매하거나 가방에서 장착하세요.', '#bbb'); }
       if (p.dead) return; p.riding = !p.riding; calc(p); dirty(p); sysMsg(p, p.riding ? `${D.MOUNTS[p.mount].name}에 올라탔습니다. (이동속도 x${D.MOUNTS[p.mount].spd}) · 탄 채로 공격·스킬 가능` : '탈것에서 내렸습니다.'); break;
     }
-    case 'setMount': if (p.mounts.includes(msg.id)) { p.mount = msg.id; p.riding = true; calc(p); dirty(p); } break;
+    case 'setMount': { if (p.mount === msg.id) { p.riding = true; calc(p); dirty(p); break; } const mi = p.inv.findIndex(o => o.k === 'mount' && o.id === msg.id); if (mi >= 0) equipMount(p, mi); else if (ownsMount(p, msg.id)) sysMsg(p, '그 탈것은 보관함·주머니에 있어요. 가방으로 꺼낸 뒤 장착하세요.', '#ffd166'); break; }
     case 'build': buildTent(p); break;
     case 'plotBuy': {
       const pl = plotNear(p); if (!pl || pl.owner) return; if (p.plot) return sysMsg(p, '이미 땅을 갖고 있습니다. (1인 1채)');
@@ -1341,8 +1353,9 @@ function pickup(p, m, d) {
 }
 function useItem(p, i) {
   const it = p.inv[i]; if (!it || p.dead) return; const now = Date.now();
-  if (it.k === 'use' && String(it.id).startsWith('mtk_')) { const id = it.id.slice(4); const mt = D.MOUNTS[id]; if (!mt) return; if (p.mounts.includes(id)) return sysMsg(p, `이미 [${mt.name}]을(를) 갖고 있어요. 친구에게 교환해 보세요!`, '#ffd166');
-    if (--it.n <= 0) p.inv.splice(i, 1); p.mounts.push(id); p.mount = id; p.riding = true; calc(p); dirty(p); announce(`🐾 ${p.name}님이 보스 탈것 [${mt.name}]을(를) 얻었습니다!`, '#ffd27a'); return; }
+  if (it.k === 'use' && String(it.id).startsWith('mtk_')) { const id = it.id.slice(4); const mt = D.MOUNTS[id]; if (!mt) return; if (ownsMount(p, id)) return sysMsg(p, `이미 [${mt.name}]을(를) 갖고 있어요. 친구에게 교환해 보세요!`, '#ffd166'); if (p.inv.length >= INV_MAX && it.n > 1) return sysMsg(p, '가방이 가득 찼습니다.');
+    if (--it.n <= 0) p.inv.splice(i, 1); giveMount(p, id); dirty(p); sysMsg(p, `[${mt.name}]이(가) 가방에 들어왔어요. 가방에서 눌러 장착하세요!`, '#ffd27a'); announce(`🐾 ${p.name}님이 보스 탈것 [${mt.name}]을(를) 얻었습니다!`, '#ffd27a'); return; }
+  if (it.k === 'mount') return equipMount(p, i);
   if (it.k === 'gear') {
     if (!canEquip(p, it)) return sysMsg(p, `${D.JOBS[it.job] ? D.JOBS[it.job].name : ''} 전용 장비입니다. 다른 직업 플레이어와 교환해 보세요!`, '#ffb4b4');
     if (it.slot === 'shield' && p.eq.weapon && false) return;
@@ -1393,9 +1406,9 @@ function buy(p, msg) {
     if (p.inv.length >= INV_MAX) return sysMsg(p, '가방이 가득 찼습니다.');
     p.coins -= price; p.inv.push(it); dirty(p); sysMsg(p, `${it.name} 구매 (-${price})`);
   } else if (n.kind === 'stable') {
-    const mt = D.MOUNTS[msg.id]; if (!mt || mt.boss || p.mounts.includes(msg.id)) return;
+    const mt = D.MOUNTS[msg.id]; if (!mt || mt.boss) return; if (ownsMount(p, msg.id)) return sysMsg(p, '이미 갖고 있는 탈것입니다.', '#bbb'); if (p.inv.length >= INV_MAX) return sysMsg(p, '가방이 가득 찼습니다.');
     if (p.coins < mt.price) return sysMsg(p, `코인이 부족합니다. (${mt.price.toLocaleString()} 필요)`, '#ff9a9a');
-    p.coins -= mt.price; p.mounts.push(msg.id); p.mount = msg.id; p.riding = true; calc(p); dirty(p);
+    p.coins -= mt.price; giveMount(p, msg.id); dirty(p); sysMsg(p, `[${mt.name}]이(가) 가방에 들어왔어요. 가방에서 눌러 장착하세요!`, '#ffd27a');
     announce(`🐎 ${p.name}님이 [${mt.name}]을(를) 구입했습니다!`, '#ffd27a'); openNpc(p, n);
   }
 }
@@ -1543,7 +1556,7 @@ const API = {
   adminGive(name, what) {
     const live = [...PLAYERS.values()].find(p => p.name === name); const p = live || SAVES[name]; if (!p) return '그런 이름의 캐릭터가 없어요.';
     if (/^coin:\d+$/.test(what)) { p.coins = (p.coins || 0) + parseInt(what.slice(5)); }
-    else if (D.MOUNTS[what]) { p.mounts = p.mounts || []; if (!p.mounts.includes(what)) p.mounts.push(what); p.mount = what; }
+    else if (D.MOUNTS[what]) { if (!p.mount) p.mount = what; else if (!ownsMount(p, what)) giveMount(p, what); }
     else return '알 수 없는 항목이에요.';
     if (live) { calc(live); dirty(live); sysMsg(live, '관리자가 지급했어요: ' + (D.MOUNTS[what] ? D.MOUNTS[what].name : what), '#ffd166'); } saveAll();
     return name + '에게 지급 완료' + (live ? '' : ' (다음 접속 때 적용)');

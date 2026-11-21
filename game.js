@@ -988,7 +988,7 @@ function showTip(html, ev) { const t = $('tip'); t.innerHTML = html; t.classList
 function hideTip() { $('tip').classList.add('hidden'); }
 $('tip').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (!b) return; const a = b.dataset.a, i = +b.dataset.i;
   if (a === 'use') send({ t: 'use', i }); if (a === 'drop') uiAsk('정말 버리시겠습니까?', () => send({ t: 'drop', i }));
-  if (a === 'sell') send({ t: 'sell', i }); if (a === 'upg') send({ t: 'upgrade', i }); if (a === 'upgEq') send({ t: 'upgrade', eq: b.dataset.s }); if (a === 'uneq') send({ t: 'unequip', slot: b.dataset.s });
+  if (a === 'sell') send({ t: 'sell', i }); if (a === 'upg') send({ t: 'upgrade', i }); if (a === 'upgEq') send({ t: 'upgrade', eq: b.dataset.s }); if (a === 'uneq') send({ t: 'unequip', slot: b.dataset.s }); if (a === 'ride') { send({ t: 'ride' }); hideTip(); }
   if (a === 'store') send({ t: 'store', dir: 'in', i }); if (a === 'take') send({ t: 'store', dir: 'out', i });
   if (a === 'trade') { const it = S.me.inv[i]; if (it.k !== 'gear' && it.n > 1) uiAsk(`몇 개를 교환에 올릴까요? (최대 ${it.n})`, n => send({ t: 'tradeItem', i, n }), { num: 1, max: it.n }); else send({ t: 'tradeItem', i, n: 1 }); }
   if (a === 'untrade') send({ t: 'tradeItem', i, remove: 1 });
