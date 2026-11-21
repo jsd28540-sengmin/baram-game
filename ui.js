@@ -303,7 +303,7 @@ function renderPanel() {
     case 'stable': {
       T('horse', d.npc || '마구간', `<div style="flex:1"></div>${coinH(me.coins)}`);
       h = `<div class="col" style="flex:1"><div class="mut">탈것은 비싸지만 평생 함께합니다. R키(데스크톱) 또는 메뉴의 탈것 버튼으로 타고 내려요.</div><div class="grid" style="grid-template-columns:repeat(4,1fr);gap:8px;flex:1">` +
-        Object.entries(GD.MOUNTS).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="card" style="align-items:center;text-align:center"><canvas width="56" height="80" data-mt="${id}" style="width:84px;height:120px"></canvas><div class="nm">${mt.name}</div><small>이동속도 x${mt.spd}</small>${coinH(mt.price)}${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div></div>';
+        Object.entries(GD.MOUNTS).filter(([id, mt]) => !mt.boss || me.mounts.includes(id)).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="card" style="align-items:center;text-align:center"><canvas width="56" height="80" data-mt="${id}" style="width:84px;height:120px"></canvas><div class="nm">${mt.name}</div><small>이동속도 x${mt.spd}</small>${coinH(mt.price)}${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div></div>';
       body.innerHTML = h;
       body.querySelectorAll('[data-mt]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(charSprite({ job: me.job, g: me.gender, h: me.hair, hc: me.hairColor, sk: me.skin, eq: {}, mt: c.dataset.mt }, 2, 0), 0, 0, 56, 80); });
       body.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => send({ t: 'setMount', id: b.dataset.ride }));
@@ -551,7 +551,7 @@ showCode = function (code) {
 };
 
 // ── 가방 클릭 (모든 창 공통) ──
-function sellPrice(it) { return it.k === 'gear' ? Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)) : it.k === 'use' ? Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((GD.MATS[it.id] && GD.MATS[it.id].sell) || 5) * it.n; }
+function sellPrice(it) { if (it.k === 'use' && GD.CONSUMES[it.id] && GD.CONSUMES[it.id].sell) return GD.CONSUMES[it.id].sell * it.n; return it.k === 'gear' ? Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)) : it.k === 'use' ? Math.floor((GD.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((GD.MATS[it.id] && GD.MATS[it.id].sell) || 5) * it.n; }
 function invClick(i, ev, mode) {
   const it = S.me.inv[i]; if (!it) return;
   let btns = '';

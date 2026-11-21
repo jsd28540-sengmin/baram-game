@@ -235,6 +235,12 @@
     camel: { name: '사막 낙타', price: 70000, spd: 1.65, c: ['#d0a860', '#8a6a3a'], kind: 'camel' },
     ostrich: { name: '질주 타조', price: 120000, spd: 1.85, c: ['#2a2a2a', '#f0e8d8'], kind: 'ostrich' },
     whiteHorse: { name: '천리 백마', price: 250000, spd: 2.1, c: ['#f4f4f0', '#c8c8d8'], kind: 'horse' },
+    // 보스 전용 (상점 판매 안 함, 보스 처치 시 낮은 확률로 '탈것 증표' 획득)
+    battleBear: { name: '전투곰', boss: 1, spd: 1.7, c: ['#6a4022', '#2a1a0a'], kind: 'horse', tint: '#7a4a22', from: '거대곰왕' },
+    goldScorpion: { name: '황금 전갈', boss: 1, spd: 1.85, c: ['#e0b040', '#8a6a1a'], kind: 'horse', tint: '#e8b830', from: '황금전갈왕' },
+    frostWolf: { name: '설원 늑대', boss: 1, spd: 2.0, c: ['#e8f4ff', '#7aa0c8'], kind: 'horse', tint: '#a8d8ff', from: '설원왕 예티' },
+    boneDrake: { name: '해골 비룡', boss: 1, spd: 2.25, c: ['#e8e0cc', '#4a3a5a'], kind: 'horse', tint: '#d8cfb8', from: '해골대왕·거미여왕·시체군주' },
+    nightmare: { name: '악몽마', boss: 1, spd: 2.45, c: ['#1a1020', '#a050ff'], kind: 'horse', tint: '#5a2a8a', from: '최상위 보스' },
   };
 
   // 집짓기
@@ -335,6 +341,11 @@
     fTropical: { name: '오아시스 열대어', col: '#3ad0e0', mp: 320, fish: 1, price: 0, desc: '마나 320 회복 · 요리 재료' },
     fEel: { name: '용암장어', col: '#e0502a', hp: 500, buff: { atk: 0.1 }, dur: 60000, fish: 1, price: 0, desc: '체력 500 회복 + 1분간 공격 +10%' },
     fGold: { name: '황금잉어', col: '#ffd030', hp: 999, mp: 999, buff: { luck: 25 }, dur: 300000, fish: 1, price: 0, desc: '완전 회복 + 5분간 행운 +25% (아주 희귀)' },
+    mtk_battleBear: { name: '전투곰 증표', col: '#7a4a22', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [전투곰]을(를) 얻어요 (교환 가능)' },
+    mtk_goldScorpion: { name: '황금 전갈 증표', col: '#e8b830', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [황금 전갈]을(를) 얻어요 (교환 가능)' },
+    mtk_frostWolf: { name: '설원 늑대 증표', col: '#a8d8ff', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [설원 늑대]을(를) 얻어요 (교환 가능)' },
+    mtk_boneDrake: { name: '해골 비룡 증표', col: '#d8cfb8', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [해골 비룡]을(를) 얻어요 (교환 가능)' },
+    mtk_nightmare: { name: '악몽마 증표', col: '#7a3ab8', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [악몽마]을(를) 얻어요 (교환 가능)' },
     rod: { name: '낚싯대', col: '#a87a42', tool: 1, rod: 1, price: 2500, desc: '물가에서 물을 바라보고 사용하면 자동 낚시 (움직이면 멈춤)' },
     rod2: { name: '명인의 낚싯대', col: '#e8b830', tool: 1, rod: 2, price: 30000, desc: '낚시가 1.6배 빠르고 희귀한 것이 잘 잡힌다' },
     pouch: { name: '주머니', col: '#a87a42', pouch: 1, tool: 1, price: 5000, desc: '사용하면 가방에 주머니가 하나 늘어난다 (최대 4개, 각 16칸)' },

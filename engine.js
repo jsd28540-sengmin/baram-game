@@ -727,6 +727,9 @@ function killMon(m, mon, killer) {
   const luck = killer ? killer.st.luck : 0;
   // 코인 (항상)
   if (mon.stalker && R() < 0.12) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
+  // 보스 전용 탈것: 낮은 확률로 '탈것 증표' (교환 가능)
+  if (mon.boss) { const BM = { bearKing: 'battleBear', scorpionKing: 'goldScorpion', yetiKing: 'frostWolf', spiderQueen: 'boneDrake', skelKing: 'boneDrake', corpseLord: 'boneDrake' }; const id = BM[mon.type] || (def.lv >= 60 ? 'nightmare' : null);
+    if (id && R() < (mon.type === 'abyssKing' ? 0.25 : 0.1)) { dropAt(m, mon.x, mon.y, { k: 'use', id: 'mtk_' + id, n: 1 }, killer); announce(`✨ [${D.MOUNTS[id].name}] 탈것 증표가 떨어졌습니다!`, '#ffd27a'); } }
   if (def.lv >= 56 && !mon.boss && R() < 0.015) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
   if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.06 : 0.02)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
   const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 15 : mon.mutant ? 2.5 : 1));
@@ -1212,7 +1215,7 @@ function handle(p, msg) {
     case 'openChest': openChest(p, CHESTS.get(msg.id)); break;
     case 'npc': { const n = npcNear(p); if (n) openNpc(p, n); break; }
     case 'buy': buy(p, msg); break;
-    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || !['shop', 'gear'].includes(n.kind)) return; const price = it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
+    case 'sell': { const it = p.inv[msg.i | 0]; const n = npcNear(p); if (!it || !n || !['shop', 'gear'].includes(n.kind)) return; const price = it.k === 'use' && D.CONSUMES[it.id] && D.CONSUMES[it.id].sell ? D.CONSUMES[it.id].sell * it.n : it.k === 'gear' ? gearSell(it) : it.k === 'use' ? Math.floor((D.CONSUMES[it.id].price || 40) * 0.3) * it.n : ((D.MATS[it.id] && D.MATS[it.id].sell) || 5) * it.n; p.inv.splice(msg.i | 0, 1); p.coins += price; sysMsg(p, `${it.name || it.id} 판매 +${price} 코인`); dirty(p); break; }
     case 'upgrade': upgrade(p, msg); break;
     case 'promote': {
       const n = npcNear(p); if (!n || n.kind !== 'master') return;
@@ -1223,7 +1226,7 @@ function handle(p, msg) {
     }
     case 'ride': {
       if (!p.mount) return sysMsg(p, '탈것이 없습니다. 마을의 마구간에서 구매하세요.', '#bbb');
-      p.riding = !p.riding; calc(p); dirty(p); sysMsg(p, p.riding ? `${D.MOUNTS[p.mount].name}에 올라탔습니다. (이동속도 x${D.MOUNTS[p.mount].spd})` : '탈것에서 내렸습니다.'); break;
+      if (p.dead) return; p.riding = !p.riding; calc(p); dirty(p); sysMsg(p, p.riding ? `${D.MOUNTS[p.mount].name}에 올라탔습니다. (이동속도 x${D.MOUNTS[p.mount].spd}) · 탄 채로 공격·스킬 가능` : '탈것에서 내렸습니다.'); break;
     }
     case 'setMount': if (p.mounts.includes(msg.id)) { p.mount = msg.id; p.riding = true; calc(p); dirty(p); } break;
     case 'build': buildTent(p); break;
@@ -1331,6 +1334,8 @@ function pickup(p, m, d) {
 }
 function useItem(p, i) {
   const it = p.inv[i]; if (!it || p.dead) return; const now = Date.now();
+  if (it.k === 'use' && String(it.id).startsWith('mtk_')) { const id = it.id.slice(4); const mt = D.MOUNTS[id]; if (!mt) return; if (p.mounts.includes(id)) return sysMsg(p, `이미 [${mt.name}]을(를) 갖고 있어요. 친구에게 교환해 보세요!`, '#ffd166');
+    if (--it.n <= 0) p.inv.splice(i, 1); p.mounts.push(id); p.mount = id; p.riding = true; calc(p); dirty(p); announce(`🐾 ${p.name}님이 보스 탈것 [${mt.name}]을(를) 얻었습니다!`, '#ffd27a'); return; }
   if (it.k === 'gear') {
     if (!canEquip(p, it)) return sysMsg(p, `${D.JOBS[it.job] ? D.JOBS[it.job].name : ''} 전용 장비입니다. 다른 직업 플레이어와 교환해 보세요!`, '#ffb4b4');
     if (it.slot === 'shield' && p.eq.weapon && false) return;
@@ -1381,7 +1386,7 @@ function buy(p, msg) {
     if (p.inv.length >= INV_MAX) return sysMsg(p, '가방이 가득 찼습니다.');
     p.coins -= price; p.inv.push(it); dirty(p); sysMsg(p, `${it.name} 구매 (-${price})`);
   } else if (n.kind === 'stable') {
-    const mt = D.MOUNTS[msg.id]; if (!mt || p.mounts.includes(msg.id)) return;
+    const mt = D.MOUNTS[msg.id]; if (!mt || mt.boss || p.mounts.includes(msg.id)) return;
     if (p.coins < mt.price) return sysMsg(p, `코인이 부족합니다. (${mt.price.toLocaleString()} 필요)`, '#ff9a9a');
     p.coins -= mt.price; p.mounts.push(msg.id); p.mount = msg.id; p.riding = true; calc(p); dirty(p);
     announce(`🐎 ${p.name}님이 [${mt.name}]을(를) 구입했습니다!`, '#ffd27a'); openNpc(p, n);

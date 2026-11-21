@@ -104,13 +104,14 @@
   // ── 말 탑승 (갈색 말 / 천리 백마) ──
   const _cs = charSprite, hc = new Map();
   charSprite = function (ap, dir, frame) {
-    const MK = ap.mt === 'whiteHorse' ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
+    const MD = GD.MOUNTS[ap.mt] || {}; const MK = HA[ap.mt] ? ap.mt : (ap.mt === 'whiteHorse' || MD.tint) ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
     const rider = _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
     const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = { horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0] }[MK];
     c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
     const hw = r[2] * 1.75, hh = r[3] * 1.75; const hx = 110 - hw / 2, hy = 218 - hh;
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
+    if (MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'color'; hg.fillStyle = MD.tint; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); hg.globalCompositeOperation = 'source-over'; }
     if (ap.mt === 'whiteHorse') { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
     const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 110 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
     // 라이더: 실제 그림 영역(bbox)을 찾아 머리~허리(위 68%)만 잘라 안장 위에 앉힘
@@ -516,3 +517,6 @@
     errBox.textContent = '오류: ' + msg; clearTimeout(errBox._t); errBox._t = setTimeout(() => { errBox.remove(); errBox = null; }, 15000);
   });
 })();
+
+// 탈것 버튼: 타기/내리기 표시
+(function () { setInterval(() => { if (!S.me) return; const b = [...document.querySelectorAll('#menu .mbtn')].find(e => /탈것|타기|내리기/.test(e.textContent)); if (!b) return; const sp = b.querySelector('span'); const t = !S.me.mounts || !S.me.mounts.length ? '탈것' : S.me.riding ? '내리기' : '타기'; if (sp && sp.textContent !== t) sp.textContent = t; }, 500); })();
