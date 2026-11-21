@@ -869,18 +869,23 @@ function monAI(m, mon, now) {
 function summonAI(m, s, now, def) {
   const owner = PLAYERS.get(s.owner);
   if (!owner || owner.map !== m.id || owner.dead || now > s.until || s.hp <= 0) { killMon(m, s); if (owner) owner.summons = (owner.summons || []).filter(x => x !== s); return; }
+  // 주인과 너무 멀어지면 주인 곁으로 순간이동
+  if (dist(s, owner) > 12) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); s.target = null; }
+  // 목표: 주인 주변(5칸)의 몬스터만. 목표가 주인에게서 7칸 이상 멀어지면 포기하고 돌아옴
   let tg = s.target && m.mons.get(s.target);
-  if (!tg || tg.summon || dist(tg, owner) > 10) {
-    tg = null; let bd = 7;
-    for (const mon of m.mons.values()) if (!mon.summon) { const d = dist(mon, s); if (d < bd) { bd = d; tg = mon; } }
+  if (!tg || tg.summon || tg.hp <= 0 || dist(tg, owner) > 7 || dist(s, owner) > 8) {
+    tg = null; let bd = 99;
+    for (const mon of m.mons.values()) if (!mon.summon && mon.hp > 0 && dist(mon, owner) <= 5) { const d = dist(mon, s) + dist(mon, owner) * 0.5; if (d < bd) { bd = d; tg = mon; } }
+    // 주인을 공격 중인 몬스터 우선
+    for (const mon of m.mons.values()) if (!mon.summon && mon.target === owner.id && dist(mon, owner) <= 4) { tg = mon; break; }
     s.target = tg ? tg.id : null;
   }
-  const moveInt = 380;
+  const moveInt = Math.max(180, Math.min(380, (owner.st && owner.st.spd) || 300)); // 주인 속도에 맞춰 따라감
   if (tg) {
     const inRange = def.range > 1 ? dist(tg, s) <= def.range : adjacent(s, tg);
     if (inRange) { if (now >= s.nextAtk) { s.nextAtk = now + 1000; if (def.range > 1) fx(m, { k: 'proj', f: 'fireball', fx: s.x, fy: s.y, tx: tg.x, ty: tg.y, c: '#ff7a1a' }); hitMon(m, tg, owner, s.atk, 1, true); if (def.taunt && tg.target !== s.id) tg.target = s.id; } }
     else if (now >= s.nextMove) { s.nextMove = now + moveInt; stepToward(m, s, tg.x, tg.y); }
-  } else if (now >= s.nextMove && dist(s, owner) > 2.5) { s.nextMove = now + moveInt; stepToward(m, s, owner.x, owner.y); }
+  } else if (now >= s.nextMove && dist(s, owner) > 1.5) { s.nextMove = now + moveInt; if (!stepToward(m, s, owner.x, owner.y) && dist(s, owner) > 4) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); } }
 }
 
 function hurt(m, tg, raw, src) {

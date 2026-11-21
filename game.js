@@ -508,7 +508,7 @@ function canWalk(x, y) {
   const v = tileAt(x, y); const t = structAt(x, y);
   if (t) { if (structBlock(t, x, y) || (GD.BLOCK.has(v) && !GD.TENT_OVER.has(v))) return false; }
   else if (GD.BLOCK.has(v)) return false;
-  for (const m of S.M.values()) if (m.x === x && m.y === y) return false;
+  for (const m of S.M.values()) if (m.x === x && m.y === y && !m.s) return false; // 소환수는 통과 가능
   return true;
 }
 function updateMove(now) {

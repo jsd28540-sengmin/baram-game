@@ -29,6 +29,7 @@ must('assets.js', '닫기(X) 누른 손가락이 아래에 있는 미니맵', '�
 must('engine.js', 'const takeOut = (P, offs) => { const out = []; const rm = new Set();', '교환 아이템 사라짐 버그 수정 유지');
 must('index.html', 'z-index:30;pointer-events:none;', '아이폰 안내문이 버튼을 가리지 않게 유지');
 must('engine.js', 'const K = 50 + aLv * 14;', '비율 방어 공식 유지(피해 1 고정 방지)');
+must('game.js', 'if (m.x === x && m.y === y && !m.s) return false; // 소환수는 통과 가능', '소환수 통과 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
