@@ -56,8 +56,8 @@ const strip = t => String(t).replace(EMO, '').replace(/^\s+/, '');
 // ── 화면 맞춤 배율 ──
 function fitUI() {
   const w = innerWidth, h = innerHeight;
-  const uis = Math.min((w - 12) / 780, (h - 12) / 350, 1.6);
-  const hz = Math.max(0.62, Math.min(1.7, Math.min(w / 844, h / 390)));
+  const uis = Math.min((w - 12) / 780, (h - 12) / 350, 1.6) * 0.9; // 창 크기도 시점과 함께 10% 작게
+  const hz = Math.max(0.56, Math.min(1.55, Math.min(w / 844, h / 390) * 0.9)); // 버튼 크기 10% 작게
   document.documentElement.style.setProperty('--uis', uis.toFixed(4));
   document.documentElement.style.setProperty('--hz', hz.toFixed(4));
   window.UIS = uis;

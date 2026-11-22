@@ -64,6 +64,9 @@ must('engine.js', "if (p.house && !(MAPS[p.house.map] && MAPS[p.house.map].tents
 must('assets.js', 'const HK = Math.min(1.75, 216 / r[2], 214 / r[3]);', '큰 탈것 잘림 방지');
 must('engine.js', '// 코인은 바닥에 떨어뜨리지 않고 기여도(준 피해)만큼 나눠 바로 지갑으로', '코인 기여도 분배 유지');
 must('engine.js', '// 자동 줍기 없음: [줍기] 버튼(스페이스)으로만 가방에 들어옴', '자동 줍기 없음 유지');
+must('data.js', 'D.mountBonus = ', '탈것 전투 옵션 유지');
+must('game.js', 'VH / (19.5 * TS)', '시점 거리 유지');
+must('assets.js', "['drawPlayer', 'drawMon', 'drawNpc', 'drawDrop'].forEach(wrap);", '그래픽 고품질 축소 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

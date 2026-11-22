@@ -655,6 +655,7 @@ function calc(p) {
   let ba = 0, bd = 0, bc = 0, bl = 0, bs = 0, be = 0, bh = 0; const now = Date.now();
   p.buffs = (p.buffs || []).filter(b => b.until > now);
   for (const b of p.buffs) { ba += b.atk || 0; bd += b.def || 0; bc += b.crit || 0; bl += b.luck || 0; bs += b.spd || 0; be += b.exp || 0; bh += b.hp || 0; }
+  { const mb = p.mount && D.mountBonus(p.mount); if (mb) { ba += mb.atk || 0; bd += mb.def || 0; bc += mb.crit || 0; bh += mb.hp || 0; } } // 탈것 전투 옵션
   maxHp *= 1 + bh;
   atk *= 1 + ba; def *= Math.max(0.2, 1 + bd);
   let spd = D.BASE_SPEED; if (p.riding && p.mount) spd /= D.MOUNTS[p.mount].spd; spd /= 1 + bs; crit += bc; luck += bl;

@@ -115,6 +115,8 @@
   D.FORMS = { gKnight: { name: '수호기사', scale: 1.15, col: '#7fb2ff' }, gKing: { name: '수호왕', scale: 1.3, col: '#ffd34d' }, bKnight: { name: '흑기사', scale: 1.15, col: '#ff5a4a' }, bKing: { name: '광전왕', scale: 1.3, col: '#ff3030' } };
   D.SKILL = {}; D.SKILLS.forEach(s => D.SKILL[s.id] = s);
   // 마나 소모: 레벨이 오를수록 커짐 (마법사·치유사 계열 lv35에 2배, lv70에 3배 / 전사 계열은 완만)
+  // 탈것 전투 옵션 (장착만 해도 적용): 일반 < 보스 < 초희귀
+  D.mountBonus = id => { const M = D.MOUNTS[id]; if (!M) return null; if (M.rare) return { atk: 0.08, def: 0.08, hp: 0.08, crit: 3, tier: '초희귀' }; if (M.boss) return { atk: 0.05, def: 0.05, hp: 0.05, crit: 1, tier: '보스' }; const p = M.price || 0; return p >= 400000 ? { atk: 0.03, def: 0.03, hp: 0.03, tier: '고급' } : p >= 200000 ? { atk: 0.02, def: 0.02, hp: 0.02, tier: '희귀' } : { atk: 0.01, def: 0.01, tier: '일반' }; };
   D.skillMp = (sk, lv, job) => { if (!sk || !sk.mp) return 0; if (sk.cd <= 1000) return sk.mp; /* 기본 연사 스킬은 그대로 */ const b = D.JOBS[job] ? D.JOBS[job].base : 'mage'; return Math.round(sk.mp * (1 + (lv || 1) / (b === 'warrior' ? 80 : 60))); };
   D.skillsFor = job => { const l = D.SKILLS.filter(s => D.canSkill(s, job)); return l.filter(s => !s.form).concat(l.filter(s => s.form)); }; // 변신 스킬은 7·8번 칸
 

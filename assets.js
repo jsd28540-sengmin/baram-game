@@ -622,7 +622,8 @@
 })();
 
 // ═══════ 탈것 아이템 설명 ═══════
-(function () { const _d = itemDesc; itemDesc = function (it) { if (it && it.k === 'mount') { const mt = GD.MOUNTS[it.id] || {}; const on = S.me && S.me.mount === it.id; return `<div class="nm" style="color:#ffd27a">${esc(mt.name || it.id)}${it.n > 1 ? ' x' + it.n : ''}</div><div style="color:#a7b0bf">${mt.boss ? '👑 보스 탈것' : '탈것'} · 이동속도 x${mt.spd || 1}</div><div>${on ? '장착 중 — 탈것 버튼·R로 타고 내려요.' : '장착하면 장비창 탈것 칸에 들어가요. 교환 가능 · 판매·버리기 불가'}</div>`; } return _d(it); }; })();
+(function () { const _d = itemDesc; itemDesc = function (it) { if (it && it.k === 'mount') { const mt = GD.MOUNTS[it.id] || {}; const on = S.me && S.me.mount === it.id; const mb = GD.mountBonus(it.id) || {}; const opt = [mb.atk && `공격 +${Math.round(mb.atk * 100)}%`, mb.def && `방어 +${Math.round(mb.def * 100)}%`, mb.hp && `체력 +${Math.round(mb.hp * 100)}%`, mb.crit && `치명 +${mb.crit}`].filter(Boolean).join(' · ');
+      return `<div class="nm" style="color:${mt.rare ? '#ffe066' : '#ffd27a'}">${esc(mt.name || it.id)}${it.n > 1 ? ' x' + it.n : ''}</div><div style="color:#a7b0bf">${mt.rare ? '★ 초희귀 탈것' : mt.boss ? '보스 탈것' : '탈것'} · 이동속도 x${mt.spd || 1}</div><div style="color:#7dffb0">[${mb.tier}] ${opt} (장착 시)</div><div>${on ? '장착 중 — 탈것 버튼·R로 타고 내려요.' : '장착하면 장비창 탈것 칸에 들어가요. 교환 가능 · 판매·버리기 불가'}</div>`; } return _d(it); }; })();
 
 // ═══════ 보스 경고 장판: 빨간 원이 차오르면 피하세요 ═══════
 (function () {
@@ -687,4 +688,14 @@
   };
   let lastSig = '';
   document.addEventListener('pointerdown', () => { try { lastSig = S.me ? JSON.stringify([(S.me.inv || []).map(o => o.id + (o.n || 0)), S.me.eq && Object.keys(S.me.eq).map(k => S.me.eq[k] && S.me.eq[k].id), S.me.mount]) : ''; } catch (e) { } }, true);
+})();
+
+// ═══════ 그래픽 품질: 캐릭터·몬스터·NPC·탈것·드랍은 고품질 축소(부드러운 외곽), 바닥 타일은 선명하게 + 은은한 비네트 ═══════
+(function () {
+  const wrap = name => { const f = window[name]; if (typeof f !== 'function') return; window[name] = function () { const a = ctx.imageSmoothingEnabled, q = ctx.imageSmoothingQuality; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; try { return f.apply(this, arguments); } finally { ctx.imageSmoothingEnabled = a; ctx.imageSmoothingQuality = q; } }; };
+  ['drawPlayer', 'drawMon', 'drawNpc', 'drawDrop'].forEach(wrap);
+  try { drawPlayer = window.drawPlayer; drawMon = window.drawMon; drawNpc = window.drawNpc; drawDrop = window.drawDrop; } catch (e) { }
+  const v = document.createElement('div'); v.id = 'vignette';
+  v.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at 50% 48%,rgba(0,0,0,0) 62%,rgba(10,6,20,.22) 100%)';
+  (document.getElementById('game') || document.body).insertAdjacentElement('afterend', v);
 })();

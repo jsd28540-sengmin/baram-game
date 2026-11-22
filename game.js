@@ -10,7 +10,7 @@ let ZOOM = 1, VW = 0, VH = 0;
 function resize() {
   DPR = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1))); // 3배는 무거워서 2배로 제한
   const r = cv.getBoundingClientRect(); VW = Math.round(r.width) || innerWidth; VH = Math.round(r.height) || innerHeight;
-  ZOOM = Math.max(0.6, Math.min(1, VH / (17 * TS))); // 시점: 세로로 약 17칸이 보이도록
+  ZOOM = Math.max(0.52, Math.min(0.9, VH / (19.5 * TS))); // 시점: 세로로 약 19.5칸 (조금 더 멀리)
   W = Math.round(VW / ZOOM); H = Math.round(VH / ZOOM);
   cv.width = VW * DPR; cv.height = VH * DPR; ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0); ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H;
 }
