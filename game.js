@@ -546,6 +546,7 @@ function updateMove(now) {
 
 // ═══════ 이펙트 ═══════
 function addFx(f) {
+  if (f.k === 'coin' && f.id && f.id !== S.myId) return; // 내 코인만 표시
   const now = performance.now(); f.t0 = now;
   const durs = { dmg: 900, heal: 1000, mana: 900, coin: 900, proj: 0, skill: 650, swing: 200, mhit: 220, die: 600, lvl: 1400 };
   f.dur = durs[f.k] || 500;
@@ -703,10 +704,10 @@ function drawDrop(d, sx, sy, now) {
   // 빛기둥 (고급 이상)
   if (d.r >= 1) { const hgt = 60 + d.r * 22; const gr = ctx.createLinearGradient(0, by - hgt, 0, by); gr.addColorStop(0, col + '00'); gr.addColorStop(1, col + (d.r >= 3 ? 'dd' : 'aa')); ctx.fillStyle = gr; const w = 14 + d.r * 3 + Math.sin(now / 200) * 3; ctx.fillRect(bx - w / 2, by - hgt, w, hgt); }
   // 바닥 그림자 + 빛 고리
-  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(bx, by + 2, 17 - bob * 0.3, 6, 0, 0, 7); ctx.fill();
-  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(ph * 1.3) * 0.15; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(bx, by + 2, 21, 7.5, 0, 0, 7); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(bx, by + 2, 14 - bob * 0.3, 5, 0, 0, 7); ctx.fill();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(ph * 1.3) * 0.15; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(bx, by + 2, 17, 6, 0, 0, 7); ctx.stroke(); ctx.restore();
   // 아이콘 (38px)
-  const sz = d.r >= 3 ? 56 : d.r >= 1 ? 52 : 48; ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d), bx - sz / 2, by - sz + bob, sz, sz); ctx.imageSmoothingEnabled = false;
+  const sz = d.r >= 3 ? 46 : d.r >= 1 ? 42 : 38; // 조금 작게 ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d), bx - sz / 2, by - sz + bob, sz, sz); ctx.imageSmoothingEnabled = false;
   // 반짝임
   const tw = (now / 700 + d.x * 0.37 + d.y * 0.71) % 1; if (tw < 0.35) { const a = Math.sin(tw / 0.35 * Math.PI); const px = bx + 9, py = by - sz + 8 + bob; ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fillRect(px - 0.75, py - 5, 1.5, 10); ctx.fillRect(px - 5, py - 0.75, 10, 1.5); ctx.restore(); }
 }

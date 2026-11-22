@@ -761,9 +761,12 @@ function killMon(m, mon, killer) {
   if (def.lv >= 56 && !mon.boss && R() < 0.015) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
   if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.06 : 0.02)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
   const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 10 : mon.mid ? 6 : mon.mutant ? 2.5 : 1));
-  dropAt(m, mon.x, mon.y, { k: 'coin', n: coin }, killer);
+  // 코인은 바닥에 떨어뜨리지 않고 기여도(준 피해)만큼 나눠 바로 지갑으로
+  { const by = mon.dmgBy || {}; let ids = Object.keys(by).filter(id => PLAYERS.has(id) && PLAYERS.get(id).map === m.id); if (!ids.length && killer) { ids = [killer.id]; by[killer.id] = 1; }
+    const tot = ids.reduce((a, id) => a + by[id], 0) || 1;
+    for (const id of ids) { const q = PLAYERS.get(id); const v = Math.max(1, Math.round(coin * by[id] / tot)); q.coins = (q.coins || 0) + v; fx(m, { k: 'coin', x: mon.x, y: mon.y, v, id: q.id }); dirty(q); } }
   // 장비 (낮은 확률)
-  const itemChance = (mon.boss || mon.mid ? 100 : mon.mutant ? 12 : 4.2) * (1 + luck / 100);
+  const itemChance = (mon.boss || mon.mid ? 100 : mon.mutant ? 9 : 2.8) * (1 + luck / 100); // 드랍률 하향
   const crew = (mon.boss || mon.mid) ? (() => { const ids = new Set(Object.keys(mon.dmgBy || {})); for (const q of PLAYERS.values()) if (q.map === m.id && !q.dead && dist(q, mon) <= 13) ids.add(q.id); if (killer) { const pt = killer.party && PARTIES.get(killer.party); if (pt) for (const id of pt.members) { const q = PLAYERS.get(id); if (q && q.map === m.id && dist(q, mon) <= 20) ids.add(id); } } return [...ids].map(id => PLAYERS.get(id)).filter(Boolean).slice(0, 8); })() : [];
   const nItems = (mon.boss || mon.mid) ? Math.max(2 + ri(0, 1), crew.length + 1) : (R() * 100 < itemChance ? 1 : 0);
   for (let i = 0; i < nItems; i++) {
@@ -774,12 +777,12 @@ function killMon(m, mon, killer) {
   }
   // 강화 재료
   const ore = D.oreFor(def.lv);
-  if (R() < (mon.boss ? 1 : 0.075 * (1 + luck / 100))) dropAt(m, mon.x, mon.y, { k: 'mat', id: ore, n: mon.boss ? ri(4, 8) : 1 }, killer);
+  if (R() < (mon.boss ? 1 : 0.05 * (1 + luck / 100))) dropAt(m, mon.x, mon.y, { k: 'mat', id: ore, n: mon.boss ? ri(4, 8) : 1 }, killer);
   if ((def.lv >= 45 && R() < 0.04) || mon.boss && def.lv >= 30) dropAt(m, mon.x, mon.y, { k: 'mat', id: '용의비늘', n: mon.boss ? ri(1, 3) : 1 }, killer);
   // 집짓기 재료
-  if (def.mats && R() < 0.32) dropAt(m, mon.x, mon.y, { k: 'mat', id: pick(def.mats), n: ri(1, 2) }, killer);
-  if (def.meat && R() < 0.4) dropAt(m, mon.x, mon.y, { k: 'mat', id: '고기', n: 1 }, killer);
-  if (R() < 0.05) dropAt(m, mon.x, mon.y, { k: 'use', id: pick(['hp1', 'mp1', 'hp1']), n: 1 }, killer);
+  if (def.mats && R() < 0.2) dropAt(m, mon.x, mon.y, { k: 'mat', id: pick(def.mats), n: ri(1, 2) }, killer);
+  if (def.meat && R() < 0.25) dropAt(m, mon.x, mon.y, { k: 'mat', id: '고기', n: 1 }, killer);
+  if (R() < 0.03) dropAt(m, mon.x, mon.y, { k: 'use', id: pick(['hp1', 'mp1', 'hp1']), n: 1 }, killer);
   if (mon.boss) bossReward(m, mon, killer);
   if (mon.boss) { announce(`🏆 ${killer ? killer.name : '누군가'}님 일행이 [${def.name}]을(를) 쓰러뜨렸습니다!`, '#ffd84a'); for (let i = 0; i < 4; i++) dropAt(m, mon.x, mon.y, { k: 'mat', id: pick(['나무', '돌', '양털', '솜', '횃불']), n: ri(3, 6) }, killer); }
 }
@@ -1301,8 +1304,7 @@ function handle(p, msg) {
       p.dir = clamp(msg.d | 0, 0, 3);
       if (!ok) { p.ep = (p.ep || 0) + 1; p.ws.send({ t: 'pos', x: p.x, y: p.y, ep: p.ep }); return; }
       p.mvTok -= 1; p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false; if (p.fishing) { p.fishing = null; sysMsg(p, '낚시를 멈췄습니다.', '#ccc'); }
-      // 자동 줍기
-      for (const d of [...m.drops.values()]) if (d.x === x && d.y === y) pickup(p, m, d);
+      // 자동 줍기 없음: [줍기] 버튼(스페이스)으로만 가방에 들어옴
       const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
       break;
     }
