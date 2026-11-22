@@ -1141,7 +1141,7 @@ function useSkill(p, sid) {
     }
   }
   if (!ok) return;
-  p.mp -= mpc; p.cds[sid] = now + sk.cd; p.sleeping = false; dirty(p);
+  p.combatT = now; p.mp -= mpc; p.cds[sid] = now + sk.cd; p.sleeping = false; dirty(p);
 }
 function healAround(m, p, r, mul) {
   calc(p);
@@ -1607,7 +1607,7 @@ function tick() {
     if (p.dead) continue; calc(p); const m = MAPS[p.map];
     const inT = tentAt(m, p.x, p.y); const town = inTown(m, p.x, p.y);
     const rate = p.sleeping ? 0.09 : (inT || town) ? 0.03 : 0.008;
-    p.hp = Math.min(p.st.maxHp, p.hp + Math.ceil(p.st.maxHp * rate)); p.mp = Math.min(p.st.maxMp, p.mp + Math.ceil(p.st.maxMp * (p.sleeping ? 0.09 : (inT || town) ? 0.035 : 0.005))); // 필드 마나 회복 0.5%/초
+    p.hp = Math.min(p.st.maxHp, p.hp + Math.ceil(p.st.maxHp * rate)); const rest = Date.now() - (p.combatT || 0) > 5000; p.mp = Math.min(p.st.maxMp, p.mp + Math.ceil(p.st.maxMp * (p.sleeping ? 0.09 : (inT || town) ? 0.04 : rest ? 0.03 : 0.009))); // 필드: 싸우는 중 0.9%/초, 5초 쉬면 3%/초
   }
   // 스냅샷 전송
   for (const p of PLAYERS.values()) {
