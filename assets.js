@@ -140,22 +140,16 @@
     const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
     // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
-    const S2 = 0.9, rw2 = rb.w * S2, up = rb.h * 0.6, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.78;
-    if (d === 'left' || d === 'right') {
-      const fw = d === 'left' ? -1 : 1, waist = seatY + 10 + (SEAT[1] || 0) * 0;
-      g.drawImage(hor, hx, hy, hw, hh);
-      g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - rw2 * 0.4 + fw * rw2 * 0.1, waist - 8, rw2 * 0.8, lh); // 다리 (탈것 옆구리로 내려옴)
-      g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, waist - uh, rw2, uh); // 상체
-    } else {
-      if (d === 'down') { // 앞모습: 탈것 머리가 라이더 몸통을 가림, 얼굴은 머리 위로 보임
-        const by = hy + uh * 0.18 + (MK === 'goldScorpion' ? hh * 0.12 : MK === 'battleBear' || MK === 'frostWolf' ? hh * 0.06 : MK === 'whiteHorse' ? -hh * 0.04 : 0);
-        g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh); g.drawImage(hor, hx, hy, hw, hh);
-        if (MK === 'ostrich') g.drawImage(rider, rb.x, rb.y, rb.w, up * 0.55, seatX - rw2 / 2, by - uh, rw2, uh * 0.55);
-      } else { // 뒷모습: 라이더는 탈것 머리 앞, 엉덩이(아래쪽)가 라이더 허리를 가림
-        const by = hy + hh * 0.36; g.drawImage(hor, hx, hy, hw, hh);
-        g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh);
-        const cy = by - uh * 0.18; g.save(); g.beginPath(); g.rect(hx, cy, hw, hy + hh - cy); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore();
-      }
+    const S2 = 1.12, rw2 = rb.w * S2, up = rb.h * 0.68, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.9;
+    g.drawImage(hor, hx, hy, hw, hh);
+    if (d === 'left' || d === 'right') { // 옆모습: 다리는 옆구리로 내려오고 상체는 안장 위
+      const fw = d === 'left' ? -1 : 1, waist = seatY + 8;
+      g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - rw2 * 0.4 + fw * rw2 * 0.08, waist - 10, rw2 * 0.8, lh);
+      g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, waist - uh, rw2, uh);
+    } else { // 앞/뒤: 상체가 말 위로 올라오고, 말 머리/엉덩이가 허리만 가림
+      const by = hy + hh * (d === 'down' ? 0.36 : 0.40) + (MK === 'goldScorpion' ? hh * 0.1 : MK === 'ostrich' ? -hh * 0.08 : 0);
+      g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh);
+      const cy = by - uh * (d === 'down' ? 0.06 : 0.14); g.save(); g.beginPath(); g.rect(hx, cy, hw, hy + hh - cy); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore();
     }
     c.dw = 110; c.dh = 110; hc.set(key, c); return c;
   };
@@ -599,6 +593,20 @@
   const _dp = drawPlayer;
   drawPlayer = function (p, rx, ry, dir, walking, sx, sy, now, isMe) {
     if (p.a && p.a.fm && GD.FORMS[p.a.fm]) { const F = GD.FORMS[p.a.fm]; const x = rx * TS + 16 - sx, y = ry * TS + 30 - sy; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(now / 220) * 0.12; const gr = ctx.createRadialGradient(x, y, 2, x, y, 30 * F.scale); gr.addColorStop(0, F.col); gr.addColorStop(1, F.col + '00'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, y, 30 * F.scale, 11 * F.scale, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    // 변신 상태 공격 모션: 무기를 휘두르듯 몸을 크게 기울였다 돌아오고, 큰 베기 궤적
+    const F = p.a && p.a.fm && !p.a.mt && GD.FORMS[p.a.fm], at = p.atkT ? now - p.atkT : 1e9;
+    if (F && at < 260 && !p.dd && !p.sl) {
+      const k = at / 260, sw = Math.sin(k * Math.PI), x = rx * TS + 16 - sx, y = ry * TS + 32 - sy, side = dir === 1 ? -1 : dir === 2 ? 1 : 0;
+      ctx.save(); ctx.translate(x, y);
+      if (side) ctx.rotate(side * (0.42 * sw - 0.12 * (1 - k)));
+      else ctx.scale(1 + 0.08 * sw, 1 - 0.1 * sw);
+      ctx.translate(-x, -y + (dir === 0 ? -4 * sw : dir === 3 ? 4 * sw : 0));
+      _dp(p, rx, ry, dir, walking, sx, sy, now, isMe); ctx.restore();
+      const a0 = [Math.PI / 2, Math.PI, 0, -Math.PI / 2][dir] || 0, R = 34 * F.scale, cy = y - 34 * F.scale, col = F.col || '#ffd34d';
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      for (let i = 0; i < 3; i++) { ctx.strokeStyle = i ? col : '#ffffff'; ctx.globalAlpha = (1 - k) * (i ? 0.55 : 0.9); ctx.lineWidth = (i ? 10 : 4) - i * 2; ctx.beginPath(); ctx.arc(x, cy, R + i * 5, a0 - 1.5 + k * 0.8, a0 - 1.5 + k * 0.8 + 2.4 * Math.min(1, k * 1.6)); ctx.stroke(); }
+      ctx.restore(); return;
+    }
     return _dp(p, rx, ry, dir, walking, sx, sy, now, isMe);
   };
 })();
