@@ -405,7 +405,7 @@ function openChest(p, c) {
   if (t >= 4 && R() < 0.5) give({ k: 'mat', id: '용의비늘', n: ri(1, t - 2) });
   give({ k: 'mat', id: pick(['나무', '돌', '양털', '솜', '횃불']), n: ri(3, 8) });
   const ings = ['약초', '버섯', '사과', '꿀', '향신료', '얼음꽃', '용암고추', '달걀', '밀가루']; for (let i = 0; i < 1 + (t >> 1); i++) give({ k: 'mat', id: pick(ings), n: ri(1, 3) });
-  give({ k: 'use', id: pick(t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1']), n: ri(2, 5) });
+  give({ k: 'use', id: pick(t >= 5 ? ['hp3', 'mp3', 'hp2', 'mp2', 'buffAtk', 'buffDef'] : t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1']), n: ri(2, 5) });
   if (R() < 0.12 + t * 0.06) give({ k: 'mat', id: '보물지도 조각', n: 1 });
   const nGear = t >= 4 ? (R() < 0.35 ? 2 : 1) : R() < 0.22 + t * 0.08 ? 1 : 0;
   for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 50), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
@@ -494,11 +494,21 @@ function tentInterior(t) {
   { const keep = t.furn.filter(f => f.x >= 0 && f.y >= 0 && f.x < IW && f.y < IHT); if (keep.length !== t.furn.length) { t.furn.length = 0; keep.forEach(f => t.furn.push(f)); } }
   m.tents[0].furn = t.furn; m.tentRef = t; return m;
 }
-function closeTentInterior(t) { const im = MAPS[tentInId(t.owner)]; if (!im) return; for (const q of PLAYERS.values()) if (q.map === im.id) teleport(q, t.map, t.x + TDX, t.y + TH, 1); delete MAPS[im.id]; }
+// 텐트 자리·입구 앞의 나무·바위 등을 걷어내 맨땅으로 (막힘 방지)
+function tentGround(m, x0, y0) { const cnt = new Map(); for (let y = y0 - 2; y <= y0 + TH + 2; y++) for (let x = x0 - 2; x <= x0 + TW + 1; x++) { if (y >= y0 && y < y0 + TH && x >= x0 && x < x0 + TW) continue; const v = gt(m, x, y); if (v != null && !D.BLOCK.has(v) && v !== T.WATER) cnt.set(v, (cnt.get(v) || 0) + 1); } let best = T.GRASS, bn = -1; for (const [v, n] of cnt) if (n > bn) { bn = n; best = v; } return best; }
+function clearTentGround(m, t) {
+  const g = tentGround(m, t.x, t.y), ch = [];
+  const cl = (x, y) => { const v = gt(m, x, y); if (v != null && D.TENT_OVER.has(v)) { st(m, x, y, g); ch.push([x, y, g]); } };
+  for (let y = t.y; y < t.y + TH; y++) for (let x = t.x; x < t.x + TW; x++) cl(x, y);
+  for (let y = t.y + TH; y <= t.y + TH + 1; y++) for (let x = t.x + TDX - 1; x <= t.x + TDX + 1; x++) cl(x, y); // 입구 앞 3x2
+  if (ch.length) broadcast({ t: 'tset', map: m.id, l: ch });
+}
+function tentExit(t) { const m = MAPS[t.map]; let x = t.x + TDX, y = t.y + TH; if (m && !walkable(m, x, y)) { outer: for (let r = 1; r <= 5; r++) for (let dy = 0; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const nx = t.x + TDX + dx, ny = t.y + TH + dy; if (walkable(m, nx, ny) && !tentAt(m, nx, ny)) { x = nx; y = ny; break outer; } } } return { x, y }; }
+function closeTentInterior(t) { const im = MAPS[tentInId(t.owner)]; if (!im) return; const ex = tentExit(t); for (const q of PLAYERS.values()) if (q.map === im.id) teleport(q, t.map, ex.x, ex.y, 1); delete MAPS[im.id]; }
 function ensureTentMap(id) { if (MAPS[id] || !id.startsWith('tent_')) return; const owner = id.slice(5); for (const m of Object.values(MAPS)) for (const t of m.tents) if (t.owner === owner && (t.kind || 'tent') === 'tent' && !t.inner) { tentInterior(t); return; } }
 function tentDoorCheck(p) {
   const m = MAPS[p.map];
-  if (m.inner) { if (p.y >= 1 + IHT) { const t = m.tentRef; if (t && MAPS[t.map]) { teleport(p, t.map, t.x + TDX, t.y + TH, 1); sysMsg(p, '텐트 밖으로 나왔습니다.', '#ccc'); } } return; }
+  if (m.inner) { if (p.y >= 1 + IHT) { const t = m.tentRef; if (t && MAPS[t.map]) { const ex = tentExit(t); teleport(p, t.map, ex.x, ex.y, 1); sysMsg(p, '텐트 밖으로 나왔습니다.', '#ccc'); } } return; }
   for (const t of m.tents) if (isTentOut(t, m) && p.x === t.x + TDX && p.y === t.y + TH - 1) { const im = tentInterior(t); teleport(p, im.id, 1 + IDX, IHT - 1); sysMsg(p, t.owner === p.name ? '내 텐트에 들어왔습니다. [집짓기]에서 가구를 배치하세요. 아래 입구로 나가요.' : `${t.owner}님의 텐트에 들어왔습니다.`, '#ffd27a'); sendTents(im); return; }
 }
 function tentBlock(t, x, y) {
@@ -587,7 +597,7 @@ function loadSaves(saves) {
   SAVES = saves || {};
   for (const nm in SAVES) {
     const s = SAVES[nm];
-    if (s.tent && MAPS[s.tent.map]) MAPS[s.tent.map].tents.push(Object.assign(s.tent, { owner: nm }));
+    if (s.tent && MAPS[s.tent.map]) { MAPS[s.tent.map].tents.push(Object.assign(s.tent, { owner: nm })); try { clearTentGround(MAPS[s.tent.map], s.tent); } catch (e) { } }
     if (s.house && MAPS[s.house.map]) MAPS[s.house.map].tents.push(Object.assign(s.house, { owner: nm, kind: 'house' }));
     if (s.plot) { const pl = PLOTS.find(q => q.id === s.plot); if (pl) pl.owner = nm; }
   }
@@ -678,7 +688,7 @@ function sendMap(p) {
 }
 let _bs = null;
 function biomeStr(m) { if (_bs) return _bs; const k = { grass: 'g', forest: 'f', desert: 'd', snow: 's', swamp: 'w', volcano: 'v' }; _bs = m.biome.map(b => k[b]).join(''); return _bs; }
-function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t => ({ owner: t.owner, kind: t.kind || 'tent', inner: t.inner ? 1 : 0, x: t.x, y: t.y, furn: t.furn })), plots: PLOTS.filter(q => q.map === m.id).map(q => ({ id: q.id, x: q.x, y: q.y, sx: q.sx, sy: q.sy, owner: q.owner, price: q.price })) }, m.id); }
+function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t => ({ owner: t.owner, kind: t.kind || 'tent', inner: t.inner ? 1 : 0, x: t.x, y: t.y, w: t.w, h: t.h, furn: t.furn })), plots: PLOTS.filter(q => q.map === m.id).map(q => ({ id: q.id, x: q.x, y: q.y, sx: q.sx, sy: q.sy, owner: q.owner, price: q.price })) }, m.id); }
 
 function teleport(p, mapId, x, y, near) {
   const old = MAPS[p.map];
@@ -805,8 +815,9 @@ function gainExp(p, e) {
     calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp;
     fx(MAPS[p.map], { k: 'lvl', x: p.x, y: p.y });
     sysMsg(p, `✨ 레벨 업! Lv.${p.lv}`, '#7dffb0');
-    const nsk = D.SKILLS.filter(s => s.jobs.includes(p.job) && s.lv === p.lv); nsk.forEach(s => sysMsg(p, `새 스킬 [${s.name}] 습득!`, '#9ad7ff'));
+    const nsk = D.SKILLS.filter(s => D.canSkill(s, p.job) && s.lv === p.lv); nsk.forEach(s => sysMsg(p, `새 스킬 [${s.name}] 습득!`, '#9ad7ff'));
     if (p.lv === D.PROMO_LEVEL && D.JOBS[p.job].tier === 0) sysMsg(p, `🎖 전직이 가능합니다! 마을의 [전직교관 무영]을 찾아가세요.`, '#e0a8ff');
+    if (p.lv === D.PROMO2_LEVEL && D.JOBS[p.job].tier === 1) sysMsg(p, `👑 3차 전직이 가능합니다! 마을의 [전직교관 무영]을 찾아가세요.`, '#ffd27a');
   }
   dirty(p);
 }
@@ -887,14 +898,14 @@ function summonAI(m, s, now, def) {
   const owner = PLAYERS.get(s.owner);
   if (!owner || owner.map !== m.id || owner.dead || now > s.until || s.hp <= 0) { killMon(m, s); if (owner) owner.summons = (owner.summons || []).filter(x => x !== s); return; }
   // 주인과 너무 멀어지면 주인 곁으로 순간이동
-  if (dist(s, owner) > 12) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); s.target = null; }
+  if (dist(s, owner) > 14) { const q = nearFree(m, owner.x, owner.y); occDel(m, s.x, s.y); s.x = q.x; s.y = q.y; occAdd(m, s.x, s.y); s.target = null; }
   // 목표: 주인 주변(5칸)의 몬스터만. 목표가 주인에게서 7칸 이상 멀어지면 포기하고 돌아옴
   let tg = s.target && m.mons.get(s.target);
-  if (!tg || tg.summon || tg.hp <= 0 || dist(tg, owner) > 7 || dist(s, owner) > 8) {
+  if (!tg || tg.summon || tg.hp <= 0 || dist(tg, owner) > 10 || dist(s, owner) > 11) {
     tg = null; let bd = 99;
-    for (const mon of m.mons.values()) if (!mon.summon && mon.hp > 0 && dist(mon, owner) <= 5) { const d = dist(mon, s) + dist(mon, owner) * 0.5; if (d < bd) { bd = d; tg = mon; } }
+    for (const mon of m.mons.values()) if (!mon.summon && mon.hp > 0 && dist(mon, owner) <= 7) { const d = dist(mon, s) + dist(mon, owner) * 0.5; if (d < bd) { bd = d; tg = mon; } }
     // 주인을 공격 중인 몬스터 우선
-    for (const mon of m.mons.values()) if (!mon.summon && mon.target === owner.id && dist(mon, owner) <= 4) { tg = mon; break; }
+    for (const mon of m.mons.values()) if (!mon.summon && mon.target === owner.id && dist(mon, owner) <= 6) { tg = mon; break; }
     s.target = tg ? tg.id : null;
   }
   const moveInt = Math.max(180, Math.min(380, (owner.st && owner.st.spd) || 300)); // 주인 속도에 맞춰 따라감
@@ -1067,7 +1078,7 @@ function basicAttack(p) {
     fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: t ? (faceTo(p, t), p.dir) : p.dir });
     if (t) hitMon(m, t, p, p.st.atk, 1);
   } else {
-    const t = pickTarget(m, p, base === 'mage' ? 4 : 5); if (!t) { fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: p.dir }); return; }
+    const t = pickTarget(m, p, base === 'mage' ? 6 : 7); if (!t) { fx(m, { k: 'swing', id: p.id, x: p.x, y: p.y, d: p.dir }); return; }
     faceTo(p, t);
     fx(m, { k: 'proj', f: base === 'mage' ? 'mbolt' : 'arrow', fx: p.x, fy: p.y, tx: t.x, ty: t.y, c: base === 'mage' ? '#b48cff' : '#e8e0c0' });
     hitMon(m, t, p, p.st.atk, base === 'mage' ? 0.95 : 1);
@@ -1075,7 +1086,7 @@ function basicAttack(p) {
 }
 function useSkill(p, sid) {
   const sk = D.SKILL[sid]; const m = MAPS[p.map]; const now = Date.now();
-  if (!sk || p.dead || !sk.jobs.includes(p.job) || p.lv < sk.lv) return;
+  if (!sk || p.dead || !D.canSkill(sk, p.job) || p.lv < sk.lv) return;
   if (inTown(m, p.x, p.y) && !['heal', 'buff', 'partyBuff'].includes(sk.kind)) return sysMsg(p, '마을 안에서는 공격 스킬을 쓸 수 없습니다.');
   p.cds = p.cds || {};
   if ((p.cds[sid] || 0) > now) return;
@@ -1094,7 +1105,7 @@ function useSkill(p, sid) {
     case 'partyBuff': { fx(m, { k: 'skill', f: 'bless', x: p.x, y: p.y, r: sk.r, c: sk.col }); for (const q of PLAYERS.values()) if (q.map === p.map && !q.dead && dist(q, p) <= sk.r) { addBuff(q, sk.name, sk.buff, sk.dur); if (q !== p) sysMsg(q, `${p.name}님의 [${sk.name}]!`, '#ffe98a'); } if (sk.healToo) healAround(m, p, sk.r, sk.healToo); break; }
     case 'summon': {
       p.summons = (p.summons || []).filter(s => m.mons.has(s.id));
-      while (p.summons.length + sk.count > 4) { const old = p.summons.shift(); m.mons.delete(old.id); occDel(m, old.x, old.y); }
+      while (p.summons.length + sk.count > (D.JOBS[p.job].from === 'summoner' ? 6 : 4)) { const old = p.summons.shift(); m.mons.delete(old.id); occDel(m, old.x, old.y); }
       const def = D.SUMMONS[sk.summon];
       for (let i = 0; i < sk.count; i++) {
         const pos = nearFreeMon(m, p.x + ri(-1, 1), p.y + ri(-1, 1));
@@ -1137,7 +1148,8 @@ function openNpc(p, n) {
     case 'bank': return p.ws.send({ t: 'dlg', kind: 'chest', bank: 1, npc: n.name, text: '맡길 물건이 있으면 언제든 오게. 마을 창고와 내 집 보관상자는 같은 창고라네.' });
     case 'master': {
       const J = D.JOBS[p.job];
-      if (J.tier) return p.ws.send({ t: 'dlg', kind: 'talk', npc: n.name, text: `이미 [${J.name}]의 길을 걷고 있구나. 정진하거라.` });
+      if (J.tier === 2) return p.ws.send({ t: 'dlg', kind: 'talk', npc: n.name, text: `[${J.name}]... 이제 더 가르칠 것이 없구나. 대륙을 지켜다오.` });
+      if (J.tier === 1) { const opts = (D.PROMOS2[p.job] || []).map(id => ({ id, name: D.JOBS[id].name, desc: D.JOBS[id].desc, skills: D.SKILLS.filter(s => s.jobs.length === 1 && s.jobs[0] === id).map(s => `${s.name}(Lv${s.lv})`) })); return p.ws.send({ t: 'dlg', kind: 'master', npc: n.name, text: p.lv < D.PROMO2_LEVEL ? `[${J.name}]의 길을 잘 걷고 있구나. 레벨 ${D.PROMO2_LEVEL}이 되면 마지막 전직을 해주지.\n\n${J.name}의 3차 전직 갈래:` : '마지막 관문이다. 너의 마지막 길을 선택하거라. (되돌릴 수 없다)', can: p.lv >= D.PROMO2_LEVEL, opts }); }
       return p.ws.send({ t: 'dlg', kind: 'master', npc: n.name, text: p.lv < D.PROMO_LEVEL ? `레벨 ${D.PROMO_LEVEL}이 되면 다시 찾아오게. 그때 너의 길을 정해주지.\n\n${J.name}의 전직 갈래:` : '때가 되었구나. 너의 길을 선택하거라. (한 번 선택하면 되돌릴 수 없다)', can: p.lv >= D.PROMO_LEVEL, opts: D.PROMOS[p.job].map(id => ({ id, name: D.JOBS[id].name, desc: D.JOBS[id].desc, skills: D.SKILLS.filter(s => s.jobs.length === 1 && s.jobs[0] === id).map(s => `${s.name}(Lv${s.lv})`) })) });
     }
     case 'guide': return p.ws.send({ t: 'dlg', kind: 'guide', npc: n.name, text: '바람의 대륙에 온 걸 환영해요!\n\n· 이동: 방향키/WASD  · 공격: 스페이스  · 스킬: 1~6\n· 물약: 7 빨강 / 8 파랑 / 9 보라 / 0 노랑\n· E: NPC·가구 상호작용  · Z: 줍기  · R: 탈것  · B: 집짓기\n· I: 가방  · Tab: 대상 변경  · Enter: 채팅\n· 다른 플레이어를 클릭하면 교환 신청!\n\n· 밤에는 들판에 어둠 추적자가 나타나요. 텐트나 마을 안에 숨으세요!\n· 대륙 곳곳 나무·바위 사이, 버려진 집, 던전·성·감옥 안에 보물상자가 숨겨져 있어요. 전설의 보물상자도 있대요!\n· 보물지도 조각 4개를 모아 사용하면 전설의 보물 위치가 보여요.\n· 잡화상에서 낚싯대를 사서 연못에서 낚시를 해 보세요.\n· 메뉴의 [요리책]에서 모든 레시피와 재료 얻는 곳을 볼 수 있어요.', bosses: bossSchedule() });
@@ -1287,9 +1299,9 @@ function handle(p, msg) {
     case 'upgrade': upgrade(p, msg); break;
     case 'promote': {
       const n = npcNear(p); if (!n || n.kind !== 'master') return;
-      if (p.lv < D.PROMO_LEVEL || D.JOBS[p.job].tier || !D.PROMOS[p.job].includes(msg.id)) return;
+      const J0 = D.JOBS[p.job]; const ok1 = !J0.tier && p.lv >= D.PROMO_LEVEL && (D.PROMOS[p.job] || []).includes(msg.id), ok2 = J0.tier === 1 && p.lv >= D.PROMO2_LEVEL && (D.PROMOS2[p.job] || []).includes(msg.id); if (!ok1 && !ok2) return;
       p.job = msg.id; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; dirty(p);
-      fx(m, { k: 'lvl', x: p.x, y: p.y }); announce(`🎖 ${p.name}님이 [${D.JOBS[p.job].name}](으)로 전직했습니다!`, '#e0a8ff');
+      fx(m, { k: 'lvl', x: p.x, y: p.y }); announce(D.JOBS[p.job].tier === 2 ? `👑 ${p.name}님이 3차 전직 [${D.JOBS[p.job].name}](으)로 거듭났습니다!` : `🎖 ${p.name}님이 [${D.JOBS[p.job].name}](으)로 전직했습니다!`, '#e0a8ff');
       p.ws.send({ t: 'dlg', close: 1 }); break;
     }
     case 'ride': {
@@ -1481,17 +1493,17 @@ function buildTent(p) {
   if (p.dead) return;
   if (inTown(m, p.x, p.y) || m.towns.some(t => p.x >= t.x0 - 6 && p.x <= t.x1 + 6 && p.y >= t.y0 - 8 && p.y <= t.y1 + 6)) return sysMsg(p, '마을 근처에는 텐트를 지을 수 없습니다.', '#ffb4b4');
   if (!hasMats(p, D.TENT_COST)) return sysMsg(p, `재료 부족! 텐트: 나무 ${D.TENT_COST['나무']}, 양털 ${D.TENT_COST['양털']}, 솜 ${D.TENT_COST['솜']} (보유 나무 ${countMat(p, '나무')}, 양털 ${countMat(p, '양털')}, 솜 ${countMat(p, '솜')})`, '#ffb4b4');
-  const x0 = p.x - (D.TENT_W >> 1), y0 = p.y - (D.TENT_H - 1);
-  for (let y = y0; y < y0 + D.TENT_H; y++) for (let x = x0; x < x0 + D.TENT_W; x++) {
-    const v = gt(m, x, y);
-    if ((D.BLOCK.has(v) && !D.TENT_OVER.has(v)) || v === T.UP || v === T.DOWN || v === T.CAVEDOOR || v === T.GATE || m.portals[x + ',' + y]) return sysMsg(p, '이곳은 텐트를 칠 공간이 부족합니다. (위쪽으로 9x7칸의 빈 땅 필요)', '#ffb4b4');
-    if (m.tents.some(t => t !== p.tent && x >= t.x && x < t.x + D.TENT_W && y >= t.y && y < t.y + D.TENT_H)) return sysMsg(p, '다른 텐트와 겹칩니다.', '#ffb4b4');
-  }
+  // 내 위치 기준으로 가까운 빈 자리를 찾아 자동으로 맞춤 (나무·바위는 걷어냄)
+  const bad = (x0, y0) => { for (let y = y0; y < y0 + D.TENT_H; y++) for (let x = x0; x < x0 + D.TENT_W; x++) { const v = gt(m, x, y); if (v == null || (D.BLOCK.has(v) && !D.TENT_OVER.has(v)) || v === T.UP || v === T.DOWN || v === T.CAVEDOOR || v === T.GATE || m.portals[x + ',' + y] || m.npcs.some(n => n.x === x && n.y === y)) return 'space'; if (m.tents.some(t => t !== p.tent && x >= t.x - 1 && x < t.x + SW(t) + 1 && y >= t.y - 1 && y < t.y + SH(t) + 2)) return 'tent'; } const ev = gt(m, x0 + TDX, y0 + D.TENT_H); if (ev == null || (D.BLOCK.has(ev) && !D.TENT_OVER.has(ev))) return 'space'; return null; };
+  let x0 = p.x - (D.TENT_W >> 1), y0 = p.y - (D.TENT_H - 1), why = bad(x0, y0);
+  if (why) { search: for (let r = 1; r <= 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue; const w2 = bad(x0 + dx, y0 + dy); if (!w2) { x0 += dx; y0 += dy; why = null; break search; } } }
+  if (why) return sysMsg(p, why === 'tent' ? '근처에 다른 텐트가 있어요. 조금 떨어진 곳에서 지어 주세요.' : '근처에 텐트를 칠 땅이 없어요. 물·벽·입구에서 조금 떨어진 곳에서 지어 주세요.', '#ffb4b4');
   takeMats(p, D.TENT_COST);
   let furn = [];
   if (p.tent) { const om = MAPS[p.tent.map]; om.tents = om.tents.filter(t => t !== p.tent); furn = p.tent.furn; if (om !== m) sendTents(om); }
   const tent = { owner: p.name, kind: 'tent', map: m.id, x: x0, y: y0, furn };
-  p.tent = tent; m.tents.push(tent); if (MAPS[tentInId(p.name)]) tentInterior(tent);
+  p.tent = tent; m.tents.push(tent); clearTentGround(m, tent); if (MAPS[tentInId(p.name)]) tentInterior(tent);
+  for (const q of PLAYERS.values()) if (q.map === m.id && tentAt(m, q.x, q.y) === tent && tentBlock(tent, q.x, q.y)) { const ex = tentExit(tent); teleport(q, m.id, ex.x, ex.y, 1); }
   // 텐트 안 몬스터 밀어내기
   for (const mon of [...m.mons.values()]) if (tentAt(m, mon.x, mon.y) === tent) { const q = nearFreeMon(m, mon.x, y0 + D.TENT_H + 2); occDel(m, mon.x, mon.y); mon.x = q.x; mon.y = q.y; occAdd(m, q.x, q.y); mon.target = null; }
   for (const d of [...m.drops.values()]) if (tentAt(m, d.x, d.y) === tent && tentBlock(tent, d.x, d.y)) { d.x = p.x; d.y = p.y; }

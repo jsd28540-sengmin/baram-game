@@ -358,6 +358,7 @@ function onMsg(m) {
       break;
     case 'map': loadMap(m); break;
     case 'tents': if (S.map && m.map === S.map.id) { S.tents = m.list; S.plots = m.plots || []; } break;
+    case 'tset': if (S.map && m.map === S.map.id) { for (const [x, y, v] of m.l) S.map.t[y * S.map.w + x] = v; gChunks.clear(); try { S.miniBase = null; } catch (e) { } } break;
     case 'me': S.me = m; refreshHud(true); rerenderPanel(); break;
     case 'pos': { if (m.ep != null) pos.ep = m.ep; if (pos.x === m.x && pos.y === m.y) break; const near = Math.abs(pos.rx - m.x) + Math.abs(pos.ry - m.y) <= 4; pos.x = m.x; pos.y = m.y; if (near) { pos.fx = pos.rx; pos.fy = pos.ry; pos.t0 = performance.now(); pos.dur = 140; pos.moving = true; } else { pos.rx = m.x; pos.ry = m.y; pos.moving = false; } break; } // 가까우면 미끄러지듯 보정
     case 's': snapshot(m); break;
@@ -433,6 +434,7 @@ addEventListener('keydown', e => {
   if (k === 'Enter') { chatin.classList.remove('hidden'); chatin.focus(); e.preventDefault(); return; }
   if (k === 'Escape') { if (S.place) { S.place = null; return; } closePanel(); closePanel2(); hideTip(); return; }
   if (k >= '1' && k <= '8') { castSkill(+k - 1); return; }
+  if (k === 'f' || k === 'F') { castSkill(8); return; } if (k === 'g' || k === 'G') { castSkill(9); return; } // 3차 전직 9·10번 스킬
   const pot = { '7': 'hp', '8': 'mp', '9': 'buffAtk', '0': 'buffDef' }[k]; if (pot) { usePot(pot); return; }
   hotkey(k.toLowerCase());
 });
@@ -457,10 +459,10 @@ function heldDir() { if (touchDir >= 0) return touchDir; if (held.length) return
 function castSkill(i) { if (!S.me) return; const id = S.me.skills[i]; if (!id) return; const sk = GD.SKILL[id]; if (S.me.lv < sk.lv) return log(`[${sk.name}]은(는) Lv${sk.lv}에 배웁니다.`, '#bbb'); send({ t: 'skill', id }); }
 function usePot(kind) {
   if (!S.me) return;
-  const pref = kind === 'hp' ? ['stew', 'meatCooked', 'hp2', 'hp1', 'feast'] : kind === 'mp' ? ['mp2', 'mp1', 'stew'] : [kind];
+  const pref = kind === 'hp' ? ['stew', 'meatCooked', 'hp3', 'hp2', 'hp1', 'feast'] : kind === 'mp' ? ['mp3', 'mp2', 'mp1', 'stew'] : [kind];
   const st = S.me.st, you = S.you;
   let order = pref;
-  if (kind === 'hp') { const miss = st.maxHp - (you.hp || 0); order = miss > 300 ? ['hp2', 'stew', 'meatCooked', 'hp1', 'feast'] : ['hp1', 'meatCooked', 'hp2', 'stew', 'feast']; }
+  if (kind === 'hp') { const miss = st.maxHp - (you.hp || 0); order = miss > 1000 ? ['hp3', 'hp2', 'stew', 'meatCooked', 'hp1', 'feast'] : miss > 300 ? ['hp2', 'hp3', 'stew', 'meatCooked', 'hp1', 'feast'] : ['hp1', 'meatCooked', 'hp2', 'stew', 'feast', 'hp3']; }
   if (kind === 'mp') { const miss = st.maxMp - (you.mp || 0); order = miss > 200 ? ['mp2', 'mp1', 'stew'] : ['mp1', 'mp2', 'stew']; }
   for (const id of order) if (S.me.inv.some(o => o.k === 'use' && o.id === id)) return send({ t: 'useId', id });
   log(`${kind === 'hp' ? '체력 회복 아이템' : kind === 'mp' ? '마나 물약' : GD.CONSUMES[kind].name}이(가) 없습니다.`, '#bbb');
@@ -941,7 +943,7 @@ function refreshHud(full) {
     const b = $('bar'); let h = '';
     for (let i = 0; i < 6; i++) { const id = me.skills[i]; const sk = id && GD.SKILL[id]; h += `<div class="slot ${!sk || me.lv < sk.lv ? 'lock' : ''}" data-s="${i}" title="${sk ? esc(sk.name + ' — ' + sk.desc) : ''}"><span class="k">${i + 1}</span>${sk ? sk.name : '-'}<div class="cd" id="cd${i}"></div></div>`; }
     const cnt = ids => me.inv.filter(o => o.k === 'use' && ids.includes(o.id)).reduce((a, o) => a + o.n, 0);
-    [['7', 'hp', ['hp1', 'hp2', 'meatCooked', 'stew', 'feast'], '#e8303a'], ['8', 'mp', ['mp1', 'mp2'], '#2f6bff'], ['9', 'buffAtk', ['buffAtk'], '#a040ff'], ['0', 'buffDef', ['buffDef'], '#ffd020']].forEach(([k, kind, ids, c]) => { h += `<div class="slot" data-p="${kind}"><span class="k">${k}</span><div class="pot" style="background:${c}"></div><span class="n">${cnt(ids)}</span></div>`; });
+    [['7', 'hp', ['hp1', 'hp2', 'hp3', 'meatCooked', 'stew', 'feast'], '#e8303a'], ['8', 'mp', ['mp1', 'mp2', 'mp3'], '#2f6bff'], ['9', 'buffAtk', ['buffAtk'], '#a040ff'], ['0', 'buffDef', ['buffDef'], '#ffd020']].forEach(([k, kind, ids, c]) => { h += `<div class="slot" data-p="${kind}"><span class="k">${k}</span><div class="pot" style="background:${c}"></div><span class="n">${cnt(ids)}</span></div>`; });
     b.innerHTML = h;
     b.querySelectorAll('[data-s]').forEach(d => d.onclick = () => castSkill(+d.dataset.s));
     b.querySelectorAll('[data-p]').forEach(d => d.onclick = () => usePot(d.dataset.p));

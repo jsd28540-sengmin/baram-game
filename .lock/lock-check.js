@@ -45,8 +45,13 @@ must('game.js', "saves: S, srv: NET.serverOnly ? 1 : 0, solo: NET.serverOnly ? 0
 must('ui.js', "if (u === 'talk') talkBtn();", '말걸기 버튼: NPC/플레이어/안내');
 must('ui.js', 'function placePartyBox()', '모바일 파티창은 미니맵 왼쪽');
 must('assets.js', '// 변신 상태 공격 모션', '변신 공격 모션 유지');
-must('assets.js', "const S2 = 1.12, rw2 = rb.w * S2, up = rb.h * 0.68", '탈것 탑승 자세(상체+다리) 유지');
+must('assets.js', "const S2 = Math.min(1.25, 139 / Math.max(60, rb.h)), rw2 = rb.w * S2, up = rb.h * 0.68", '탈것 탑승 자세(상체+다리) 유지');
 must('assets.js', '// ═══════ 버튼 잘 눌리게', '버튼 터치 안정화(누르는 중 재그리기 보류·즉시 클릭) 유지');
+must('engine.js', "w: t.w, h: t.h, furn: t.furn", '텐트 실내 크기 전달(출구 막힘 방지)');
+must('engine.js', 'function tentExit(t)', '텐트 출구 안전 위치');
+must('engine.js', 'function clearTentGround(m, t)', '텐트 자리 나무 정리');
+must('assets.js', 'window.formRider', '변신+탈것 외형 유지');
+must('data.js', 'D.PROMOS2 = {', '3차 전직 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

@@ -5,10 +5,10 @@
   const T = { guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74 };
   const _csC = charSprite, cc = new Map();
   charSprite = function (ap, dir, frame) {
-    const A = ap && !ap.mt && CI.ok && CA[ap.job]; if (!A) return _csC(ap, dir, frame);
+    const cj = ap && (CA[ap.job] ? ap.job : GD.JOBS[ap.job] && GD.JOBS[ap.job].from); const A = ap && !ap.mt && CI.ok && cj && CA[cj]; if (!A) return _csC(ap, dir, frame);
     const key = ap.job + ap.g + dir + '|' + frame; let c = cc.get(key); if (c) return c;
     const r = (A[ap.g === 'f' ? 'f' : 'm'] || A.m)[['down', 'left', 'right', 'up'][dir] || 'down'];
-    const K = 2, s = T[ap.job] / A.m.down[3]; c = document.createElement('canvas'); c.width = 70 * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    const K = 2, s = (T[ap.job] || T[cj] || 74) * (GD.JOBS[ap.job] && GD.JOBS[ap.job].tier === 2 ? 1.06 : 1) / A.m.down[3]; c = document.createElement('canvas'); c.width = 70 * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const bob = frame === 1 || frame === 3 ? 1.5 : 0, w = r[2] * s, h = r[3] * s;
     g.drawImage(CI, r[0], r[1], r[2], r[3], (35 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
     c.dw = 70; c.dh = 100; cc.set(key, c); return c;
@@ -38,6 +38,10 @@
     return null;
   }
   itemIcon = function (it) {
+    if (it && it.k === 'use' && (it.id === 'hp3' || it.id === 'mp3')) { const ck = 'big|' + it.id + '|' + (IT.ok ? 1 : 0); let c = cache.get(ck); if (c) return c; c = mkc(64, 64); const g = c.getContext('2d'); const base = itemIcon({ k: 'use', id: it.id === 'hp3' ? 'hp2' : 'mp2' });
+      const gl = g.createRadialGradient(32, 36, 4, 32, 36, 32); gl.addColorStop(0, it.id === 'hp3' ? '#ffd34daa' : '#9fe8ffaa'); gl.addColorStop(1, '#0000'); g.fillStyle = gl; g.fillRect(0, 0, 64, 64);
+      g.drawImage(base, -4, -6, 72, 72); g.fillStyle = '#ffd34d'; g.strokeStyle = '#5a3a00'; g.lineWidth = 1.5; const star = (x, y, r) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - Math.PI / 2, rr = i % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); g.stroke(); }; star(50, 14, 9);
+      c._ic64 = 1; cache.set(ck, c); return c; }
     if (it && it.k === 'mount') { const ck = 'mt|' + it.id + '|' + (HO.ok ? 1 : 0); let c = cache.get(ck); if (c) return c; c = mkc(64, 64); const MD = GD.MOUNTS[it.id] || {}; const MK = HA[it.id] ? it.id : 'horse';
       if (HO.ok && HA[MK]) { const r = HA[MK].right[0]; const k = Math.min(60 / r[2], 60 / r[3]); const w = r[2] * k, h = r[3] * k; const t = mkc(64, 64), tg = t.getContext('2d'); tg.drawImage(HO, r[0], r[1], r[2], r[3], 32 - w / 2, 62 - h, w, h);
         if (!HA[it.id] && (MD.tint || it.id === 'whiteHorse')) { tg.globalCompositeOperation = 'color'; tg.fillStyle = MD.tint || '#e8e8f0'; tg.fillRect(0, 0, 64, 64); tg.globalCompositeOperation = 'destination-in'; tg.drawImage(HO, r[0], r[1], r[2], r[3], 32 - w / 2, 62 - h, w, h); }
@@ -127,7 +131,7 @@
   charSprite = function (ap, dir, frame) {
     const MD = GD.MOUNTS[ap.mt] || {}; const MK = HA[ap.mt] ? ap.mt : (ap.mt === 'whiteHorse' || MD.tint) ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
-    const rider = _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
+    const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
     const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
     c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
     const hw = r[2] * 1.75, hh = r[3] * 1.75; const hx = 110 - hw / 2, hy = 218 - hh;
@@ -140,7 +144,7 @@
     const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
     // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
-    const S2 = 1.12, rw2 = rb.w * S2, up = rb.h * 0.68, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.9;
+    const S2 = Math.min(1.25, 139 / Math.max(60, rb.h)), rw2 = rb.w * S2, up = rb.h * 0.68, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.9;
     g.drawImage(hor, hx, hy, hw, hh);
     if (d === 'left' || d === 'right') { // 옆모습: 다리는 옆구리로 내려오고 상체는 안장 위
       const fw = d === 'left' ? -1 : 1, waist = seatY + 8;
@@ -189,7 +193,7 @@
   }
   function paintSkillBtns() {
     if (!S.touchCd || !S.me || !FXI.ok || !IT.ok) return;
-    const n8 = S.me.skills.length > 6; const gr = $('skillgrid'); if (gr) { if (n8) gr.style.setProperty('grid-template-columns', 'repeat(4,56px)', 'important'); else gr.style.removeProperty('grid-template-columns'); }
+    const n8 = S.me.skills.length > 6, n10 = S.me.skills.length > 8; const gr = $('skillgrid'); if (gr) { if (n10) gr.style.setProperty('grid-template-columns', 'repeat(5,50px)', 'important'); else if (n8) gr.style.setProperty('grid-template-columns', 'repeat(4,56px)', 'important'); else gr.style.removeProperty('grid-template-columns'); }
     S.touchCd.forEach((d, i) => {
       d.style.display = i >= 6 && !S.me.skills[i] ? 'none' : '';
       const sk = GD.SKILL[S.me.skills[i]]; const si = d.querySelector('.si'); if (!si) return;
@@ -575,10 +579,12 @@
 // ═══════ 변신 모습: 크기 커짐 + 직업색 갑옷 빛 + 오라 (전용 그림이 오면 교체) ═══════
 (function () {
   const mkc = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-  const _cs3 = charSprite, fc = new Map(); const FA = window.FORM_ATLAS || {}; const FI = new Image(); FI.onload = () => { FI.ok = true; fc.clear(); }; FI.src = 'gfx/forms.png?v=' + (window.BUILDV || 1);
+  const _cs3 = charSprite, fc = new Map(); const FA = window.FORM_ATLAS || {};
+  window.formRider = (ap, dir) => { if (!ap || !ap.fm || !FI.ok || !FA[ap.fm]) return null; const k = 'R' + ap.fm + dir; let c = fc.get(k); if (c) return c; const r = FA[ap.fm][['down', 'left', 'right', 'up'][dir] || 'down']; c = mkc(r[2], r[3]); c.getContext('2d').drawImage(FI, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); fc.set(k, c); return c; }; const FI = new Image(); FI.onload = () => { FI.ok = true; fc.clear(); }; FI.src = 'gfx/forms.png?v=' + (window.BUILDV || 1);
   charSprite = function (ap, dir, frame) {
     if (!ap || !ap.fm || !GD.FORMS[ap.fm]) return _cs3(ap, dir, frame);
     const F = GD.FORMS[ap.fm]; const key = JSON.stringify(ap) + dir + frame; let c = fc.get(key); if (c) return c; if (fc.size > 200) fc.clear();
+    if (ap.mt && FI.ok && FA[ap.fm]) return _cs3(ap, dir, frame); // 탈것 위에서도 변신 모습 (라이더 = 변신 그림)
     if (!ap.mt && FI.ok && FA[ap.fm]) { const r = FA[ap.fm][['down', 'left', 'right', 'up'][dir] || 'down']; const bob = frame === 1 || frame === 3 ? 2 : 0; c = mkc(r[2], r[3] + 3); const g = c.getContext('2d'); g.drawImage(FI, r[0], r[1], r[2], r[3], 0, 3 - bob, r[2], r[3]); const dh = 84 * F.scale; c.dh = dh * (r[3] + 3) / r[3]; c.dw = r[2] * dh / r[3]; c._form = F; fc.set(key, c); return c; }
     const base = _cs3(Object.assign({}, ap, { fm: 0 }), dir, frame); const bw = base.dw || 56, bh = base.dh || 80, W2 = base.width, H2 = base.height;
     c = mkc(W2, H2); const g = c.getContext('2d'); g.drawImage(base, 0, 0);

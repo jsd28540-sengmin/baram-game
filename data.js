@@ -20,8 +20,25 @@
     summoner: { name: '강령술사', base: 'mage', tier: 1, mHp: 1.2, mDef: 1.1, mAtk: 1.1, mMp: 1.3, crit: 5, desc: '해골 늑대·시체 거인·망령을 일으켜 함께 싸운다.' },
     ranger: { name: '신궁', base: 'healer', tier: 1, mHp: 1.05, mDef: 1.0, mAtk: 1.4, crit: 15, desc: '원거리 저격 특화 + 약간의 치유.' },
     priest: { name: '대사제', base: 'healer', tier: 1, mHp: 1.2, mDef: 1.25, mAtk: 1.05, mMp: 1.4, heal: 1.8, crit: 5, desc: '강력한 광역 치유와 축복 + 약간의 공격.' },
+    // ── Lv50 3차 전직 (1차 전직의 특성을 둘로 나눔) ──
+    paladin: { name: '성기사', base: 'warrior', from: 'guardian', tier: 2, mHp: 1.6, mDef: 1.9, mAtk: 1.15, heal: 1.2, crit: 6, desc: '신성한 방패로 동료를 지키고 치유하는 파티의 수호자.' },
+    fortress: { name: '철벽군주', base: 'warrior', from: 'guardian', tier: 2, mHp: 1.85, mDef: 2.25, mAtk: 1.0, crit: 5, desc: '어떤 공격도 버티는 최강의 방패. 적을 모두 끌어모은다.' },
+    blademaster: { name: '검귀', base: 'warrior', from: 'berserker', tier: 2, mHp: 1.15, mDef: 0.95, mAtk: 1.75, crit: 25, desc: '눈에 보이지 않는 연속 베기로 한 적을 순식간에 쓰러뜨린다.' },
+    destroyer: { name: '파괴자', base: 'warrior', from: 'berserker', tier: 2, mHp: 1.3, mDef: 1.0, mAtk: 1.6, crit: 15, desc: '대지를 부수는 광역 파괴의 전사.' },
+    archmage: { name: '대마도사', base: 'mage', from: 'elementalist', tier: 2, mHp: 1.0, mDef: 1.0, mAtk: 1.7, mMp: 1.45, crit: 10, desc: '원소 마법의 정점. 최강의 광역 화력.' },
+    chronomancer: { name: '시공술사', base: 'mage', from: 'elementalist', tier: 2, mHp: 1.15, mDef: 1.2, mAtk: 1.45, mMp: 1.4, crit: 8, desc: '시간을 늦추고 동료를 가속하는 전장의 지배자.' },
+    lichking: { name: '리치왕', base: 'mage', from: 'summoner', tier: 2, mHp: 1.35, mDef: 1.25, mAtk: 1.3, mMp: 1.55, crit: 5, desc: '언데드 군단의 왕. 더 많고 강한 소환수를 부린다.' },
+    hexer: { name: '저주술사', base: 'mage', from: 'summoner', tier: 2, mHp: 1.15, mDef: 1.1, mAtk: 1.55, mMp: 1.4, crit: 8, desc: '역병과 저주로 적을 약하게 만들고 생명을 빼앗는다.' },
+    sniper: { name: '저격수', base: 'healer', from: 'ranger', tier: 2, mHp: 1.05, mDef: 1.0, mAtk: 1.8, crit: 30, desc: '아주 먼 거리에서 보스를 꿰뚫는 한 발의 명수.' },
+    arcaneArcher: { name: '마궁수', base: 'healer', from: 'ranger', tier: 2, mHp: 1.1, mDef: 1.05, mAtk: 1.6, mMp: 1.2, crit: 15, desc: '마력을 실은 화살비로 넓은 범위를 쓸어버린다.' },
+    saint: { name: '성자', base: 'healer', from: 'priest', tier: 2, mHp: 1.35, mDef: 1.35, mAtk: 1.0, mMp: 1.65, heal: 2.6, crit: 5, desc: '모든 동료를 살리는 최고의 치유자. 기적을 일으킨다.' },
+    inquisitor: { name: '심판관', base: 'healer', from: 'priest', tier: 2, mHp: 1.25, mDef: 1.25, mAtk: 1.5, mMp: 1.4, heal: 1.6, crit: 10, desc: '신성한 벼락으로 적을 심판하는 공격형 사제.' },
   };
   D.PROMOS = { warrior: ['guardian', 'berserker'], mage: ['elementalist', 'summoner'], healer: ['ranger', 'priest'] };
+  D.PROMO2_LEVEL = 50;
+  D.PROMOS2 = { guardian: ['paladin', 'fortress'], berserker: ['blademaster', 'destroyer'], elementalist: ['archmage', 'chronomancer'], summoner: ['lichking', 'hexer'], ranger: ['sniper', 'arcaneArcher'], priest: ['saint', 'inquisitor'] };
+  D.jobChain = job => { const c = []; let j = job; while (j && D.JOBS[j] && c.length < 4) { c.push(j); j = D.JOBS[j].from || (D.JOBS[j].tier ? D.JOBS[j].base : null); } return c; };
+  D.canSkill = (sk, job) => { const ch = D.jobChain(job); return sk.jobs.some(j => ch.includes(j)); };
 
   // ───────── 스킬 ─────────
   // kind: melee, proj, multi, aoeSelf, aoeTarget, line, heal, buff, partyBuff, summon, taunt
@@ -42,44 +59,70 @@
     { id: 'b_combo', name: '혈풍연참', jobs: ['berserker'], lv: 18, mp: 18, cd: 3500, kind: 'melee', mul: 4.8, fx: 'slash3', col: '#ff3b3b', desc: '눈에 보이지 않는 연속 베기.' },
     { id: 'b_storm', name: '폭풍검무', jobs: ['berserker'], lv: 24, mp: 34, cd: 9000, kind: 'aoeSelf', r: 3, mul: 3.8, fx: 'spin', col: '#ff5555', desc: '칼바람으로 주변을 휩쓴다. (광역)' },
     // 마법사
-    { id: 'm_fire', name: '화염구', jobs: ['mage', 'elementalist', 'summoner'], lv: 1, mp: 5, cd: 900, kind: 'proj', range: 5, mul: 2.4, fx: 'fireball', col: '#ff7a1a', desc: '불덩이를 날린다.' },
-    { id: 'm_frost', name: '얼음폭풍', jobs: ['mage', 'elementalist', 'summoner'], lv: 5, mp: 16, cd: 4000, kind: 'aoeTarget', range: 5, r: 2, mul: 1.9, slow: 1, fx: 'ice', col: '#8fe3ff', desc: '대상 주변에 얼음 폭풍. (광역, 둔화)' },
-    { id: 'm_chain', name: '연쇄번개', jobs: ['mage', 'elementalist', 'summoner'], lv: 10, mp: 20, cd: 5000, kind: 'multi', range: 5, n: 4, mul: 2.2, fx: 'bolt', col: '#fff36b', desc: '최대 4마리에게 번개가 튄다.' },
-    { id: 'e_meteor', name: '메테오', jobs: ['elementalist'], lv: 15, mp: 42, cd: 10000, kind: 'aoeTarget', range: 5, r: 3, mul: 5.2, fx: 'meteor', col: '#ff3d00', desc: '거대한 운석을 떨어뜨린다. (광역)' },
-    { id: 'e_bliz', name: '블리자드', jobs: ['elementalist'], lv: 18, mp: 34, cd: 7000, kind: 'aoeTarget', range: 5, r: 4, mul: 3.1, slow: 1, fx: 'ice', col: '#bdf1ff', desc: '넓은 범위에 눈보라. (광역, 둔화)' },
+    { id: 'm_fire', name: '화염구', jobs: ['mage', 'elementalist', 'summoner'], lv: 1, mp: 5, cd: 900, kind: 'proj', range: 7, mul: 2.4, fx: 'fireball', col: '#ff7a1a', desc: '불덩이를 날린다.' },
+    { id: 'm_frost', name: '얼음폭풍', jobs: ['mage', 'elementalist', 'summoner'], lv: 5, mp: 16, cd: 4000, kind: 'aoeTarget', range: 7, r: 2, mul: 1.9, slow: 1, fx: 'ice', col: '#8fe3ff', desc: '대상 주변에 얼음 폭풍. (광역, 둔화)' },
+    { id: 'm_chain', name: '연쇄번개', jobs: ['mage', 'elementalist', 'summoner'], lv: 10, mp: 20, cd: 5000, kind: 'multi', range: 7, n: 4, mul: 2.2, fx: 'bolt', col: '#fff36b', desc: '최대 4마리에게 번개가 튄다.' },
+    { id: 'e_meteor', name: '메테오', jobs: ['elementalist'], lv: 15, mp: 42, cd: 10000, kind: 'aoeTarget', range: 7, r: 3, mul: 5.2, fx: 'meteor', col: '#ff3d00', desc: '거대한 운석을 떨어뜨린다. (광역)' },
+    { id: 'e_bliz', name: '블리자드', jobs: ['elementalist'], lv: 18, mp: 34, cd: 7000, kind: 'aoeTarget', range: 7, r: 4, mul: 3.1, slow: 1, fx: 'ice', col: '#bdf1ff', desc: '넓은 범위에 눈보라. (광역, 둔화)' },
     { id: 'e_hell', name: '지옥불', jobs: ['elementalist'], lv: 24, mp: 40, cd: 9000, kind: 'aoeSelf', r: 3.5, mul: 4.3, fx: 'flame', col: '#ff5a00', desc: '자신 주변을 불바다로 만든다. (광역)' },
     { id: 'e_aura', name: '원소 각성', jobs: ['elementalist'], lv: 15, mp: 40, cd: 120000, kind: 'buff', buff: { atk: 0.4, crit: 10 }, dur: 60000, fx: 'buff', col: '#ff9a3d', desc: '60초간 불·얼음·번개가 몸에 깃든다 · 공격 +40% 치명 +10' },
-    { id: 'e_cata', name: '원소 대폭발', jobs: ['elementalist'], lv: 40, mp: 90, cd: 30000, kind: 'aoeTarget', range: 5, r: 4, mul: 9.5, slow: 1, fx: 'meteor', col: '#ff3dd0', desc: '세 원소를 한 점에 모아 터뜨린다. (최상급 광역, 둔화)' },
+    { id: 'e_cata', name: '원소 대폭발', jobs: ['elementalist'], lv: 40, mp: 90, cd: 30000, kind: 'aoeTarget', range: 7, r: 4, mul: 9.5, slow: 1, fx: 'meteor', col: '#ff3dd0', desc: '세 원소를 한 점에 모아 터뜨린다. (최상급 광역, 둔화)' },
     { id: 's_wolf', name: '해골 늑대 소환', jobs: ['summoner'], lv: 15, mp: 30, cd: 12000, kind: 'summon', summon: 'sWolf', count: 2, dur: 60000, fx: 'summon', col: '#8fd0ff', desc: '해골 늑대 2마리를 60초간 일으킴. (빠른 근접 공격)' },
     { id: 's_golem', name: '시체 거인 소환', jobs: ['summoner'], lv: 18, mp: 40, cd: 20000, kind: 'summon', summon: 'sGolem', count: 1, dur: 90000, fx: 'summon', col: '#b47cff', desc: '단단한 시체 거인을 90초간 일으킴. (적을 끌어들임)' },
     { id: 's_spirit', name: '망령 소환', jobs: ['summoner'], lv: 24, mp: 45, cd: 20000, kind: 'summon', summon: 'sSpirit', count: 2, dur: 60000, fx: 'summon', col: '#a050ff', desc: '저주 구슬을 던지는 망령 마법사 2기를 60초간 소환. (원거리)' },
-    { id: 's_prison', name: '뼈 감옥', jobs: ['summoner'], lv: 15, mp: 26, cd: 8000, kind: 'aoeTarget', range: 5, r: 2.5, mul: 2.8, slow: 1, fx: 'quake', col: '#e8dcc0', desc: '땅에서 뼈 창살이 솟아 적을 묶는다. (광역, 둔화)' },
+    { id: 's_prison', name: '뼈 감옥', jobs: ['summoner'], lv: 15, mp: 26, cd: 8000, kind: 'aoeTarget', range: 7, r: 2.5, mul: 2.8, slow: 1, fx: 'quake', col: '#e8dcc0', desc: '땅에서 뼈 창살이 솟아 적을 묶는다. (광역, 둔화)' },
     { id: 's_lich', name: '리치 군주 강림', jobs: ['summoner'], lv: 40, mp: 80, cd: 120000, kind: 'summon', summon: 'sLich', count: 1, dur: 90000, fx: 'summon', col: '#c070ff', desc: '강력한 리치 군주를 90초간 일으킴. (원거리 강공격)' },
     // 치유사
-    { id: 'h_shot', name: '저격', jobs: ['healer', 'ranger', 'priest'], lv: 1, mp: 4, cd: 900, kind: 'proj', range: 6, mul: 2.2, fx: 'arrow', col: '#e8e0c0', desc: '정확하게 조준해 쏜다.' },
+    { id: 'h_shot', name: '저격', jobs: ['healer', 'ranger', 'priest'], lv: 1, mp: 4, cd: 900, kind: 'proj', range: 8, mul: 2.2, fx: 'arrow', col: '#e8e0c0', desc: '정확하게 조준해 쏜다.' },
     { id: 'h_heal', name: '치유의 빛', jobs: ['healer', 'ranger', 'priest'], lv: 3, mp: 14, cd: 3000, kind: 'heal', r: 5, mul: 2.0, fx: 'heal', col: '#7dff9a', desc: '주변 모든 아군(나 포함)을 치유한다.' },
-    { id: 'h_multi', name: '다중사격', jobs: ['healer', 'ranger', 'priest'], lv: 8, mp: 14, cd: 4000, kind: 'multi', range: 6, n: 3, mul: 2.0, fx: 'arrow', col: '#e8e0c0', desc: '최대 3마리에게 동시에 화살.' },
-    { id: 'r_rain', name: '화살비', jobs: ['ranger'], lv: 15, mp: 30, cd: 8000, kind: 'aoeTarget', range: 6, r: 3, mul: 3.4, fx: 'rain', col: '#f0e6b0', desc: '화살을 비처럼 쏟아붓는다. (광역)' },
-    { id: 'r_pierce', name: '관통사격', jobs: ['ranger'], lv: 18, mp: 24, cd: 5000, kind: 'line', range: 6, mul: 4.4, fx: 'pierce', col: '#fff8c8', desc: '일직선의 모든 적을 관통한다.' },
+    { id: 'h_multi', name: '다중사격', jobs: ['healer', 'ranger', 'priest'], lv: 8, mp: 14, cd: 4000, kind: 'multi', range: 8, n: 3, mul: 2.0, fx: 'arrow', col: '#e8e0c0', desc: '최대 3마리에게 동시에 화살.' },
+    { id: 'r_rain', name: '화살비', jobs: ['ranger'], lv: 15, mp: 30, cd: 8000, kind: 'aoeTarget', range: 8, r: 3, mul: 3.4, fx: 'rain', col: '#f0e6b0', desc: '화살을 비처럼 쏟아붓는다. (광역)' },
+    { id: 'r_pierce', name: '관통사격', jobs: ['ranger'], lv: 18, mp: 24, cd: 5000, kind: 'line', range: 8, mul: 4.4, fx: 'pierce', col: '#fff8c8', desc: '일직선의 모든 적을 관통한다.' },
     { id: 'r_aid', name: '응급치료', jobs: ['ranger'], lv: 21, mp: 20, cd: 6000, kind: 'heal', r: 4, mul: 1.6, fx: 'heal', col: '#7dff9a', desc: '주변 아군을 약간 치유.' },
     { id: 'r_eye', name: '매의 눈', jobs: ['ranger'], lv: 15, mp: 30, cd: 120000, kind: 'buff', buff: { atk: 0.35, crit: 20 }, dur: 60000, fx: 'buff', col: '#c8ff6a', desc: '60초간 약점을 꿰뚫어 본다 · 공격 +35% 치명 +20' },
-    { id: 'r_snipe', name: '천궁 일격', jobs: ['ranger'], lv: 40, mp: 60, cd: 20000, kind: 'proj', range: 8, mul: 14, fx: 'pierce', col: '#fff36b', desc: '하늘의 활로 한 발을 쏜다. 아주 먼 거리의 강적에게 엄청난 피해. (보스 특화)' },
+    { id: 'r_snipe', name: '천궁 일격', jobs: ['ranger'], lv: 40, mp: 60, cd: 20000, kind: 'proj', range: 10, mul: 14, fx: 'pierce', col: '#fff36b', desc: '하늘의 활로 한 발을 쏜다. 아주 먼 거리의 강적에게 엄청난 피해. (보스 특화)' },
     { id: 'p_great', name: '대치유', jobs: ['priest'], lv: 15, mp: 30, cd: 4000, kind: 'heal', r: 8, mul: 3.6, fx: 'bigheal', col: '#9dffb6', desc: '넓은 범위의 아군을 크게 치유.' },
     { id: 'p_bless', name: '수호의 축복', jobs: ['priest'], lv: 18, mp: 32, cd: 25000, kind: 'partyBuff', r: 7, buff: { def: 0.5, atk: 0.15 }, dur: 30000, fx: 'bless', col: '#ffe98a', desc: '주변 아군 30초간 방어 +50%, 공격 +15%' },
     { id: 'p_holy', name: '성광', jobs: ['priest'], lv: 22, mp: 30, cd: 7000, kind: 'aoeSelf', r: 3, mul: 2.6, healToo: 1.2, fx: 'holy', col: '#fff6b0', desc: '성스러운 빛으로 적을 태우고 아군을 치유. (광역)' },
     { id: 'p_revive', name: '부활의 기도', jobs: ['priest'], lv: 15, mp: 50, cd: 60000, kind: 'heal', r: 6, mul: 2.0, revive: 0.4, fx: 'bigheal', col: '#fffbd0', desc: '주변의 쓰러진 동료를 체력 40%로 되살리고, 아군을 치유.' },
     { id: 'p_angel', name: '대천사의 강림', jobs: ['priest'], lv: 40, mp: 90, cd: 150000, kind: 'partyBuff', r: 8, buff: { def: 0.6, atk: 0.3, hp: 0.3 }, healToo: 5, dur: 60000, fx: 'bless', col: '#ffffff', desc: '주변 아군을 크게 치유하고 60초간 방어 +60% 공격 +30% 체력 +30%' },
+    // ── 3차 전직 스킬 (Lv50 / Lv70) ──
+    { id: 'pa_wall', name: '신성한 방벽', jobs: ['paladin'], lv: 50, mp: 45, cd: 60000, kind: 'partyBuff', r: 7, buff: { def: 0.5, hp: 0.2 }, healToo: 2.5, dur: 30000, fx: 'bless', col: '#fff3b0', desc: '주변 아군을 치유하고 30초간 방어 +50% 체력 +20%' },
+    { id: 'pa_hammer', name: '심판의 망치', jobs: ['paladin'], lv: 70, mp: 60, cd: 14000, kind: 'aoeSelf', r: 3, mul: 6.5, healToo: 2, fx: 'holy', col: '#ffe98a', desc: '빛의 망치로 주변 적을 내려치고 아군을 치유. (광역)' },
+    { id: 'fo_iron', name: '불굴의 요새', jobs: ['fortress'], lv: 50, mp: 40, cd: 60000, kind: 'buff', buff: { def: 0.9, hp: 0.35 }, dur: 25000, fx: 'buff', col: '#9ab4ff', desc: '25초간 방어 +90% 체력 +35% (보스 탱킹)' },
+    { id: 'fo_taunt', name: '대지의 포효', jobs: ['fortress'], lv: 70, mp: 50, cd: 12000, kind: 'taunt', r: 6, mul: 4.5, fx: 'quake', col: '#c9a26b', desc: '아주 넓은 범위의 적을 모두 끌어모으며 피해. (광역 도발)' },
+    { id: 'bm_dance', name: '천검난무', jobs: ['blademaster'], lv: 50, mp: 45, cd: 8000, kind: 'multi', range: 2.5, n: 5, mul: 3.6, fx: 'slash', col: '#e8f4ff', desc: '가까운 적 5마리를 눈 깜짝할 새 벤다.' },
+    { id: 'bm_flash', name: '일섬', jobs: ['blademaster'], lv: 70, mp: 70, cd: 16000, kind: 'line', range: 5, mul: 13, fx: 'pierce', col: '#ffffff', desc: '앞으로 번개처럼 베어 지나간다. 일직선 최강 피해.' },
+    { id: 'de_crush', name: '대지 분쇄', jobs: ['destroyer'], lv: 50, mp: 50, cd: 9000, kind: 'aoeSelf', r: 3.5, mul: 5.0, fx: 'quake', col: '#ff7a3a', desc: '땅을 부숴 넓은 범위 피해. (광역)' },
+    { id: 'de_end', name: '종말의 일격', jobs: ['destroyer'], lv: 70, mp: 80, cd: 22000, kind: 'aoeTarget', range: 3, r: 3.2, mul: 10, slow: 1, fx: 'meteor', col: '#ff3a1a', desc: '앞의 땅을 통째로 터뜨린다. (최상급 광역, 둔화)' },
+    { id: 'am_surge', name: '마나 폭주', jobs: ['archmage'], lv: 50, mp: 50, cd: 120000, kind: 'buff', buff: { atk: 0.5, crit: 15 }, dur: 45000, fx: 'buff', col: '#c08aff', desc: '45초간 공격 +50% 치명 +15' },
+    { id: 'am_rain', name: '유성우', jobs: ['archmage'], lv: 70, mp: 140, cd: 35000, kind: 'aoeTarget', range: 8, r: 5, mul: 12, slow: 1, fx: 'meteor', col: '#ff9a3d', desc: '하늘에서 유성이 쏟아진다. (전 직업 최대 광역)' },
+    { id: 'cm_slow', name: '시간 감속', jobs: ['chronomancer'], lv: 50, mp: 40, cd: 10000, kind: 'aoeTarget', range: 7, r: 4, mul: 3.5, slow: 1, fx: 'ice', col: '#9fe8ff', desc: '넓은 범위의 시간을 늦춘다. (광역 둔화)' },
+    { id: 'cm_haste', name: '가속의 시간', jobs: ['chronomancer'], lv: 70, mp: 80, cd: 90000, kind: 'partyBuff', r: 8, buff: { spd: 0.35, atk: 0.25 }, dur: 40000, fx: 'bless', col: '#7ff0ff', desc: '주변 아군 40초간 이동속도 +35% 공격 +25%' },
+    { id: 'lk_legion', name: '해골 군단', jobs: ['lichking'], lv: 50, mp: 60, cd: 45000, kind: 'summon', summon: 'sWolf', count: 3, dur: 60000, fx: 'summon', col: '#7fd8ff', desc: '해골 늑대 3마리를 한 번에 일으킨다.' },
+    { id: 'lk_dk', name: '죽음의 기사 강림', jobs: ['lichking'], lv: 70, mp: 90, cd: 100000, kind: 'summon', summon: 'sDeathKnight', count: 1, dur: 90000, fx: 'summon', col: '#c070ff', desc: '튼튼하고 강한 죽음의 기사를 90초간 부른다. (적을 끌어당김)' },
+    { id: 'hx_plague', name: '역병의 저주', jobs: ['hexer'], lv: 50, mp: 40, cd: 9000, kind: 'aoeTarget', range: 7, r: 3, mul: 4.8, slow: 1, fx: 'ring', col: '#9aff6a', desc: '역병을 퍼뜨려 넓은 범위를 약하게 만든다. (광역 둔화)' },
+    { id: 'hx_soul', name: '영혼 흡수', jobs: ['hexer'], lv: 70, mp: 70, cd: 12000, kind: 'multi', range: 7, n: 6, mul: 4.6, fx: 'bolt', col: '#c070ff', desc: '적 6마리의 영혼을 동시에 빨아들인다.' },
+    { id: 'sn_head', name: '헤드샷', jobs: ['sniper'], lv: 50, mp: 50, cd: 18000, kind: 'proj', range: 11, mul: 18, fx: 'pierce', col: '#fff36b', desc: '11칸 밖에서도 꿰뚫는 한 발. (보스 특화)' },
+    { id: 'sn_focus', name: '집중 사격', jobs: ['sniper'], lv: 70, mp: 50, cd: 90000, kind: 'buff', buff: { atk: 0.6, crit: 25 }, dur: 30000, fx: 'buff', col: '#c8ff6a', desc: '30초간 공격 +60% 치명 +25' },
+    { id: 'aa_rain', name: '마력 화살비', jobs: ['arcaneArcher'], lv: 50, mp: 45, cd: 12000, kind: 'aoeTarget', range: 9, r: 4, mul: 6, fx: 'rain', col: '#b08aff', desc: '마력을 실은 화살비. (넓은 광역)' },
+    { id: 'aa_storm', name: '폭풍 화살', jobs: ['arcaneArcher'], lv: 70, mp: 70, cd: 14000, kind: 'multi', range: 9, n: 8, mul: 4.6, fx: 'arrow', col: '#9fe8ff', desc: '8마리에게 동시에 화살을 날린다.' },
+    { id: 'st_light', name: '대치유의 빛', jobs: ['saint'], lv: 50, mp: 60, cd: 12000, kind: 'heal', r: 9, mul: 5, fx: 'bigheal', col: '#fffbd0', desc: '넓은 범위의 아군을 크게 치유.' },
+    { id: 'st_miracle', name: '기적', jobs: ['saint'], lv: 70, mp: 120, cd: 120000, kind: 'heal', r: 10, mul: 4, revive: 1.0, fx: 'bigheal', col: '#ffffff', desc: '쓰러진 동료를 모두 체력 100%로 되살리고 치유.' },
+    { id: 'iq_bolt', name: '신성 낙뢰', jobs: ['inquisitor'], lv: 50, mp: 45, cd: 10000, kind: 'aoeTarget', range: 8, r: 3, mul: 7, fx: 'holy', col: '#fff36b', desc: '하늘의 벼락으로 적을 심판한다. (광역)' },
+    { id: 'iq_judge', name: '최후의 심판', jobs: ['inquisitor'], lv: 70, mp: 100, cd: 30000, kind: 'aoeTarget', range: 8, r: 5, mul: 11, fx: 'holy', col: '#ffffff', desc: '넓은 범위에 신성한 심판을 내린다. (최상급 광역)' },
   ];
   D.FORMS = { gKnight: { name: '수호기사', scale: 1.15, col: '#7fb2ff' }, gKing: { name: '수호왕', scale: 1.3, col: '#ffd34d' }, bKnight: { name: '흑기사', scale: 1.15, col: '#ff5a4a' }, bKing: { name: '광전왕', scale: 1.3, col: '#ff3030' } };
   D.SKILL = {}; D.SKILLS.forEach(s => D.SKILL[s.id] = s);
-  D.skillsFor = job => { const l = D.SKILLS.filter(s => s.jobs.includes(job)); return l.filter(s => !s.form).concat(l.filter(s => s.form)); }; // 변신 스킬은 7·8번 칸
+  D.skillsFor = job => { const l = D.SKILLS.filter(s => D.canSkill(s, job)); return l.filter(s => !s.form).concat(l.filter(s => s.form)); }; // 변신 스킬은 7·8번 칸
 
   // 소환수
   D.SUMMONS = {
     sWolf: { name: '해골 늑대', kind: 'quad', c: ['#d8d0bc', '#f2ecdc', '#7fd8ff'], size: 0.8, hp: 1.2, atk: 0.55, range: 1 },
     sGolem: { name: '시체 거인', kind: 'golem', c: ['#6f7a5a', '#9aa47c', '#c8ff6a'], size: 1.1, hp: 4.0, atk: 0.5, range: 1, taunt: 1 },
-    sLich: { name: '리치 군주', kind: 'ghost', c: ['#3a1a5a', '#c070ff', '#f0e0ff'], size: 1.0, hp: 2.0, atk: 1.6, range: 4 },
-    sSpirit: { name: '망령 마법사', kind: 'ghost', c: ['#5a2a8a', '#b07cff', '#e8d8ff'], size: 0.8, hp: 0.9, atk: 0.75, range: 4 },
+    sDeathKnight: { name: '죽음의 기사', kind: 'knight', c: ['#2a2a3a', '#7a6aff', '#c0b0ff'], size: 1.15, hp: 3.2, atk: 1.3, range: 1, taunt: 1 },
+    sLich: { name: '리치 군주', kind: 'ghost', c: ['#3a1a5a', '#c070ff', '#f0e0ff'], size: 1.0, hp: 2.0, atk: 1.6, range: 6 },
+    sSpirit: { name: '망령 마법사', kind: 'ghost', c: ['#5a2a8a', '#b07cff', '#e8d8ff'], size: 0.8, hp: 0.9, atk: 0.75, range: 6 },
   };
 
   // ───────── 몬스터 ─────────
@@ -230,6 +273,8 @@
     hp2: { name: '진한 빨간 물약', col: '#a80018', hp: 380, price: 140, desc: '체력 380 회복' },
     mp1: { name: '파란 물약', col: '#2f6bff', mp: 70, price: 40, desc: '마나 70 회복' },
     mp2: { name: '진한 파란 물약', col: '#0a2aa8', mp: 280, price: 160, desc: '마나 280 회복' },
+    hp3: { name: '왕의 빨간 물약', col: '#ff1a3a', hp: 1200, price: 480, desc: '체력 1200 회복 (상급)' },
+    mp3: { name: '왕의 파란 물약', col: '#3a8bff', mp: 900, price: 520, desc: '마나 900 회복 (상급)' },
     buffAtk: { name: '보라 물약', col: '#a040ff', buff: { atk: 0.3 }, dur: 90000, price: 350, desc: '90초간 전투능력(공격력) +30%' },
     buffDef: { name: '노란 물약', col: '#ffd020', buff: { def: 0.45 }, dur: 90000, price: 350, desc: '90초간 방어력 +45% (체력이 적게 닳음)' },
     recall: { name: '귀환 주문서', col: '#e8d8a0', recall: 1, price: 120, desc: '가장 가까운 마을로 귀환 (귀환 전 위치를 기억)' },
@@ -238,7 +283,7 @@
     stew: { name: '고기 스튜', col: '#c08a40', hp: 500, mp: 300, price: 0, desc: '체력 500, 마나 300 회복' },
     feast: { name: '모험가의 만찬', col: '#ffcf6a', hp: 800, mp: 500, buff: { atk: 0.15, def: 0.15 }, dur: 180000, price: 0, desc: '대량 회복 + 3분간 공격·방어 +15%' },
   };
-  D.SHOP_CONSUMES = ['hp1', 'hp2', 'mp1', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'];
+  D.SHOP_CONSUMES = ['hp1', 'hp2', 'hp3', 'mp1', 'mp2', 'mp3', 'buffAtk', 'buffDef', 'recall', 'back'];
   D.SHOP_GEAR_LEVELS = [5, 12, 20, 28];
   D.gearPrice = lvl => Math.floor(lvl * lvl * 18 + 150);
 

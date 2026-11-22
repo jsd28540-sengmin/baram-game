@@ -1,6 +1,6 @@
 // ═══════ GPT 몬스터 아틀라스 ═══════
 (function () {
-  const A = window.MON_ATLAS; if (!A) return; if (A.lich && !A.sLich) A.sLich = A.lich;
+  const A = window.MON_ATLAS; if (!A) return; if (A.lich && !A.sLich) A.sLich = A.lich; if (A.deathKnight && !A.sDeathKnight) A.sDeathKnight = A.deathKnight;
   const img = new Image(); let ok = false; img.onload = () => ok = true; img.src = 'gfx/mons.png?v=' + (window.BUILDV || 1);
   const SC = 1.5, cache = new Map(), atk = new Map();
   window.monPortrait = t => ok && A[t] ? frameCanvas(t, 0, false, 0) : null; img.addEventListener('load', () => { try { if (S.panel && S.panel.kind === 'boss') renderPanel(); } catch (e) { } });
