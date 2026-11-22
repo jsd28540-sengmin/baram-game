@@ -89,7 +89,7 @@
   window.drawTentOut = function (t, sx, sy, now) {
     if (!TOUT.ok) return _to(t, sx, sy, now);
     const w = 10.2 * TS, h = w * TOUT.height / TOUT.width; const cx = (t.x + 4.5) * TS - sx, by = (t.y + 7.1) * TS - sy;
-    ctx.imageSmoothingEnabled = true; ctx.drawImage(TOUT, Math.round(cx - w / 2), Math.round(by - h), w, h); ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(TOUT.g || (TOUT.g = gradeSheet(TOUT, 0.26, '#ebe5d6')), Math.round(cx - w / 2), Math.round(by - h), w, h); ctx.imageSmoothingEnabled = false;
     const nl = S.nl || 0; if (nl > 0.05) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(0.45, nl * 0.55); for (const [dx, r] of [[-2.7, 1.1], [2.7, 1.1], [0, 1.4]]) { const px = cx + dx * TS, py = by - 1.6 * TS; const gg = ctx.createRadialGradient(px, py, 0, px, py, r * TS); gg.addColorStop(0, 'rgba(255,200,110,.9)'); gg.addColorStop(1, 'rgba(255,160,60,0)'); ctx.fillStyle = gg; ctx.fillRect(px - r * TS, py - r * TS, 2 * r * TS, 2 * r * TS); } ctx.restore(); }
     drawText('⛺ ' + t.owner + '의 텐트', cx, by - h - 6, '#ffe0a0', 12);
   };

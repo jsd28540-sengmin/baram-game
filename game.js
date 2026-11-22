@@ -662,6 +662,15 @@ function drawGroundTile(m, x, y, X0, Y0, fr) {
       if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
     }
   }
+/* 배경 색감 보정 — 원인: 바닥(형광 연두·주황, 고채도·고대비 잔무늬)이 캐릭터(차분한 갈색·회색 도트)보다 훨씬 진하고 밝아서 캐릭터가 '붙여넣은' 것처럼 떠 보임.
+   해결: 바닥 묶음 그림을 만들 때 한 번만 채도 ↓ · 밝기 ↓ · 따뜻한 톤으로 맞춤 (매 프레임 비용 없음) */
+function groundGrade(g, px, m) {
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'saturation'; g.globalAlpha = m.dark ? 0.22 : 0.34; g.fillStyle = '#808080'; g.fillRect(0, 0, px, px);
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = m.dark ? 0.5 : 0.9; g.fillStyle = m.castle ? '#e6e0ec' : '#e2dccb'; g.fillRect(0, 0, px, px);
+  g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.18; g.fillStyle = '#7a6a50'; g.fillRect(0, 0, px, px);
+  g.restore();
+}
 const GCH = 8, gChunks = new Map(); let gKey = '';
 function drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr) {
   const k = DPR * ZOOM, key = (m.id || '') + '|' + (window.GFX && GFX.ok ? 1 : 0) + '|' + k.toFixed(3);
@@ -678,6 +687,7 @@ function drawGroundChunks(m, sx, sy, x0, y0, x1, y1, fr) {
       g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = false;
       const saved = ctx; ctx = g;
       try { const ax0 = cx * GCH, ay0 = cy * GCH; for (let y = ay0; y <= Math.min(m.h - 1, ay0 + GCH); y++) for (let x = ax0; x < Math.min(m.w, ax0 + GCH); x++) drawGroundTile(m, x, y, (x - ax0) * TS, (y - ay0) * TS, fi); } finally { ctx = saved; }
+      if (!m.inner) groundGrade(g, px, m); /* 배경 색감 보정: 캐릭터와 어울리게 채도·밝기·대비 낮춤 */
       ch.c[fi] = c;
       if (gChunks.size > 60) { for (const kk of gChunks.keys()) { const [a, b] = kk.split(',').map(Number); if (Math.abs(a - cx) > 4 || Math.abs(b - cy) > 4) gChunks.delete(kk); } }
     }

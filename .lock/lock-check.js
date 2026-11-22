@@ -78,6 +78,11 @@ must('game.js', 'let _inH = false; try {', '집 안 확대 (시작 시 S 미초�
 must('assets.js', 'const K = 1.45, fs = [...t.furn]', '집 실내 가구 캐릭터 크기 확대');
 must('data.js', 'WALLPAPERS', '벽지 목록');
 must('ui.js', 'data-hw=', '벽지 선택 버튼');
+must('game.js', 'function groundGrade(g, px, m)', '배경 색감 보정(캐릭터와 어울림)');
+must('game.js', 'if (!m.inner) groundGrade(g, px, m);', '바닥 묶음에 색감 보정 적용');
+must('gfx.js', 'function seamCell(idx)', '바닥 타일 이음매(격자 줄) 제거');
+must('gfx.js', 'function cleanTrees(c)', '나무 흰 테두리·회색 원판 제거');
+must('gfx.js', 'GFX.spr = cleanTrees(gradeSheet(GFX.spr', '스프라이트 색감 보정');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

@@ -2,10 +2,40 @@
 //  그래픽 아틀라스 (GPT 시안 그대로) — gfx/tiles.png, gfx/sprites.png
 // ═══════════════════════════════════════════
 const GFX = { ok: false, tiles: new Image(), spr: new Image(), A: window.GFX_ATLAS };
-(function () { let n = 0; const done = () => { if (++n === 2) { GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); })();
+/* 스프라이트(나무·건물·소품) 색감 보정: 바닥과 같은 톤으로 채도·밝기 살짝 낮춤 → 캐릭터와 어울림 */
+function gradeSheet(img, sat, mul) { try { const c = document.createElement('canvas'); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'saturation'; g.globalAlpha = sat; g.fillStyle = '#808080'; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = 1; g.fillStyle = mul; g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(img, 0, 0); return c; } catch (e) { return img; } }
+/* 나무 테두리의 흰 테가 배경에서 붕 떠 보이던 원인 제거 + 밑동의 회색 원판을 자연스러운 그림자로 */
+function cleanTrees(c) { try { if (!c.getContext) return c; const g = c.getContext('2d');
+  for (const k of ['oak', 'apple', 'cherry', 'pine', 'snowpine', 'cactus']) { const r = GFX.A.sprites[k]; if (!r) continue; const [x0, y0, w, h] = r; const im = g.getImageData(x0, y0, w, h), d = im.data;
+    const A = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : d[(y * w + x) * 4 + 3];
+    for (let pass = 0; pass < 2; pass++) { const kill = [];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] < 10) continue; const R = d[i], G = d[i + 1], B = d[i + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+        const edge = A(x - 1, y) < 40 || A(x + 1, y) < 40 || A(x, y - 1) < 40 || A(x, y + 1) < 40; if (edge && mx > 150 && mx - mn < 40 && k !== 'snowpine') kill.push(i); }
+      for (const i of kill) d[i + 3] = 0; }
+    for (let y = Math.floor(h * 0.72); y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] < 10) continue; const R = d[i], G = d[i + 1], B = d[i + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+      if (mx > 110 && mx - mn < 34) { d[i] = 18; d[i + 1] = 26; d[i + 2] = 12; d[i + 3] = 80; } }
+    g.putImageData(im, x0, y0); }
+  return c; } catch (e) { return c; } }
+(function () { let n = 0; const done = () => { if (++n === 2) { GFX.GROUND = new Set(['grass', 'forest', 'dirt', 'sand', 'snow', 'swamp', 'volc'].flatMap(k => GFX.A.tiles[k] || [])); GFX.spr = cleanTrees(gradeSheet(GFX.spr, 0.3, '#e8e2d2')); GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); })();
 const gTile = (name, i) => { const L = GFX.A.tiles[name]; return L[((i % L.length) + L.length) % L.length]; };
+/* 바닥 타일 이음매 제거: 원본 타일 가장자리에 어두운 띠가 있어 화면에 가로줄·격자가 보였음 → 반 칸 밀린 그림과 가운데 기준으로 섞어 가장자리를 매끈하게 */
+const SEAM = new Map();
+function seamCell(idx) {
+  let c = SEAM.get(idx); if (c) return c;
+  const ox = (idx % 16) * 64, oy = Math.floor(idx / 16) * 64;
+  const a = mk(64, 64), ag = a.getContext('2d'); ag.drawImage(GFX.tiles, ox, oy, 64, 64, 0, 0, 64, 64);
+  const b = mk(64, 64), bg = b.getContext('2d'); for (const dx of [-48, 16]) for (const dy of [-48, 16]) bg.drawImage(a, dx, dy); /* 원본 타일은 32px 조각 4개 → 16px 밀어 조각 경계를 조각 가운데 그림으로 덮음 */
+  try { const A = ag.getImageData(0, 0, 64, 64), B = bg.getImageData(0, 0, 64, 64), d = A.data, e = B.data;
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const fx = (x + 0.5) % 32, fy = (y + 0.5) % 32; const w = Math.min(1, Math.min(fx, 32 - fx, fy, 32 - fy) / 6); const i = (y * 64 + x) * 4; for (let k = 0; k < 3; k++) d[i + k] = d[i + k] * w + e[i + k] * (1 - w); d[i + 3] = 255; }
+    ag.putImageData(A, 0, 0); } catch (err) { }
+  SEAM.set(idx, a); return a;
+}
 function gfxCellCanvas(idx, extra) {
-  const c = mk(64, 64), g = c.getContext('2d'); g.drawImage(GFX.tiles, (idx % 16) * 64, Math.floor(idx / 16) * 64, 64, 64, 0, 0, 64, 64); if (extra) extra(g); return c;
+  const c = mk(64, 64), g = c.getContext('2d');
+  if (GFX.GROUND && GFX.GROUND.has(idx)) g.drawImage(seamCell(idx), 0, 0); else g.drawImage(GFX.tiles, (idx % 16) * 64, Math.floor(idx / 16) * 64, 64, 64, 0, 0, 64, 64); if (extra) extra(g); return c;
 }
 function sprRect(k) { return GFX.A.sprites[k]; }
 function drawSpr(k, dx, dy, dw, dh, g = ctx) { const r = sprRect(k); if (!r) return; g.drawImage(GFX.spr, r[0], r[1], r[2], r[3], dx, dy, dw, dh); }
