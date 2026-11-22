@@ -647,18 +647,32 @@
   st.textContent = 'button,.btn,.mbtn,.cell,.tb,.ubt,.xbtn,.pclose,[data-a],[data-qe],[data-pm]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}';
   document.head.appendChild(st);
   let down = null, upT = 0, synthT = 0, pending = 0;
-  const CLK = 'button,.btn,.mbtn,.cell,.xbtn,.pclose,.tab,[data-a],[data-k],[data-i],[data-bi],[data-eqs],[data-eqm],[data-qe],[data-pm],[data-ck],[data-sm],[data-glv],[data-fl],[data-close],[onclick],a';
-  document.addEventListener('pointerdown', e => { down = { t: performance.now(), x: e.clientX, y: e.clientY, id: e.pointerId, el: e.target, type: e.pointerType }; }, true);
-  document.addEventListener('pointercancel', () => { down = null; upT = performance.now(); }, true);
-  document.addEventListener('pointerup', e => {
-    const d = down; down = null; upT = performance.now(); if (!d || d.id !== e.pointerId || d.type === 'mouse') return;
-    if (upT - d.t > 800 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 18) return;
-    const tgt = d.el; if (!tgt || !tgt.isConnected || !tgt.closest) return;
-    if (tgt.closest('#touch,#game,#dpad,input,select,textarea,#chatin')) return; // 조이스틱·스킬·공격은 이미 누르는 즉시 반응
-    const el = tgt.closest(CLK); if (!el) return;
-    synthT = performance.now(); e.preventDefault();
-    try { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY, view: window })); } catch (x) { }
-  }, true);
+  const CLK = 'button,.btn,.mbtn,.cell,.card,.xbtn,.pclose,.tab,[data-pf],[data-pd],[data-pj],[data-pouch],[data-bt],[data-bb],[data-eq],[data-ck],[data-qi],[data-a],[data-k],[data-i],[data-bi],[data-eqs],[data-eqm],[data-qe],[data-pm],[data-ck],[data-sm],[data-glv],[data-fl],[data-close],[onclick],a';
+  // 손가락 탭 처리: 브라우저가 '살짝 움직였다'며 클릭을 버려도(스크롤로 판단·pointercancel) 손 뗄 때 직접 클릭을 보냄
+  const fire = (tgt, x, y) => {
+    if (!tgt || !tgt.isConnected || !tgt.closest) return false;
+    if (tgt.closest('#touch,#game,#dpad,input,select,textarea,#chatin')) return false; // 조이스틱·스킬·공격은 누르는 즉시 반응
+    let el = tgt.closest(CLK); if (!el) { for (let q = tgt; q && q !== document.body; q = q.parentElement) if (q.onclick) { el = q; break; } } if (!el) return false;
+    synthT = performance.now();
+    try { tgt.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window })); } catch (x2) { } // 원래 누른 요소에 클릭 → 위임 처리도 그대로 동작
+    return true;
+  };
+  const HAS_TOUCH = 'ontouchstart' in window;
+  if (HAS_TOUCH) {
+    let td = null;
+    document.addEventListener('touchstart', e => { const t = e.changedTouches[0]; down = { t: performance.now() }; td = e.touches.length === 1 ? { t: performance.now(), x: t.clientX, y: t.clientY, id: t.identifier, el: e.target } : null; }, { capture: true, passive: true });
+    document.addEventListener('touchend', e => {
+      down = null; upT = performance.now(); const d = td; td = null; if (!d) return;
+      const t = [...e.changedTouches].find(q => q.identifier === d.id); if (!t) return;
+      if (upT - d.t > 900 || Math.hypot(t.clientX - d.x, t.clientY - d.y) > 28) return;
+      if (fire(d.el, t.clientX, t.clientY) && e.cancelable) e.preventDefault(); // 진짜 클릭(지연·중복) 막기
+    }, { capture: true, passive: false });
+    document.addEventListener('touchcancel', () => { down = null; td = null; upT = performance.now(); }, { capture: true, passive: true });
+  } else {
+    document.addEventListener('pointerdown', e => { down = { t: performance.now(), x: e.clientX, y: e.clientY, id: e.pointerId, el: e.target, type: e.pointerType }; }, true);
+    document.addEventListener('pointercancel', () => { down = null; upT = performance.now(); }, true);
+    document.addEventListener('pointerup', e => { const d = down; down = null; upT = performance.now(); if (!d || d.id !== e.pointerId || d.type === 'mouse') return; if (upT - d.t > 800 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 18) return; fire(d.el, e.clientX, e.clientY); }, true);
+  }
   // 손 뗀 직후 브라우저가 늦게 보내는 진짜 클릭은 무시 (두 번 눌림 방지)
   document.addEventListener('click', e => { if (e.isTrusted && performance.now() - synthT < 600) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   // 누르는 중(그리고 손 뗀 직후)엔 창을 다시 그리지 않음 → 버튼이 바뀌어 탭이 사라지는 문제 방지
