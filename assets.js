@@ -152,7 +152,7 @@
       g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, waist - uh, rw2, uh);
     } else { // 앞/뒤: 상체가 말 위로 올라오고, 말 머리/엉덩이가 허리만 가림
       const by = hy + hh * (d === 'down' ? 0.36 : 0.40) + (MK === 'goldScorpion' ? hh * 0.1 : MK === 'ostrich' ? -hh * 0.08 : 0);
-      g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, by - uh, rw2, uh);
+      g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, seatX - rw2 / 2, by - uh, rw2, rb.h * S2); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게
       const cy = by - uh * (d === 'down' ? 0.06 : 0.14); g.save(); g.beginPath(); g.rect(hx, cy, hw, hy + hh - cy); g.clip(); g.drawImage(hor, hx, hy, hw, hh); g.restore();
     }
     c.dw = 110; c.dh = 110; hc.set(key, c); return c;
