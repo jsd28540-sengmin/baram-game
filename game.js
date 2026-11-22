@@ -707,7 +707,7 @@ function drawDrop(d, sx, sy, now) {
   ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(bx, by + 2, 14 - bob * 0.3, 5, 0, 0, 7); ctx.fill();
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 + Math.sin(ph * 1.3) * 0.15; ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(bx, by + 2, 17, 6, 0, 0, 7); ctx.stroke(); ctx.restore();
   // 아이콘 (38px)
-  const sz = d.r >= 3 ? 46 : d.r >= 1 ? 42 : 38; // 조금 작게 ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d), bx - sz / 2, by - sz + bob, sz, sz); ctx.imageSmoothingEnabled = false;
+  const sz = d.r >= 3 ? 46 : d.r >= 1 ? 42 : 38; /* 조금 작게 */ ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d), bx - sz / 2, by - sz + bob, sz, sz); ctx.imageSmoothingEnabled = false;
   // 반짝임
   const tw = (now / 700 + d.x * 0.37 + d.y * 0.71) % 1; if (tw < 0.35) { const a = Math.sin(tw / 0.35 * Math.PI); const px = bx + 9, py = by - sz + 8 + bob; ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.fillRect(px - 0.75, py - 5, 1.5, 10); ctx.fillRect(px - 5, py - 0.75, 10, 1.5); ctx.restore(); }
 }

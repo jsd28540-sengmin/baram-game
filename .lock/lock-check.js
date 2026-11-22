@@ -67,6 +67,7 @@ must('engine.js', '// 자동 줍기 없음: [줍기] 버튼(스페이스)으로�
 must('data.js', 'D.mountBonus = ', '탈것 전투 옵션 유지');
 must('game.js', 'VH / (19.5 * TS)', '시점 거리 유지');
 must('assets.js', "['drawPlayer', 'drawMon', 'drawNpc', 'drawDrop'].forEach(wrap);", '그래픽 고품질 축소 유지');
+must('game.js', "/* 조금 작게 */ ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d)", '드랍 아이템 아이콘 그리기 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
