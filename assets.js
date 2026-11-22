@@ -28,9 +28,9 @@
     if (!it) return null;
     if (it.k === 'gear') {
       if (it.legend && IA['l_' + it.legend]) return ['l_' + it.legend];
-      const t = Math.max(0, Math.min(9, it.tier | 0));
-      if (it.slot === 'weapon') return ['w_' + it.wt + '_' + t];
-      if (IA['a_' + it.slot + '_' + t]) return ['a_' + it.slot + '_' + t];
+      const t0 = it.tier | 0, t = Math.max(0, Math.min(9, t0)), hc = t0 >= 10 ? GD.TIER_COLOR[t0] : null; // 60~100 등급은 최상위 그림 + 등급 색
+      if (it.slot === 'weapon') return hc ? ['w_' + it.wt + '_' + t, hc] : ['w_' + it.wt + '_' + t];
+      if (IA['a_' + it.slot + '_' + t]) return hc ? ['a_' + it.slot + '_' + t, hc] : ['a_' + it.slot + '_' + t];
       return ['a_' + it.slot + '_' + (t >= 7 ? 4 : 3), GD.TIER_COLOR[t]];
     }
     if (it.k === 'use') return ['u:' + it.id];
@@ -153,7 +153,7 @@
     } else if (MK === 'goldScorpion' || MK === 'battleBear') { // 등이 낮고 넓은 탈것: 안장 위에 올라앉은 모습 (다리는 앞으로 걸침)
       const seat = hy + hh * (MK === 'goldScorpion' ? 0.34 : 0.3), lw = rw2 * 0.92;
       if (d === 'down') { g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - lw / 2, seat - 6, lw, lh * 0.75); g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, seat - uh, rw2, uh); }
-      else { g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, seat - uh, rw2, uh); }
+      else { g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, seat - uh, rw2, uh); if (MK === 'goldScorpion') g.drawImage(hor, hx, hy, hw, hh); /* 뒷모습: 전갈 꼬리가 라이더를 가림 */ }
     } else { // 앞/뒤: 상체가 말 위로 올라오고, 말 머리/엉덩이가 허리만 가림
       const by = hy + hh * (d === 'down' ? 0.36 : 0.40) + (MK === 'goldScorpion' ? hh * 0.1 : MK === 'ostrich' ? -hh * 0.08 : 0);
       g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, seatX - rw2 / 2, by - uh, rw2, rb.h * S2); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게

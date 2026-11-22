@@ -541,7 +541,7 @@ function occDel(m, x, y) { const k = occKey(x, y); const v = (m.occ.get(k) || 1)
 
 // ═══════════════ 아이템 ═══════════════
 function makeGear(job, slot, lvl, opts = {}) {
-  lvl = clamp(Math.round(lvl), 1, 50);
+  lvl = clamp(Math.round(lvl), 1, 100);
   const tier = D.tierOf(lvl);
   let wt = null, name;
   if (slot === 'weapon') { wt = opts.wt || pick(Object.keys(D.WEAPONS).filter(k => D.WEAPONS[k].job === job)); name = D.TIER_PREFIX[tier] + ' ' + D.WEAPONS[wt].name; }
@@ -561,8 +561,9 @@ function makeGear(job, slot, lvl, opts = {}) {
       const v = o === 'atk' ? Math.round((2 + lvl * 0.7) * pw) : o === 'def' ? Math.round((1 + lvl * 0.45) * pw) : o === 'hp' ? Math.round((10 + lvl * 4) * pw) : o === 'mp' ? Math.round((8 + lvl * 3) * pw) : o === 'crit' ? Math.round((2 + lvl / 12) * pw) : Math.round((3 + lvl / 8) * pw);
       it.st[o] = (it.st[o] || 0) + v;
     }
-    if (it.rar) it.name = ['', '고급 ', '희귀 ', '영웅의 ', ''][it.rar] + it.name;
+    if (it.rar && lvl < 100) it.name = ['', '고급 ', '희귀 ', '영웅의 ', ''][it.rar] + it.name;
   }
+  if (lvl >= 100) { it.rar = 3; it.legendTier = 1; for (const k of ['atk', 'def', 'hp']) if (it.st[k]) it.st[k] = Math.round(it.st[k] * 1.25); it.st.crit = (it.st.crit || 0) + 5; } // 100 전설 등급
   return it;
 }
 function gearPower(it, lv) { // 강화 + 레벨 효력 반영 최종 스탯
@@ -765,7 +766,7 @@ function killMon(m, mon, killer) {
   for (let i = 0; i < nItems; i++) {
     const who = crew[i]; const job = who ? D.JOBS[who.job].base : crew.length ? D.JOBS[pick(crew).job].base : pick(['warrior', 'mage', 'healer']); // 보스: 참여자마다 자기 직업 장비 1개 + 1개 더 // 일반 몬스터는 직업 무관 랜덤 → 교환으로 해결
     const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield');
-    const lvl = clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 50);
+    const lvl = mon.boss ? D.bossGearLv(def.lv, R) : clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 50); // 50등급 이상은 보스만
     dropAt(m, mon.x, mon.y, makeGear(job, pick(slots), lvl, { luck, bonus: mon.boss ? 20 : mon.mutant ? 8 : 0, minRar: mon.boss ? 1 : 0 }), who || killer);
   }
   // 강화 재료
@@ -790,7 +791,7 @@ function bossReward(m, mon, killer) {
     const base = D.JOBS[p.job].base;
     const slots = loot.slots.filter(s => s !== 'shield' || base === 'warrior');
     const slot = pick(slots.length ? slots : ['weapon']);
-    const it = makeGear(base, slot, clamp(def.lv, 1, 50), { minRar: 3 });
+    const it = makeGear(base, slot, D.bossGearLv(def.lv, R), { minRar: 3 });
     const noun = slot === 'weapon' ? D.WEAPONS[it.wt].name : D.GEAR[base][slot];
     it.name = loot.set + ' ' + noun; it.boss = mon.type; it.rar = 3;
     for (const k in loot.opt) it.st[k] = Math.round((it.st[k] || (k === 'crit' || k === 'luck' ? 4 : k === 'hp' ? 40 : 6)) * (1 + loot.opt[k] * 0.4) + (k === 'hp' ? def.lv * 3 : k === 'crit' || k === 'luck' ? 3 : def.lv * 0.6));

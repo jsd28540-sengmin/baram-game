@@ -217,9 +217,12 @@
   // ───────── 아이템 ─────────
   D.SLOTS = ['helmet', 'armor', 'gloves', 'boots', 'weapon', 'shield'];
   D.SLOT_NAME = { helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', weapon: '무기', shield: '방패' };
-  D.TIER_PREFIX = ['낡은', '청동', '무쇠', '강철', '은빛', '흑철', '청옥', '적염', '용린', '천공'];
-  D.TIER_COLOR = ['#8a7a66', '#b87333', '#7d8590', '#aab4c0', '#e6eef5', '#3a3a48', '#2fb9a8', '#d8402a', '#7a3ad8', '#ffd84a'];
-  D.tierOf = lvl => Math.min(9, Math.floor((lvl - 1) / 5));
+  D.TIER_PREFIX = ['낡은', '청동', '무쇠', '강철', '은빛', '흑철', '청옥', '적염', '용린', '천공', '성휘', '혼돈', '신룡', '태초', '멸천', '전설의'];
+  D.TIER_COLOR = ['#8a7a66', '#b87333', '#7d8590', '#aab4c0', '#e6eef5', '#3a3a48', '#2fb9a8', '#d8402a', '#7a3ad8', '#ffd84a', '#5ad8ff', '#ff4ad8', '#ff8a1a', '#f4f4ff', '#3affb0', '#ffcc00'];
+  D.tierOf = lvl => lvl <= 50 ? Math.min(9, Math.floor((lvl - 1) / 5)) : lvl >= 100 ? 15 : Math.min(14, 9 + Math.ceil((lvl - 50) / 10));
+  // 50등급 이상(50·60·70·80·90·100 전설)은 보스에게서만 나옴
+  D.GEAR_GRADES = [50, 60, 70, 80, 90, 100];
+  D.bossGearLv = (bossLv, R) => { if (bossLv <= 50) return Math.max(1, bossLv); let g = Math.min(90, Math.floor(bossLv / 10) * 10); if (bossLv >= 100 && (R ? R() : Math.random()) < 0.15) g = 100; return g; };
   // 직업별 장비 이름
   D.GEAR = {
     warrior: { helmet: '투구', armor: '판금갑옷', gloves: '건틀릿', boots: '철각반', shield: '방패' },
