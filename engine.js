@@ -1115,7 +1115,7 @@ function useSkill(p, sid) {
   p.cds = p.cds || {};
   if ((p.cds[sid] || 0) > now) return;
   calc(p);
-  if (p.mp < sk.mp) return sysMsg(p, '마나가 부족합니다. (파란 물약!)', '#7ab4ff');
+  const mpc = D.skillMp(sk, p.lv, p.job); if (p.mp < mpc) return sysMsg(p, '마나가 부족합니다. (파란 물약!)', '#7ab4ff');
   let ok = true; const A = p.st.atk;
   switch (sk.kind) {
     case 'melee': { const t = frontMon(m, p) || (p.target && m.mons.get(p.target) && dist(m.mons.get(p.target), p) < 1.6 ? m.mons.get(p.target) : null); if (!t) { ok = false; sysMsg(p, '앞에 적이 없습니다.', '#bbb'); break; } faceTo(p, t); fx(m, { k: 'skill', f: sk.fx, x: t.x, y: t.y, c: sk.col, id: p.id }); hitMon(m, t, p, A, sk.mul); if (sk.fx === 'slash3') { setTimeout(() => m.mons.has(t.id) && hitMon(m, t, p, A, sk.mul * 0.25), 180); } break; }
@@ -1141,7 +1141,7 @@ function useSkill(p, sid) {
     }
   }
   if (!ok) return;
-  p.mp -= sk.mp; p.cds[sid] = now + sk.cd; p.sleeping = false; dirty(p);
+  p.mp -= mpc; p.cds[sid] = now + sk.cd; p.sleeping = false; dirty(p);
 }
 function healAround(m, p, r, mul) {
   calc(p);
@@ -1607,7 +1607,7 @@ function tick() {
     if (p.dead) continue; calc(p); const m = MAPS[p.map];
     const inT = tentAt(m, p.x, p.y); const town = inTown(m, p.x, p.y);
     const rate = p.sleeping ? 0.09 : (inT || town) ? 0.03 : 0.008;
-    p.hp = Math.min(p.st.maxHp, p.hp + Math.ceil(p.st.maxHp * rate)); p.mp = Math.min(p.st.maxMp, p.mp + Math.ceil(p.st.maxMp * (rate + 0.006)));
+    p.hp = Math.min(p.st.maxHp, p.hp + Math.ceil(p.st.maxHp * rate)); p.mp = Math.min(p.st.maxMp, p.mp + Math.ceil(p.st.maxMp * (p.sleeping ? 0.09 : (inT || town) ? 0.035 : 0.005))); // 필드 마나 회복 0.5%/초
   }
   // 스냅샷 전송
   for (const p of PLAYERS.values()) {

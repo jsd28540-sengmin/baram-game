@@ -372,7 +372,7 @@ function renderPanel() {
     case 'skills': {
       T('book', `스킬 — ${GD.JOBS[me.job].name}`, `<div style="flex:1"></div><span class="mut">${GD.JOBS[me.job].tier ? '' : `Lv${GD.PROMO_LEVEL} 전직 시 전용 스킬 3개 추가`}</span>`);
       const all = GD.skillsFor(me.job);
-      h = `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + all.map((s, i) => `<div class="card" style="opacity:${me.lv >= s.lv ? 1 : 0.45}"><div class="row"><span class="tab on" style="height:20px;padding:0 6px">${i + 1}</span><div class="nm">${s.name}</div><div style="flex:1"></div>${me.lv >= s.lv ? '' : ic('lock')}</div><small>Lv${s.lv} · MP ${s.mp || 0} · ${(s.cd / 1000).toFixed(1)}초</small><small>${s.desc}</small></div>`).join('') + '</div>';
+      h = `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + all.map((s, i) => `<div class="card" style="opacity:${me.lv >= s.lv ? 1 : 0.45}"><div class="row"><span class="tab on" style="height:20px;padding:0 6px">${i + 1}</span><div class="nm">${s.name}</div><div style="flex:1"></div>${me.lv >= s.lv ? '' : ic('lock')}</div><small>Lv${s.lv} · MP ${GD.skillMp(s, me.lv, me.job)} · ${(s.cd / 1000).toFixed(1)}초</small><small>${s.desc}</small></div>`).join('') + '</div>';
       body.innerHTML = h; return;
     }
     case 'map': { T('map', '바람의 대륙 지도', `<div style="flex:1"></div><span class="mut"><span style="color:#22c55e">■</span> 적정 <span style="color:#eab308">■</span> 도전 <span style="color:#ef4444">■</span> 위험 <span style="color:#9a9a9a">■</span> 쉬움</span>`); renderAtlas(body); return; }
