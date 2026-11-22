@@ -132,9 +132,9 @@
     const MD = GD.MOUNTS[ap.mt] || {}; const MK = HA[ap.mt] ? ap.mt : (ap.mt === 'whiteHorse' || MD.tint) ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
     const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
-    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
+    const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], qilin: [0.40, 0.12], phoenix: [0.42, 0.10], skyWhale: [0.30, 0.06], obsidianDragon: [0.40, 0.10], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
     c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
-    const hw = r[2] * 1.75, hh = r[3] * 1.75; const hx = 110 - hw / 2, hy = 218 - hh;
+    const HK = Math.min(1.75, 216 / r[2], 214 / r[3]); const hw = r[2] * HK, hh = r[3] * HK; const hx = 110 - hw / 2, hy = 218 - hh;
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
     if (MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'color'; hg.fillStyle = MD.tint; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); hg.globalCompositeOperation = 'source-over'; }
     if (ap.mt === 'whiteHorse' && !MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
@@ -150,8 +150,8 @@
       const fw = d === 'left' ? -1 : 1, waist = seatY + 8;
       g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - rw2 * 0.4 + fw * rw2 * 0.08, waist - 10, rw2 * 0.8, lh);
       g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, waist - uh, rw2, uh);
-    } else if (MK === 'goldScorpion' || MK === 'battleBear') { // 등이 낮고 넓은 탈것: 안장 위에 올라앉은 모습 (다리는 앞으로 걸침)
-      const seat = hy + hh * (MK === 'goldScorpion' ? 0.34 : 0.3), lw = rw2 * 0.92;
+    } else if (MK === 'goldScorpion' || MK === 'battleBear' || MK === 'skyWhale') { // 등이 낮고 넓은 탈것: 안장 위에 올라앉은 모습 (다리는 앞으로 걸침)
+      const seat = hy + hh * (MK === 'goldScorpion' ? 0.34 : MK === 'skyWhale' ? 0.18 : 0.3), lw = rw2 * 0.92;
       if (d === 'down') { g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, seatX - lw / 2, seat - 6, lw, lh * 0.75); g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, seat - uh, rw2, uh); }
       else { g.drawImage(rider, rb.x, rb.y, rb.w, up, seatX - rw2 / 2, seat - uh, rw2, uh); if (MK === 'goldScorpion') g.drawImage(hor, hx, hy, hw, hh); /* 뒷모습: 전갈 꼬리가 라이더를 가림 */ }
     } else { // 앞/뒤: 상체가 말 위로 올라오고, 말 머리/엉덩이가 허리만 가림

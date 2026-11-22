@@ -756,6 +756,8 @@ function killMon(m, mon, killer) {
   // 보스 전용 탈것: 낮은 확률로 '탈것 증표' (교환 가능)
   if (mon.boss) { const BM = { bearKing: 'battleBear', scorpionKing: 'goldScorpion', yetiKing: 'frostWolf', spiderQueen: 'boneDrake', skelKing: 'boneDrake', corpseLord: 'boneDrake' }; const id = BM[mon.type] || (def.lv >= 60 ? 'nightmare' : null);
     if (id && R() < (mon.type === 'abyssKing' ? 0.25 : 0.1)) { dropAt(m, mon.x, mon.y, { k: 'use', id: 'mtk_' + id, n: 1 }, killer); announce(`✨ [${D.MOUNTS[id].name}] 탈것 증표가 떨어졌습니다!`, '#ffd27a'); } }
+  // ★ 초희귀 탈것: 보스 3% · 중보스 1.5% · Lv60↑ 일반 몬스터 0.02%
+  { const ch = mon.boss ? 0.03 : mon.mid ? 0.015 : def.lv >= 60 ? 0.0002 : 0; if (ch && R() < ch) { const id = pick(['qilin', 'phoenix', 'skyWhale', 'obsidianDragon']); dropAt(m, mon.x, mon.y, { k: 'use', id: 'mtk_' + id, n: 1 }, killer); announce(`🌟 초희귀! [${D.MOUNTS[id].name}] 탈것 증표가 떨어졌습니다!`, '#ffe066'); } }
   if (def.lv >= 56 && !mon.boss && R() < 0.015) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
   if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.06 : 0.02)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
   const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 10 : mon.mid ? 6 : mon.mutant ? 2.5 : 1));
@@ -1340,10 +1342,12 @@ function handle(p, msg) {
       p.coins -= pl.price; pl.owner = p.name; p.plot = pl.id; dirty(p); sendTents(m); announce(`🏡 ${p.name}님이 ${pl.town}에 땅을 샀습니다!`, '#d8ffd0'); openPlot(p, pl); break;
     }
     case 'houseBuild': {
-      const pl = plotNear(p); if (!pl || pl.owner !== p.name || p.house) return;
+      const pl = plotNear(p); if (!pl) return sysMsg(p, '공터 표지판 가까이에서 눌러 주세요.', '#ffb4b4'); if (pl.owner !== p.name) return sysMsg(p, '내 땅이 아닙니다.', '#ffb4b4');
+      if (p.house && !(MAPS[p.house.map] && MAPS[p.house.map].tents.includes(p.house))) p.house = null; // 사라진 옛 집 기록 정리
+      if (p.house) return sysMsg(p, '이미 집이 있습니다. [집 꾸미기]를 이용하세요.', '#ffb4b4');
       if (!hasMats(p, D.HOUSE_COST)) return sysMsg(p, `재료 부족! 집: ${Object.entries(D.HOUSE_COST).map(([k, v]) => `${k} ${v}(보유 ${countMat(p, k)})`).join(', ')}`, '#ffb4b4');
-      if ([...PLAYERS.values()].some(q => q.map === m.id && q.x >= pl.x && q.x < pl.x + D.TENT_W && q.y >= pl.y && q.y < pl.y + D.TENT_H)) return sysMsg(p, '공터 안에 사람이 있습니다. 비켜달라고 해주세요!');
       takeMats(p, D.HOUSE_COST);
+      for (const q of PLAYERS.values()) if (q.map === m.id && q.x >= pl.x && q.x < pl.x + D.TENT_W && q.y >= pl.y && q.y < pl.y + D.TENT_H) teleport(q, m.id, pl.x + (D.TENT_W >> 1), pl.y + D.TENT_H, 1); // 공터 안 사람은 문 앞으로
       const h = { owner: p.name, kind: 'house', map: m.id, x: pl.x, y: pl.y, plot: pl.id, furn: [{ k: 'door', x: D.TENT_W >> 1, y: D.TENT_H - 1 }, { k: 'window', x: 2, y: 0 }, { k: 'window', x: 6, y: 0 }] };
       p.house = h; m.tents.push(h); sendTents(m); dirty(p);
       fx(m, { k: 'lvl', x: pl.sx, y: pl.sy }); announce(`🏠 ${p.name}님의 집이 ${pl.town}에 완성되었습니다!`, '#d8ffd0');
@@ -1636,7 +1640,7 @@ const API = {
   },
   connect: onConnect, saveAll,
   online: () => [...PLAYERS.values()].map(p => p.name),
-  _p: n => [...PLAYERS.values()].find(p => p.name === n),
+  _p: n => [...PLAYERS.values()].find(p => p.name === n), PLOTS, _tp: (n, map, x, y) => { const p = [...PLAYERS.values()].find(p => p.name === n); if (p && MAPS[map]) teleport(p, map, x, y, 1); },
   announce: (t, c) => announce(t, c),
   adminGive(name, what) {
     const live = [...PLAYERS.values()].find(p => p.name === name); const p = live || SAVES[name]; if (!p) return '그런 이름의 캐릭터가 없어요.';

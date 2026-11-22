@@ -154,7 +154,7 @@ function makeRemote(peer, emit) {
     const m = typeof o === 'string' ? JSON.parse(o) : JSON.parse(JSON.stringify(o));
     if (m.t === 's') { r.snap = m; return; }
     if (m.t === 'me') { r.me = m; return; }
-    if (m.t === 'map') { delete m.tiles; delete m.biome; }
+    if (m.t === 'map' && !m.inner && !String(m.id).startsWith('tent_') && m.id !== 'house') { delete m.tiles; delete m.biome; } // 텐트·실내 지도는 손님 폰에 없으니 타일을 그대로 보냄
     if (m.t === 'welcome' && m.atlas) { m.atlas = Object.assign({}, m.atlas); delete m.atlas.tiles; }
     r.out.push(m);
   } };
@@ -374,7 +374,8 @@ function onMsg(m) {
 }
 function loadMap(m) {
   let t; if (m.tiles) { const bin = atob(m.tiles); t = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) t[i] = bin.charCodeAt(i); }
-  else { t = ENGINE.MAPS[m.id].t.slice(); if (m.id === 'world') m.biome = ENGINE.biomeStr(); }
+  else if (window.ENGINE && ENGINE.MAPS[m.id]) { t = ENGINE.MAPS[m.id].t.slice(); if (m.id === 'world') m.biome = ENGINE.biomeStr(); }
+  else { t = new Uint8Array(m.w * m.h); }
   S.map = Object.assign({}, m, { t }); S.P.clear(); S.M.clear(); S.D = []; S.fx = []; S.tents = []; S.plots = [];
   S.roof = new Map(); for (const l of m.labels) if (l.roofC) for (let y = l.by; y < l.by + 2; y++) for (let x = l.bx; x < l.bx + 5; x++) S.roof.set(x + ',' + y, l.roofC);
   // 미니맵

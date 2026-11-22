@@ -312,6 +312,11 @@
     frostWolf: { name: '설원 늑대', boss: 1, spd: 2.0, c: ['#e8f4ff', '#7aa0c8'], kind: 'horse', tint: '#a8d8ff', from: '설원왕 예티' },
     boneDrake: { name: '해골 비룡', boss: 1, spd: 2.25, c: ['#e8e0cc', '#4a3a5a'], kind: 'horse', tint: '#d8cfb8', from: '해골대왕·거미여왕·시체군주' },
     nightmare: { name: '악몽마', boss: 1, spd: 2.45, c: ['#1a1020', '#a050ff'], kind: 'horse', tint: '#5a2a8a', from: '최상위 보스' },
+    // ── 초희귀 탈것 (크고 빠름, 드랍 확률 매우 낮음) ──
+    qilin: { name: '황금 기린', price: 0, spd: 2.4, boss: 1, rare: 1, from: '초희귀 (보스·중보스)', c: ['#ffd34d', '#5ad8b0'], kind: 'horse' },
+    phoenix: { name: '불사조', price: 0, spd: 2.5, boss: 1, rare: 1, from: '초희귀 (보스·중보스)', c: ['#ff6a1a', '#ffd34d'], kind: 'horse' },
+    skyWhale: { name: '천공 고래', price: 0, spd: 2.4, boss: 1, rare: 1, from: '초희귀 (보스·중보스)', c: ['#2a3a9a', '#9fd8ff'], kind: 'horse' },
+    obsidianDragon: { name: '흑요 드래곤', price: 0, spd: 2.6, boss: 1, rare: 1, from: '초희귀 (보스·중보스)', c: ['#2a1a3a', '#c070ff'], kind: 'horse' },
   };
 
   // 집짓기
@@ -417,6 +422,10 @@
     mtk_frostWolf: { name: '설원 늑대 증표', col: '#a8d8ff', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [설원 늑대]을(를) 얻어요 (교환 가능)' },
     mtk_boneDrake: { name: '해골 비룡 증표', col: '#d8cfb8', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [해골 비룡]을(를) 얻어요 (교환 가능)' },
     mtk_nightmare: { name: '악몽마 증표', col: '#7a3ab8', tool: 1, price: 0, sell: 5000, desc: '보스가 떨어뜨린 탈것 증표. 사용하면 [악몽마]을(를) 얻어요 (교환 가능)' },
+    mtk_qilin: { name: '황금 기린 증표', col: '#ffd34d', tool: 1, price: 0, sell: 30000, desc: '★초희귀★ 탈것 증표. 사용하면 [황금 기린]을(를) 얻어요 (교환 가능)' },
+    mtk_phoenix: { name: '불사조 증표', col: '#ff6a1a', tool: 1, price: 0, sell: 30000, desc: '★초희귀★ 탈것 증표. 사용하면 [불사조]을(를) 얻어요 (교환 가능)' },
+    mtk_skyWhale: { name: '천공 고래 증표', col: '#3a6aff', tool: 1, price: 0, sell: 30000, desc: '★초희귀★ 탈것 증표. 사용하면 [천공 고래]을(를) 얻어요 (교환 가능)' },
+    mtk_obsidianDragon: { name: '흑요 드래곤 증표', col: '#a040ff', tool: 1, price: 0, sell: 30000, desc: '★초희귀★ 탈것 증표. 사용하면 [흑요 드래곤]을(를) 얻어요 (교환 가능)' },
     rod: { name: '낚싯대', col: '#a87a42', tool: 1, rod: 1, price: 2500, desc: '물가에서 물을 바라보고 사용하면 자동 낚시 (움직이면 멈춤)' },
     rod2: { name: '명인의 낚싯대', col: '#e8b830', tool: 1, rod: 2, price: 30000, desc: '낚시가 1.6배 빠르고 희귀한 것이 잘 잡힌다' },
     pouch: { name: '주머니', col: '#a87a42', pouch: 1, tool: 1, price: 5000, desc: '사용하면 가방에 주머니가 하나 늘어난다 (최대 4개, 각 16칸)' },
