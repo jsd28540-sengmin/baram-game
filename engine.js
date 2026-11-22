@@ -1117,7 +1117,7 @@ function healAround(m, p, r, mul) {
 function addBuff(p, name, b, dur) { p.buffs = (p.buffs || []).filter(x => x.name !== name); p.buffs.push(Object.assign({ name, until: Date.now() + dur, dur }, b)); calc(p); dirty(p); }
 
 // ═══════════════ NPC/상점/대장간 ═══════════════
-function npcNear(p) { const m = MAPS[p.map]; return m.npcs.find(n => Math.abs(n.x - p.x) + Math.abs(n.y - p.y) <= 2); }
+function npcNear(p) { const m = MAPS[p.map]; let b = null, bd = 9; for (const n of m.npcs) { const d = Math.max(Math.abs(n.x - p.x), Math.abs(n.y - p.y)); if (d <= 2 && d < bd) { bd = d; b = n; } } return b; }
 function openNpc(p, n) {
   const base = D.JOBS[p.job].base;
   switch (n.kind) {
@@ -1535,7 +1535,7 @@ function interact(p) {
   { const m = MAPS[p.map]; const [dx, dy] = DIRS[p.dir]; if (gt(m, p.x + dx, p.y + dy) === T.WATER) { const rod = p.inv.find(o => o.k === 'use' && D.CONSUMES[o.id] && D.CONSUMES[o.id].rod); if (rod) return startFishing(p, D.CONSUMES[rod.id].rod); } }
   const n = npcNear(p); if (n) return openNpc(p, n);
   const pl = plotNear(p); if (pl && !furnFront(p)) return openPlot(p, pl);
-  const ff = furnFront(p); if (!ff) return;
+  const ff = furnFront(p); if (!ff) { const now = Date.now(); if (!p._talkHint || now - p._talkHint > 2500) { p._talkHint = now; sysMsg(p, '주변에 말을 걸 대상이 없어요. NPC·플레이어 가까이(2칸 이내)에서 눌러 주세요.', '#bbb'); } return; }
   const { t, f } = ff;
   if (f.k === 'bed') { p.sleeping = true; sysMsg(p, '💤 침대에 누웠습니다. 체력과 마나가 빠르게 회복됩니다. (움직이면 일어남)', '#c8d8ff'); }
   else if (f.k === 'chest') { if (t.owner !== p.name) return sysMsg(p, '다른 사람의 보관상자입니다.'); p.ws.send({ t: 'dlg', kind: 'chest' }); }

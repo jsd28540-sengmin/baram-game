@@ -530,7 +530,7 @@ function renderQS(force) {
     `<div class="qsdiv"></div><div class="qut" data-u="talk" title="대화">${ic('talk')}</div><div class="qut" data-u="grab" title="줍기">${ic('grab')}</div><div class="qut" data-u="target" title="대상">${ic('target')}</div><div class="qut" data-u="chat" title="채팅">${ic('chat')}</div>`;
   q.querySelectorAll('canvas[data-qi]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon({ k: 'use', id: c.dataset.qi }), 0, 0); });
   q.querySelectorAll('[data-q]').forEach(d => d.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const id = hot[+d.dataset.q]; if (id) { if (useCount(id)) send({ t: 'useId', id }); else log(`${GD.CONSUMES[id].name}이(가) 없습니다.`, '#bbb'); } else { openPanel('inv'); log('가방에서 물약·음식을 눌러 [퀵슬롯 등록]을 하세요.', '#9fe8ff'); } });
-  q.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); const u = d.dataset.u; if (u === 'talk') send({ t: 'interact' }); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
+  q.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); const u = d.dataset.u; if (u === 'talk') talkBtn(); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
 }
 function setHot(i, id) { const h = hotList(); if (id) { const ex = h.indexOf(id); if (ex >= 0) h[ex] = null; } h[i] = id; S.me.hot = h; send({ t: 'hot', hot: h }); renderQS(true); }
 function addHot(id) { const h = hotList(); if (h.includes(id)) return log('이미 퀵슬롯에 있어요.', '#bbb'); let i = h.indexOf(null); if (i < 0) i = QN - 1; setHot(i, id); log(`[${GD.CONSUMES[id].name}] 퀵슬롯 ${i + 1}번에 등록`, '#9fe8ff'); }
@@ -995,7 +995,11 @@ function renderParty() {
   el.innerHTML = `<div class="row" style="gap:4px;margin-bottom:3px"><b style="color:#fff;font-size:10px">${ic('users')} 파티 ${pt.length}명</b><div style="flex:1"></div><span class="pbx" id="pleave">나가기</span></div>` +
     pt.map(q => `<div class="prow ${q.far ? 'far' : ''}">${q.L ? `<span class="yl">${ic('crown')}</span>` : ''}<b>${esc(q.n)}</b><span class="mut">Lv${q.lv} ${JOBN(q.j)}</span><div class="phb"><i style="width:${q.h}%"></i></div></div>`).join('');
   $('pleave').onclick = () => uiAsk('파티에서 나갈까요?', () => send({ t: 'partyLeave' }));
+  placePartyBox();
 }
+// 모바일: 파티창은 미니맵 왼쪽 위 (퀵슬롯·버튼 가리지 않게)
+function placePartyBox() { const el = $('partybox'), mi = $('mini'); if (!el) return; if (!document.body.classList.contains('touchmode') || !mi) { el.style.top = el.style.right = ''; return; } const r = mi.getBoundingClientRect(), hr = $('hud').getBoundingClientRect(); el.style.setProperty('top', (r.top - hr.top) + 'px', 'important'); el.style.setProperty('right', (hr.right - r.left + 6) + 'px', 'important'); el.style.setProperty('bottom', 'auto', 'important'); const er = el.getBoundingClientRect(), r2 = mi.getBoundingClientRect(), k = er.width / (el.offsetWidth || er.width) || 1; const over = er.right - (r2.left - 6); if (Math.abs(over) > 1) el.style.setProperty('right', (parseFloat(el.style.right) + over / k) + 'px', 'important'); const dt = er.top - r2.top; if (Math.abs(dt) > 1) el.style.setProperty('top', (parseFloat(el.style.top) - dt / k) + 'px', 'important'); }
+setInterval(placePartyBox, 1000); addEventListener('resize', () => setTimeout(placePartyBox, 200));
 const _smW = small; small = function (...a) { $('panel2').style.width = ''; return _smW(...a); };
 function openInspect(m) {
   const order = ['helmet', 'weapon', 'armor', 'shield', 'gloves', 'boots'];
@@ -1175,6 +1179,14 @@ buildTouch = function () {
   ub.querySelectorAll('[data-u]').forEach(d => d.onpointerdown = e => { e.preventDefault(); pressFx(d); const u = d.dataset.u; if (u === 'talk') send({ t: 'interact' }); if (u === 'grab') send({ t: 'pick' }); if (u === 'target') cycleTarget(); if (u === 'chat') { chatin.classList.remove('hidden'); chatin.focus(); } });
 };
 
+// 말걸기: NPC가 가까우면 대화, 없고 플레이어가 옆에 있으면 플레이어 메뉴, 둘 다 없으면 안내
+function talkBtn() {
+  const npcs = (S.map && S.map.npcs) || []; const cd = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+  if (npcs.some(n => cd(n, pos) <= 2)) return send({ t: 'interact' });
+  let best = null, bd = 9; for (const p of S.P.values()) { if (p.i === S.myId) continue; const d = Math.max(Math.abs(p.rx - pos.x), Math.abs(p.ry - pos.y)); if (d < bd) { bd = d; best = p; } }
+  if (best && bd <= 2) return openPlayerMenu(best);
+  send({ t: 'interact' });
+}
 // ═══════ 큰 지도 (미니맵을 누르면 확대) ═══════
 let bigZoom = 0;
 function openBigMap() {

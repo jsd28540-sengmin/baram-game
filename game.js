@@ -467,7 +467,7 @@ function usePot(kind) {
 }
 function cycleTarget() {
   const list = [...S.M.values()].filter(m => !m.s).sort((a, b) => Math.hypot(a.x - pos.x, a.y - pos.y) - Math.hypot(b.x - pos.x, b.y - pos.y)).slice(0, 6);
-  if (!list.length) return; const i = list.findIndex(m => m.i === S.target); const t = list[(i + 1) % list.length]; setTarget(t.i);
+  if (!list.length) { log('주변에 타겟으로 잡을 몬스터가 없어요.', '#bbb'); return; } const i = list.findIndex(m => m.i === S.target); const t = list[(i + 1) % list.length]; setTarget(t.i);
 }
 function setTarget(id) { S.target = id; send({ t: 'target', id }); }
 
