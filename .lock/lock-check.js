@@ -55,6 +55,7 @@ must('data.js', 'D.PROMOS2 = {', '3차 전직 유지');
 must('assets.js', '// 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게', '탈것 정면 잘림 방지 유지');
 must('data.js', 'D.bossGearLv = ', '50등급 이상 장비는 보스 전용');
 must('engine.js', 'D.bossGearLv(def.lv, R) : clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 50)', '일반 몬스터 장비 50 상한');
+must('ui.js', '// 몬스터 그림이 아직 안 불러와졌으면 불러와질 때까지 다시 그림', '보스 시간표 실제 그림 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

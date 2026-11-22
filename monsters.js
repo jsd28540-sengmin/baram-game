@@ -3,7 +3,7 @@
   const A = window.MON_ATLAS; if (!A) return; if (A.lich && !A.sLich) A.sLich = A.lich; if (A.deathKnight && !A.sDeathKnight) A.sDeathKnight = A.deathKnight;
   const img = new Image(); let ok = false; img.onload = () => ok = true; img.src = 'gfx/mons.png?v=' + (window.BUILDV || 1);
   const SC = 1.5, cache = new Map(), atk = new Map();
-  window.monPortrait = t => ok && A[t] ? frameCanvas(t, 0, false, 0) : null; img.addEventListener('load', () => { try { if (S.panel && S.panel.kind === 'boss') renderPanel(); } catch (e) { } });
+  window.monPortrait = t => (ok || (img.complete && img.naturalWidth > 0 && (ok = true))) && A[t] ? frameCanvas(t, 0, false, 0) : null; img.addEventListener('load', () => { try { if (S.panel && S.panel.kind === 'boss') renderPanel(); } catch (e) { } });
   // 몬스터 공격 순간 기록 (mhit fx)
   const _af = addFx; addFx = function (f) { if (f.k === 'satk') { for (const mo of S.M.values()) if (mo.s && mo.x === f.x && mo.y === f.y) { atk.set(mo.i, performance.now()); mo.flip = f.tx < f.x ? true : f.tx > f.x ? false : mo.flip; } return; } if (f.k === 'mhit') for (const mo of S.M.values()) if (mo.x === f.x && mo.y === f.y) { atk.set(mo.i, performance.now()); mo.flip = f.tx < f.x ? true : f.tx > f.x ? false : mo.flip; } return _af(f); };
   function frameCanvas(t, fi, flip, mu, wh) {

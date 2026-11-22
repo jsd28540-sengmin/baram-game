@@ -382,7 +382,9 @@ function renderPanel() {
 function bossRows(list) { setTimeout(() => paintBossFaces(document), 0); return '<div class="col" style="gap:2px">' + list.map(b => `<div class="row box" style="padding:3px 7px;gap:6px;align-items:center"><canvas width="64" height="64" data-bm2="${b.name}" style="width:32px;height:32px;flex:none"></canvas><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>${b.name}</b> <span class="mut">${b.where}</span></span>${b.alive ? '<b class="rl">출현 중</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분</span>`}</div>`).join('') + '</div>'; }
 function paintBossFaces(root) {
   const byName = {}; for (const k in GD.MONS) byName[GD.MONS[k].name] = k;
-  root.querySelectorAll('canvas[data-bm2]').forEach(c => { const key = byName[c.dataset.bm2]; if (!key) return; const img = (window.monPortrait && monPortrait(key)) || monSprite(key, false, 0, false); const W = c.width, g = c.getContext('2d'); g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; const s = Math.min((W - 2) / img.width, (W - 2) / img.height); g.drawImage(img, (W - img.width * s) / 2, W - 1 - img.height * s, img.width * s, img.height * s); });
+  let miss = 0; root.querySelectorAll('canvas[data-bm2]').forEach(c => { const key = byName[c.dataset.bm2]; if (!key) return; const real = window.monPortrait && monPortrait(key); if (!real) miss++; const img = real || monSprite(key, false, 0, false); const W = c.width, g = c.getContext('2d'); g.clearRect(0, 0, W, W); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; const s = Math.min((W - 2) / img.width, (W - 2) / img.height); g.drawImage(img, (W - img.width * s) / 2, W - 1 - img.height * s, img.width * s, img.height * s); });
+  // 몬스터 그림이 아직 안 불러와졌으면 불러와질 때까지 다시 그림 (옛날 그림으로 남지 않게)
+  const n = (root._bfTry = (root._bfTry || 0) + 1); if (miss && n < 40) setTimeout(() => { if (root === document || root.isConnected) paintBossFaces(root); }, 500); else root._bfTry = 0;
 }
 function bossTable(list) { return bossRows(list); }
 
