@@ -46,6 +46,7 @@ must('ui.js', "if (u === 'talk') talkBtn();", '말걸기 버튼: NPC/플레이�
 must('ui.js', 'function placePartyBox()', '모바일 파티창은 미니맵 왼쪽');
 must('assets.js', '// 변신 상태 공격 모션', '변신 공격 모션 유지');
 must('assets.js', "const S2 = 1.12, rw2 = rb.w * S2, up = rb.h * 0.68", '탈것 탑승 자세(상체+다리) 유지');
+must('assets.js', '// ═══════ 버튼 잘 눌리게', '버튼 터치 안정화(누르는 중 재그리기 보류·즉시 클릭) 유지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

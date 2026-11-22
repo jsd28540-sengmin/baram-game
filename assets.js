@@ -630,3 +630,37 @@
     return _df(now, sx, sy, layer);
   };
 })();
+
+// ═══════ 버튼 잘 눌리게: ① 누르는 중엔 창을 다시 그리지 않음 ② 손 뗄 때 바로 클릭 처리 ═══════
+(function () {
+  const st = document.createElement('style');
+  st.textContent = 'button,.btn,.mbtn,.cell,.tb,.ubt,.xbtn,.pclose,[data-a],[data-qe],[data-pm]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}';
+  document.head.appendChild(st);
+  let down = null, upT = 0, synthT = 0, pending = 0;
+  const CLK = 'button,.btn,.mbtn,.cell,.xbtn,.pclose,.tab,[data-a],[data-k],[data-i],[data-bi],[data-eqs],[data-eqm],[data-qe],[data-pm],[data-ck],[data-sm],[data-glv],[data-fl],[data-close],[onclick],a';
+  document.addEventListener('pointerdown', e => { down = { t: performance.now(), x: e.clientX, y: e.clientY, id: e.pointerId, el: e.target, type: e.pointerType }; }, true);
+  document.addEventListener('pointercancel', () => { down = null; upT = performance.now(); }, true);
+  document.addEventListener('pointerup', e => {
+    const d = down; down = null; upT = performance.now(); if (!d || d.id !== e.pointerId || d.type === 'mouse') return;
+    if (upT - d.t > 800 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 18) return;
+    const tgt = d.el; if (!tgt || !tgt.isConnected || !tgt.closest) return;
+    if (tgt.closest('#touch,#game,#dpad,input,select,textarea,#chatin')) return; // 조이스틱·스킬·공격은 이미 누르는 즉시 반응
+    const el = tgt.closest(CLK); if (!el) return;
+    synthT = performance.now(); e.preventDefault();
+    try { el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY, view: window })); } catch (x) { }
+  }, true);
+  // 손 뗀 직후 브라우저가 늦게 보내는 진짜 클릭은 무시 (두 번 눌림 방지)
+  document.addEventListener('click', e => { if (e.isTrusted && performance.now() - synthT < 600) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  // 누르는 중(그리고 손 뗀 직후)엔 창을 다시 그리지 않음 → 버튼이 바뀌어 탭이 사라지는 문제 방지
+  const _rr = rerenderPanel;
+  rerenderPanel = function () {
+    const now = performance.now();
+    if (down || now - upT < 350) { if (!pending) pending = setTimeout(() => { pending = 0; rerenderPanel(); }, 250); return; }
+    // 자동 갱신 때는 열린 설명창(사용·착용 버튼)을 닫지 않음 — 가방 내용이 실제로 바뀐 경우만 닫음
+    const tip = $('tip'), open = tip && !tip.classList.contains('hidden'); const sig = S.me ? JSON.stringify([(S.me.inv || []).map(o => o.id + (o.n || 0)), S.me.eq && Object.keys(S.me.eq).map(k => S.me.eq[k] && S.me.eq[k].id), S.me.mount]) : '';
+    if (open && sig === lastSig) { const _h = hideTip; hideTip = function () { }; try { return _rr(); } finally { hideTip = _h; } }
+    lastSig = sig; return _rr();
+  };
+  let lastSig = '';
+  document.addEventListener('pointerdown', () => { try { lastSig = S.me ? JSON.stringify([(S.me.inv || []).map(o => o.id + (o.n || 0)), S.me.eq && Object.keys(S.me.eq).map(k => S.me.eq[k] && S.me.eq[k].id), S.me.mount]) : ''; } catch (e) { } }, true);
+})();
