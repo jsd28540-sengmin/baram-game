@@ -814,10 +814,10 @@ function drawMon(mo, sx, sy, now) {
   const def = mo.s ? GD.SUMMONS[mo.t] : GD.MONS[mo.t]; if (!def) return;
   const x = mo.rx * TS + 16 - sx, y = mo.ry * TS + 32 - sy; if (x < -150 || x > W + 150 || y < -150 || y > H + 150) return;
   const walking = now < (mo.walkUntil || 0); const fr = walking ? (now / 140 | 0) % 2 : (now / 500 | 0) % 2;
-  const img = ((!mo.s || (window.MON_ATLAS && MON_ATLAS[mo.t])) && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const IW = img.dw || img.width, IH = img.dh || img.height, OXX = img.ox || 0;
+  const img = ((!mo.s || (window.MON_ATLAS && MON_ATLAS[mo.t])) && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const MBK = mo.mb ? 1.7 : 1, IW = (img.dw || img.width) * MBK, IH = (img.dh || img.height) * MBK, OXX = (img.ox || 0) * MBK;
   // 보스/돌연변이 오라
-  if (def.boss || mo.mu || mo.s) {
-    const ac = def.boss ? def.aura : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;
+  if (def.boss || mo.mu || mo.s || mo.mb) {
+    const ac = def.boss ? def.aura : mo.mb ? '#ff9a1a' : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;
     const gr = ctx.createRadialGradient(x, y - IH / 2, 4, x, y - IH / 2, IW * 0.7);
     gr.addColorStop(0, ac + (def.boss ? 'aa' : '66')); gr.addColorStop(1, ac + '00'); ctx.globalAlpha = pr; ctx.fillStyle = gr; ctx.fillRect(x - IW, y - IH * 1.3, IW * 2, IH * 1.6); ctx.globalAlpha = 1;
     if (def.boss) { ctx.strokeStyle = def.aura; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.45, IW * 0.15, 0, 0, 7); ctx.stroke(); for (let i = 0; i < 6; i++) { const a = now / 400 + i * 1.05; ctx.fillStyle = def.aura; ctx.fillRect(x + Math.cos(a) * IW * 0.45, y - 2 + Math.sin(a) * IW * 0.15 - ((now / 10 + i * 20) % 40), 3, 3); } }
@@ -828,7 +828,8 @@ function drawMon(mo, sx, sy, now) {
   NAMEQ.push(() => {
   const top = y - IH - 4;
   if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, IW * 0.35), 7, 0, 0, 7); ctx.stroke(); }
-  if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
+  if (mo.mb) { drawText(`⚔ 중보스 ${def.name} Lv${mo.lv}`, x, top - 10, '#ffb040', 14); ctx.fillStyle = '#000'; ctx.fillRect(x - 40, top - 5, 80, 6); ctx.fillStyle = '#ff9a1a'; ctx.fillRect(x - 40, top - 5, 0.8 * mo.h, 6); }
+  else if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
   else {
     if (mo.h < 100 || S.target === mo.i) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, top, 32, 4); ctx.fillStyle = mo.s ? '#b47cff' : '#ff4a4a'; ctx.fillRect(x - 16, top, 32 * mo.h / 100, 4); }
     if (S.target === mo.i || mo.mu || mo.s) drawText((mo.mu ? '돌연변이 ' : '') + def.name + (mo.s ? '' : ` Lv${mo.lv}`) + (mo.s ? '' : (sk => sk.length ? ' [' + sk.map(k => GD.MSK[k]).join('·') + ']' : '')(GD.monSkills ? GD.monSkills(def, mo.mu) : [])), x, top - 4, mo.mu ? '#d08aff' : mo.s ? '#d8c0ff' : '#ffb0b0', 11);

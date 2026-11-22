@@ -408,7 +408,7 @@ function openChest(p, c) {
   give({ k: 'use', id: pick(t >= 5 ? ['hp3', 'mp3', 'hp2', 'mp2', 'buffAtk', 'buffDef'] : t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1']), n: ri(2, 5) });
   if (R() < 0.12 + t * 0.06) give({ k: 'mat', id: '보물지도 조각', n: 1 });
   const nGear = t >= 4 ? (R() < 0.35 ? 2 : 1) : R() < 0.22 + t * 0.08 ? 1 : 0;
-  for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 50), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
+  for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 49), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
   if (c.legend) { const L = makeLegend(c.legend); if (L) { give(L); announce(`✨ ${p.name}님이 전설의 보물상자에서 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); } }
   else if (t >= 4 && R() < 0.0015 * (1 + luck / 100)) { const lid = pick(Object.keys(D.LEGENDS)); const L = makeLegend(lid); give(L); announce(`✨ ${p.name}님이 보물상자에서 전설의 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); }
   fx(m, { k: 'coin', x: c.x, y: c.y, v: coins }); fx(m, { k: 'chest', x: c.x, y: c.y, t });
@@ -441,7 +441,7 @@ function fishTick(p, now) {
   if (x < 0.5 * rare * (1 + luck / 100)) it = { k: 'use', id: 'fGold', n: 1 };
   else if (x < 2.2 * rare) it = { k: 'mat', id: '보물지도 조각', n: 1 };
   else if (x < 3.4 * rare) it = { k: 'mat', id: '진주', n: 1 };
-  else if (x < 3.6 * rare) { const job = pick(['warrior', 'mage', 'healer']); it = makeGear(job, pick(job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield')), clamp(p.lv - ri(0, 6), 1, 50), { luck, minRar: 1 }); }
+  else if (x < 3.6 * rare) { const job = pick(['warrior', 'mage', 'healer']); it = makeGear(job, pick(job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield')), clamp(p.lv - ri(0, 6), 1, 49), { luck, minRar: 1 }); }
   else if (x < 7.5) it = { k: 'mat', id: '낡은 장화', n: 1 };
   else if (x < 10) { const c = ri(30, 120) + p.lv * 4; p.coins += c; sysMsg(p, `동전 주머니를 낚았다! +${c} 코인`, '#ffe28a'); fx(m, { k: 'fishc', x: f.x, y: f.y }); dirty(p); return; }
   else { const tb = D.FISH[b] || D.FISH.g; const tot = tb.reduce((a, [, w_]) => a + w_, 0); let q = R() * tot; let id = tb[0][0]; for (const [fid, w_] of tb) { q -= w_; if (q <= 0) { id = fid; break; } } it = { k: 'use', id, n: 1 }; }
@@ -573,7 +573,7 @@ function gearPower(it, lv) { // 강화 + 레벨 효력 반영 최종 스탯
   if (lv != null) { const e = D.gearEff(lv, it); if (e.main < 1) for (const k in s) s[k] = Math.round(s[k] * (D.isMainStat(it, k) ? e.main : e.extra)); }
   return s;
 }
-function gearSell(it) { return Math.floor((it.lvl * it.lvl * 4 + 30) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)); }
+function gearSell(it) { return Math.floor((it.lvl * it.lvl * 2 + 15) * (1 + it.rar * 0.8) * (it.shop ? 0.5 : 1)); }
 
 // ═══════════════ 플레이어 ═══════════════
 let SAVES = {};
@@ -747,6 +747,7 @@ function killMon(m, mon, killer) {
   const def = D.MONS[mon.type];
   fx(m, { k: 'die', x: mon.x, y: mon.y, b: mon.boss ? 1 : 0 });
   if (mon.zone) mon.zone.count--;
+  if (mon.mid && mon.mz) { mon.mz.mb = null; mon.mz.mbAt = Date.now() + ri(240, 420) * 1000; for (const q of PLAYERS.values()) if (q.map === m.id) sysMsg(q, `⚔ 중보스 [${D.MONS[mon.type].name}] 처치! 약 5분 뒤 다시 나타납니다.`, '#ffb040'); }
   shareExp(m, mon, killer);
   if (killer) killer.kills = (killer.kills || 0) + 1;
   const luck = killer ? killer.st.luck : 0;
@@ -757,17 +758,17 @@ function killMon(m, mon, killer) {
     if (id && R() < (mon.type === 'abyssKing' ? 0.25 : 0.1)) { dropAt(m, mon.x, mon.y, { k: 'use', id: 'mtk_' + id, n: 1 }, killer); announce(`✨ [${D.MOUNTS[id].name}] 탈것 증표가 떨어졌습니다!`, '#ffd27a'); } }
   if (def.lv >= 56 && !mon.boss && R() < 0.015) dropAt(m, mon.x, mon.y, { k: 'mat', id: '보물지도 조각', n: 1 }, killer);
   if (['fallenKing', 'prisonLord', 'abyssKing'].includes(mon.type) && R() < (mon.type === 'abyssKing' ? 0.06 : 0.02)) { const L = makeLegend(pick(Object.keys(D.LEGENDS))); dropAt(m, mon.x, mon.y, L, killer); announce(`전설의 [${L.name}]이(가) 떨어졌습니다!`, '#ff7a4a'); }
-  const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 15 : mon.mutant ? 2.5 : 1));
+  const coin = Math.floor(mon.coin * (0.8 + R() * 0.5) * (1 + luck / 100) * (mon.boss ? 10 : mon.mid ? 6 : mon.mutant ? 2.5 : 1));
   dropAt(m, mon.x, mon.y, { k: 'coin', n: coin }, killer);
   // 장비 (낮은 확률)
-  const itemChance = (mon.boss ? 100 : mon.mutant ? 12 : 4.2) * (1 + luck / 100);
-  const crew = mon.boss ? (() => { const ids = new Set(Object.keys(mon.dmgBy || {})); for (const q of PLAYERS.values()) if (q.map === m.id && !q.dead && dist(q, mon) <= 13) ids.add(q.id); if (killer) { const pt = killer.party && PARTIES.get(killer.party); if (pt) for (const id of pt.members) { const q = PLAYERS.get(id); if (q && q.map === m.id && dist(q, mon) <= 20) ids.add(id); } } return [...ids].map(id => PLAYERS.get(id)).filter(Boolean).slice(0, 8); })() : [];
-  const nItems = mon.boss ? Math.max(2 + ri(0, 1), crew.length + 1) : (R() * 100 < itemChance ? 1 : 0);
+  const itemChance = (mon.boss || mon.mid ? 100 : mon.mutant ? 12 : 4.2) * (1 + luck / 100);
+  const crew = (mon.boss || mon.mid) ? (() => { const ids = new Set(Object.keys(mon.dmgBy || {})); for (const q of PLAYERS.values()) if (q.map === m.id && !q.dead && dist(q, mon) <= 13) ids.add(q.id); if (killer) { const pt = killer.party && PARTIES.get(killer.party); if (pt) for (const id of pt.members) { const q = PLAYERS.get(id); if (q && q.map === m.id && dist(q, mon) <= 20) ids.add(id); } } return [...ids].map(id => PLAYERS.get(id)).filter(Boolean).slice(0, 8); })() : [];
+  const nItems = (mon.boss || mon.mid) ? Math.max(2 + ri(0, 1), crew.length + 1) : (R() * 100 < itemChance ? 1 : 0);
   for (let i = 0; i < nItems; i++) {
     const who = crew[i]; const job = who ? D.JOBS[who.job].base : crew.length ? D.JOBS[pick(crew).job].base : pick(['warrior', 'mage', 'healer']); // 보스: 참여자마다 자기 직업 장비 1개 + 1개 더 // 일반 몬스터는 직업 무관 랜덤 → 교환으로 해결
     const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield');
-    const lvl = mon.boss ? D.bossGearLv(def.lv, R) : clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 50); // 50등급 이상은 보스만
-    dropAt(m, mon.x, mon.y, makeGear(job, pick(slots), lvl, { luck, bonus: mon.boss ? 20 : mon.mutant ? 8 : 0, minRar: mon.boss ? 1 : 0 }), who || killer);
+    const lvl = mon.mid ? D.midGearLv(mon.lv, R) : mon.boss ? D.bossGearLv(def.lv, R) : clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 49); // 50등급 이상은 필드 중보스·보스만
+    dropAt(m, mon.x, mon.y, makeGear(job, pick(slots), lvl, { luck, bonus: mon.boss || mon.mid ? 20 : mon.mutant ? 8 : 0, minRar: mon.boss || mon.mid ? 1 : 0 }), who || killer);
   }
   // 강화 재료
   const ore = D.oreFor(def.lv);
@@ -994,6 +995,27 @@ function hitMon(m, mon, p, atk, mul, fromSummon) {
 }
 
 // 스폰 관리
+// ═══ 중보스: Lv40 이상 사냥터마다 한 마리 (가장 강한 몬스터를 크게·강하게) ═══
+function midBossTick(m, z, now) {
+  if (z._lv === undefined) { z._lv = 0; for (const t of z.mons) if (D.MONS[t] && !D.MONS[t].boss) z._lv = Math.max(z._lv, D.MONS[t].lv); }
+  if (z._lv < 40) return;
+  if (z.mb && m.mons.has(z.mb)) return;
+  if (z.mb) { z.mb = null; z.mbAt = now + ri(240, 420) * 1000; }
+  if (!z.mbAt) z.mbAt = now + ri(20, 90) * 1000;
+  if (now < z.mbAt) return;
+  const type = z.mons.filter(t => D.MONS[t]).sort((a, b) => D.MONS[b].lv - D.MONS[a].lv)[0]; if (!type) return;
+  for (let k = 0; k < 20; k++) {
+    const x = ri(z.x0, z.x1), y = ri(z.y0, z.y1); if (!monCanStep(m, x, y)) continue;
+    if (m.towns.some(t => x >= t.x0 - 6 && x <= t.x1 + 6 && y >= t.y0 - 6 && y <= t.y1 + 6)) continue;
+    const mon = spawnMon(m, type, x, y); if (!mon) return;
+    const def = D.MONS[type]; mon.mid = 1; mon.mz = z; mon.lv = def.lv + 5;
+    mon.hp = mon.maxHp = Math.round(mon.maxHp * 14); mon.atk = Math.round(mon.atk * 1.6); mon.def = Math.round(mon.def * 1.3); mon.exp = Math.round(mon.exp * 12); mon.coin = Math.round(mon.coin * 1);
+    mon.sk = (D.MSK_POOL[def.kind] || ['charge', 'slam', 'frenzy']).slice(0, 4);
+    z.mb = mon.id; z.mbAt = 0;
+    for (const q of PLAYERS.values()) if (q.map === m.id) sysMsg(q, `⚔ 이 지역에 중보스 [${def.name}]이(가) 나타났습니다! (50등급 이상 장비)`, '#ffb040');
+    return;
+  }
+}
 function spawnTick() {
   const now = Date.now();
   for (const m of Object.values(MAPS)) {
@@ -1012,6 +1034,7 @@ function spawnTick() {
         const mutant = nightNow && R() < 0.13;
         const mon = spawnMon(m, type, x, y, { zone: z, mutant }); if (mon) z.count++;
       }
+      midBossTick(m, z, now);
     }
   }
 }
@@ -1593,7 +1616,7 @@ function tick() {
     const VX = 20, VY = 15;
     const P = [], M = [], Dr = [];
     for (const q of PLAYERS.values()) if (q.map === p.map && Math.abs(q.x - p.x) <= VX && Math.abs(q.y - p.y) <= VY) P.push({ i: q.id, n: q.name, x: q.x, y: q.y, d: q.dir, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), lv: q.lv, a: appear(q), sl: q.sleeping ? 1 : 0, dd: q.dead ? 1 : 0, fs: q.fishing ? [q.fishing.x, q.fishing.y] : 0, bf: (q.buffs || []).length ? 1 : 0 });
-    for (const mon of m.mons.values()) if (Math.abs(mon.x - p.x) <= VX && Math.abs(mon.y - p.y) <= VY) M.push({ i: mon.id, t: mon.type, x: mon.x, y: mon.y, d: mon.dir, h: Math.round(100 * mon.hp / mon.maxHp), mu: mon.mutant ? 1 : 0, s: mon.summon ? 1 : 0, lv: mon.lv });
+    for (const mon of m.mons.values()) if (Math.abs(mon.x - p.x) <= VX && Math.abs(mon.y - p.y) <= VY) M.push({ i: mon.id, t: mon.type, x: mon.x, y: mon.y, d: mon.dir, h: Math.round(100 * mon.hp / mon.maxHp), mu: mon.mutant ? 1 : 0, mb: mon.mid ? 1 : 0, s: mon.summon ? 1 : 0, lv: mon.lv });
     for (const d of m.drops.values()) if (Math.abs(d.x - p.x) <= VX && Math.abs(d.y - p.y) <= VY) { const it = d.item; Dr.push({ i: d.id, x: d.x, y: d.y, k: it.k, id: it.id, tr: it.tier, c: it.k === 'gear' ? D.TIER_COLOR[it.tier] : it.k === 'use' ? D.CONSUMES[it.id].col : it.k === 'mat' ? (D.MATS[it.id] || {}).c : '#ffd700', r: it.rar || 0, sl: it.slot, wt: it.wt, n: it.k === 'gear' ? it.name : it.k === 'coin' ? it.n + '코인' : (it.k === 'use' ? D.CONSUMES[it.id].name : it.id) + (it.n > 1 ? ' x' + it.n : '') }); }
     const fxs = m.fx.filter(f => Math.abs((f.x ?? f.fx) - p.x) <= VX + 2 && Math.abs((f.y ?? f.fy) - p.y) <= VY + 2);
     { const fb = (p.buffs || []).find(b => b.form && b.until > now); const f = fb ? fb.form : 0; if (f !== (p._fm || 0)) { p._fm = f; calc(p); if (p.hp > p.st.maxHp) p.hp = p.st.maxHp; dirty(p); if (!f) sysMsg(p, '변신이 풀렸습니다.', '#bbb'); } }

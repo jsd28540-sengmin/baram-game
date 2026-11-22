@@ -211,7 +211,7 @@
     if (m.boss) { hp *= 42; atk *= 2.05; def *= 1.55; exp *= 30; }
     if (night) { hp *= 1.15; atk *= 1.15; }
     if (mutant) { hp *= 2.2; atk *= 1.45; def *= 1.3; exp *= 3; }
-    return { hp: Math.floor(hp), atk: Math.floor(atk), def: Math.floor(def), exp: Math.floor(exp), coin: Math.floor(6 + l * 4.5) };
+    return { hp: Math.floor(hp), atk: Math.floor(atk), def: Math.floor(def), exp: Math.floor(exp), coin: Math.floor(3 + l * 2.1) }; // 경제 조정: 몬스터 코인 약 절반
   };
 
   // ───────── 아이템 ─────────
@@ -222,6 +222,7 @@
   D.tierOf = lvl => lvl <= 50 ? Math.min(9, Math.floor((lvl - 1) / 5)) : lvl >= 100 ? 15 : Math.min(14, 9 + Math.ceil((lvl - 50) / 10));
   // 50등급 이상(50·60·70·80·90·100 전설)은 보스에게서만 나옴
   D.GEAR_GRADES = [50, 60, 70, 80, 90, 100];
+  D.midGearLv = (lv, R) => { if ((lv >= 90) && (R ? R() : Math.random()) < 0.05) return 100; return lv < 60 ? 50 : Math.min(90, Math.floor(lv / 10) * 10); };
   D.bossGearLv = (bossLv, R) => { if (bossLv <= 50) return Math.max(1, bossLv); let g = Math.min(90, Math.floor(bossLv / 10) * 10); if (bossLv >= 100 && (R ? R() : Math.random()) < 0.15) g = 100; return g; };
   // 직업별 장비 이름
   D.GEAR = {
@@ -268,27 +269,27 @@
   D.isMainStat = (it, key) => key === 'atk' || key === 'def' || (key === 'hp' && it.slot === 'armor') || (key === 'mp' && it.wt === 'wand');
   D.upgradeMat = lvl => lvl <= 15 ? '철광석' : lvl <= 30 ? '은광석' : lvl <= 45 ? '마력석' : '용의비늘';
   D.UPG_RATE = [100, 95, 88, 78, 66, 55, 45, 35, 25, 15];
-  D.upgradeCost = (it) => ({ mat: D.upgradeMat(it.lvl), n: it.plus + 2, coin: Math.floor(it.lvl * 40 * (it.plus + 1) + 100) });
+  D.upgradeCost = (it) => ({ mat: D.upgradeMat(it.lvl), n: it.plus + 2, coin: Math.floor((it.lvl * 40 * (it.plus + 1) + 100) * 1.6) });
 
   // 소모품
   D.CONSUMES = {
-    hp1: { name: '빨간 물약', col: '#e8303a', hp: 90, price: 30, desc: '체력 90 회복' },
-    hp2: { name: '진한 빨간 물약', col: '#a80018', hp: 380, price: 140, desc: '체력 380 회복' },
-    mp1: { name: '파란 물약', col: '#2f6bff', mp: 70, price: 40, desc: '마나 70 회복' },
-    mp2: { name: '진한 파란 물약', col: '#0a2aa8', mp: 280, price: 160, desc: '마나 280 회복' },
-    hp3: { name: '왕의 빨간 물약', col: '#ff1a3a', hp: 1200, price: 480, desc: '체력 1200 회복 (상급)' },
-    mp3: { name: '왕의 파란 물약', col: '#3a8bff', mp: 900, price: 520, desc: '마나 900 회복 (상급)' },
-    buffAtk: { name: '보라 물약', col: '#a040ff', buff: { atk: 0.3 }, dur: 90000, price: 350, desc: '90초간 전투능력(공격력) +30%' },
-    buffDef: { name: '노란 물약', col: '#ffd020', buff: { def: 0.45 }, dur: 90000, price: 350, desc: '90초간 방어력 +45% (체력이 적게 닳음)' },
-    recall: { name: '귀환 주문서', col: '#e8d8a0', recall: 1, price: 120, desc: '가장 가까운 마을로 귀환 (귀환 전 위치를 기억)' },
-    back: { name: '복귀 주문서', col: '#bcd8ff', back: 1, price: 150, desc: '귀환 주문서를 쓰기 전 위치로 돌아간다' },
+    hp1: { name: '빨간 물약', col: '#e8303a', hp: 90, price: 42, desc: '체력 90 회복' },
+    hp2: { name: '진한 빨간 물약', col: '#a80018', hp: 380, price: 196, desc: '체력 380 회복' },
+    mp1: { name: '파란 물약', col: '#2f6bff', mp: 70, price: 56, desc: '마나 70 회복' },
+    mp2: { name: '진한 파란 물약', col: '#0a2aa8', mp: 280, price: 224, desc: '마나 280 회복' },
+    hp3: { name: '왕의 빨간 물약', col: '#ff1a3a', hp: 1200, price: 672, desc: '체력 1200 회복 (상급)' },
+    mp3: { name: '왕의 파란 물약', col: '#3a8bff', mp: 900, price: 728, desc: '마나 900 회복 (상급)' },
+    buffAtk: { name: '보라 물약', col: '#a040ff', buff: { atk: 0.3 }, dur: 90000, price: 489, desc: '90초간 전투능력(공격력) +30%' },
+    buffDef: { name: '노란 물약', col: '#ffd020', buff: { def: 0.45 }, dur: 90000, price: 489, desc: '90초간 방어력 +45% (체력이 적게 닳음)' },
+    recall: { name: '귀환 주문서', col: '#e8d8a0', recall: 1, price: 168, desc: '가장 가까운 마을로 귀환 (귀환 전 위치를 기억)' },
+    back: { name: '복귀 주문서', col: '#bcd8ff', back: 1, price: 210, desc: '귀환 주문서를 쓰기 전 위치로 돌아간다' },
     meatCooked: { name: '구운 고기', col: '#a0582a', hp: 220, price: 0, desc: '체력 220 회복' },
     stew: { name: '고기 스튜', col: '#c08a40', hp: 500, mp: 300, price: 0, desc: '체력 500, 마나 300 회복' },
     feast: { name: '모험가의 만찬', col: '#ffcf6a', hp: 800, mp: 500, buff: { atk: 0.15, def: 0.15 }, dur: 180000, price: 0, desc: '대량 회복 + 3분간 공격·방어 +15%' },
   };
   D.SHOP_CONSUMES = ['hp1', 'hp2', 'hp3', 'mp1', 'mp2', 'mp3', 'buffAtk', 'buffDef', 'recall', 'back'];
   D.SHOP_GEAR_LEVELS = [5, 12, 20, 28];
-  D.gearPrice = lvl => Math.floor(lvl * lvl * 18 + 150);
+  D.gearPrice = lvl => Math.floor((lvl * lvl * 18 + 150) * 1.5);
 
   // 요리
   D.RECIPES = {
@@ -299,10 +300,10 @@
 
   // 탈것 (아주 비쌈)
   D.MOUNTS = {
-    horse: { name: '갈색 말', price: 30000, spd: 1.5, c: ['#7a4a22', '#2a1a0a'], kind: 'horse' },
-    camel: { name: '사막 낙타', price: 70000, spd: 1.65, c: ['#d0a860', '#8a6a3a'], kind: 'camel' },
-    ostrich: { name: '질주 타조', price: 120000, spd: 1.85, c: ['#2a2a2a', '#f0e8d8'], kind: 'ostrich' },
-    whiteHorse: { name: '천리 치타', price: 250000, spd: 2.1, c: ['#e8b23a', '#3a2a10'], kind: 'horse' },
+    horse: { name: '갈색 말', price: 60000, spd: 1.5, c: ['#7a4a22', '#2a1a0a'], kind: 'horse' },
+    camel: { name: '사막 낙타', price: 140000, spd: 1.65, c: ['#d0a860', '#8a6a3a'], kind: 'camel' },
+    ostrich: { name: '질주 타조', price: 240000, spd: 1.85, c: ['#2a2a2a', '#f0e8d8'], kind: 'ostrich' },
+    whiteHorse: { name: '천리 치타', price: 500000, spd: 2.1, c: ['#e8b23a', '#3a2a10'], kind: 'horse' },
     // 보스 전용 (상점 판매 안 함, 보스 처치 시 낮은 확률로 '탈것 증표' 획득)
     battleBear: { name: '전투곰', boss: 1, spd: 1.7, c: ['#6a4022', '#2a1a0a'], kind: 'horse', tint: '#7a4a22', from: '거대곰왕' },
     goldScorpion: { name: '황금 전갈', boss: 1, spd: 1.85, c: ['#e0b040', '#8a6a1a'], kind: 'horse', tint: '#e8b830', from: '황금전갈왕' },

@@ -2,7 +2,7 @@
 (function () {
   const CA = window.CLASS_ATLAS; if (!CA) return;
   const CI = new Image(); CI.onload = () => { CI.ok = true; cc.clear(); }; CI.src = 'gfx/classes.png?v=' + (window.BUILDV || 1);
-  const T = { guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74 };
+  const T = { guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74, paladin: 76, fortress: 76, blademaster: 76, destroyer: 78, archmage: 80, chronomancer: 80, lichking: 80, hexer: 78, sniper: 76, arcaneArcher: 76, saint: 80, inquisitor: 78 };
   const _csC = charSprite, cc = new Map();
   charSprite = function (ap, dir, frame) {
     const cj = ap && (CA[ap.job] ? ap.job : GD.JOBS[ap.job] && GD.JOBS[ap.job].from); const A = ap && !ap.mt && CI.ok && cj && CA[cj]; if (!A) return _csC(ap, dir, frame);
