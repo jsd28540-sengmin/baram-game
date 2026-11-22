@@ -11,6 +11,8 @@ function resize() {
   DPR = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1))); // 3배는 무거워서 2배로 제한
   const r = cv.getBoundingClientRect(); VW = Math.round(r.width) || innerWidth; VH = Math.round(r.height) || innerHeight;
   ZOOM = Math.max(0.52, Math.min(0.9, VH / (19.5 * TS))); // 시점: 세로로 약 19.5칸 (조금 더 멀리)
+  let _inH = false; try { _inH = !!(S.map && S.map.inner && String(S.map.id).startsWith('tent_h_')); } catch (e) { }
+  if (_inH) ZOOM = Math.min(1.3, VH / (13.8 * TS), VW / (19 * TS)); // 집 안: 방 전체(벽지 포함)가 화면에 꽉 차게 가까이
   W = Math.round(VW / ZOOM); H = Math.round(VH / ZOOM);
   cv.width = VW * DPR; cv.height = VH * DPR; ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0); ctx.imageSmoothingEnabled = false; lc.width = W; lc.height = H;
 }
@@ -383,6 +385,7 @@ function loadMap(m) {
   for (let i = 0; i < t.length; i++) { let col = MINI_COL[t[i]] || '#000'; const n = parseInt(col.slice(1), 16); id.data[i * 4] = n >> 16; id.data[i * 4 + 1] = n >> 8 & 255; id.data[i * 4 + 2] = n & 255; id.data[i * 4 + 3] = 255; }
   g.putImageData(id, 0, 0); S.mini = mc;
   $('mapname').textContent = m.name;
+  try { resize(); } catch (e) { } // 집 안/밖 전환 시 시점 다시 맞춤
 }
 function snapshot(m) {
   if (m.q) { if (S._sq && m.q <= S._sq && S._sq - m.q < 50) return; S._sq = m.q; } // 늦게 온 옛 위치 정보는 버림
@@ -477,7 +480,7 @@ function setTarget(id) { S.target = id; send({ t: 'target', id }); }
 // 캔버스 클릭/탭
 cv.addEventListener('pointerdown', e => {
   if (!S.map || !S.me) return; hideTip();
-  const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const [crx, cry] = camC(); const camX = Math.floor(crx * TS + TS / 2 - W / 2), camY = Math.floor(cry * TS + TS / 2 - H / 2);
   const wx = (e.clientX / ZOOM + camX) / TS, wy = (e.clientY / ZOOM + camY) / TS; const tx = Math.floor(wx), ty = Math.floor(wy);
   if (S.place) { placeAt(tx, ty); return; }
   // 몬스터
@@ -516,7 +519,7 @@ function structBlock(t, x, y) {
   if (isOuterTent(t)) return !(lx === (GD.TENT_W >> 1) && ly === GD.TENT_H - 1); // 바깥 텐트 크기는 고정
   const f = t.furn.find(f => f.x === lx && f.y === ly);
   const wall = lx === 0 || lx === SW_(t) - 1 || ly === 0 || ly === SH_(t) - 1;
-  if (wall) { if (f && f.k === 'door') return false; if (t.kind !== 'house' && ly === SH_(t) - 1 && lx === (SW_(t) >> 1)) return false; return true; }
+  if (wall) { if (f && f.k === 'door') return false; if ((t.kind !== 'house' || t.inner) && ly === SH_(t) - 1 && lx === (SW_(t) >> 1)) return false; return true; }
   return !!(f && !GD.WALK_FURN.has(f.k));
 }
 function canWalk(x, y) {
@@ -719,7 +722,7 @@ function frame(nowMs) {
   updateMove(now);
   const m = S.map;
   const SHK = window.shakeOff ? shakeOff() : null;
-  const sx = Math.floor(pos.rx * TS + TS / 2 - W / 2) + (SHK ? SHK[0] : 0), sy = Math.floor(pos.ry * TS + TS / 2 - H / 2) + (SHK ? SHK[1] : 0);
+  const [crx, cry] = camC(); const sx = Math.floor(crx * TS + TS / 2 - W / 2) + (SHK ? SHK[0] : 0), sy = Math.floor(cry * TS + TS / 2 - H / 2) + (SHK ? SHK[1] : 0);
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   const x0 = Math.max(0, Math.floor(sx / TS)), y0 = Math.max(0, Math.floor(sy / TS)), x1 = Math.min(m.w - 1, Math.ceil((sx + W) / TS)), y1 = Math.min(m.h - 1, Math.ceil((sy + H) / TS));
   const fr = (now / 600 | 0) % 2;
@@ -879,6 +882,8 @@ function drawStruct(t, sx, sy, now) {
   for (const f of t.furn) drawFurn(ctx, f.k, x0 + f.x * TS, y0 + f.y * TS, now);
   drawText((house ? '🏠 ' : '⛺ ') + t.owner + (house ? '의 집' : '의 텐트'), x0 + Wt * TS / 2, y0 - 14, '#ffe0a0', 12);
 }
+/* 집 안에서는 카메라를 방 한가운데에 고정 (방 전체가 한눈에) */
+function camC() { if (S.map && S.map.inner && String(S.map.id).startsWith('tent_h_')) return [(S.map.w - 1) / 2, (S.map.h - 1) / 2 - 0.9]; return [pos.rx, pos.ry]; }
 function myStruct(kind) { return S.tents.find(t => t.owner === S.me.name && (t.kind || 'tent') === kind); }
 function drawPlaceHint(sx, sy) {
   const t = myStruct(S.place.s); if (!t || isOuterTent(t)) return;
@@ -900,7 +905,7 @@ function placeAt(tx, ty) {
 function drawLight(sx, sy, now) {
   const m = S.map; let a = m.dark ? (m.castle ? 0.42 : 0.66) : S.nl * 0.7;
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
-  if (m.inner) a = 0.5;
+  if (m.inner) a = String(m.id).startsWith('tent_h_') ? 0.12 : 0.5;
   if (a < 0.02) return;
   lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = m.inner ? `rgba(20,10,4,${a})` : `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
   lcx.globalCompositeOperation = 'destination-out';

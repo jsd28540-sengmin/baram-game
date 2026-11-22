@@ -389,7 +389,7 @@ function paintBossFaces(root) {
 function bossTable(list) { return bossRows(list); }
 
 // ── 집짓기 ──
-function openBuild(s) { openPanel('build', { s: s || (S.me.house && S.map && S.me.house.map === S.map.id && Math.abs(S.me.house.x + 4 - pos.x) < 10 && Math.abs(S.me.house.y + 3 - pos.y) < 8 ? 'house' : 'tent') }); }
+function openBuild(s) { openPanel('build', { s: s || (S.map && S.map.id === 'tent_h_' + S.me.name) && 'house' || (S.me.house && S.map && S.me.house.map === S.map.id && Math.abs(S.me.house.x + 4 - pos.x) < 10 && Math.abs(S.me.house.y + 3 - pos.y) < 8 ? 'house' : 'tent') }); }
 function renderBuild(body, T) {
   const me = S.me; const s = S.panel.data.s;
   T('tent', '집짓기', `<div style="flex:1"></div><div class="tabs"><div class="tab ${s === 'tent' ? 'on' : ''}" data-bt="tent">텐트 (야외)</div><div class="tab ${s === 'house' ? 'on' : ''}" data-bt="house">마을 집</div></div>`);
@@ -397,16 +397,22 @@ function renderBuild(body, T) {
   const have = s === 'tent' ? me.tent : me.house;
   let top = s === 'tent'
     ? `<div class="row"><button class="btn pri" data-bb="tent">${ic('tent')}${me.tent ? '여기로 텐트 옮기기' : '여기에 텐트 짓기'}</button><span>${needH(GD.TENT_COST)}</span><div style="flex:1"></div>${me.tent ? `<button class="btn red sm" data-bb="tentDel">${ic('trash')}텐트 철거</button>` : ''}</div><div class="mut">내 위치가 텐트 입구가 되고 위쪽으로 9x7칸이 필요해요. 입구로 들어가면 아늑한 실내가 나오고, <b>가구는 텐트 안에서</b> 자유롭게 배치해요. 안은 몬스터가 못 들어오는 안전지대!${me.tent && S.map.id !== 'tent_' + me.name ? '<br><span style="color:#ffd27a">▶ 지금은 텐트 밖이에요. 텐트 입구로 들어가서 배치하세요.</span>' : ''}</div>`
-    : `<div class="mut">${me.house ? '집 안 칸을 눌러 가구를 놓으세요. 창문·문·그림은 벽에 설치합니다.' : '아직 집이 없어요. 마을 서쪽 주택가 공터 표지판에서 땅을 사고 집을 지으세요.'}</div>`;
+    : (S.map.id === 'tent_h_' + me.name
+      ? `<div class="mut">🏠 <b>집 안</b>이에요. 가구는 캐릭터 크기에 맞게 크게 놓여요. 벽지·바닥을 골라 꾸며 보세요.</div>`
+        + `<div class="row" style="flex-wrap:wrap;gap:4px"><b style="font-size:12px">벽지</b>${GD.WALLPAPERS.map((w, i) => `<button class="btn sm${(myStruct('house') || {}).deco && myStruct('house').deco.wall === i ? ' pri' : ''}" data-hw="${i}" style="background:linear-gradient(90deg,${w.a} 60%,${w.b} 60%);color:#222;text-shadow:0 0 2px #fff">${w.n}</button>`).join('')}</div>`
+        + `<div class="row" style="flex-wrap:wrap;gap:4px"><b style="font-size:12px">바닥</b>${GD.FLOORS.map((w, i) => `<button class="btn sm${(myStruct('house') || {}).deco && myStruct('house').deco.floor === i ? ' pri' : ''}" data-hf="${i}" style="background:linear-gradient(90deg,${w.a} 60%,${w.b} 60%);color:#222;text-shadow:0 0 2px #fff">${w.n}</button>`).join('')}</div>`
+      : `<div class="mut">${me.house ? '집 문으로 들어가면 실내 꾸미기 화면이 열려요. 밖에서는 창문·문·그림 등 외장 가구만 놓을 수 있어요.' : '아직 집이 없어요. 마을 서쪽 주택가 공터 표지판에서 땅을 사고 집을 지으세요.'}</div>`);
   let grid = '';
   if (have) {
-    const list = Object.entries(GD.FURNITURE).filter(([, f]) => s === 'house' || !f.house);
+    const inH = S.map.id === 'tent_h_' + me.name; const list = Object.entries(GD.FURNITURE).filter(([, f]) => (s === 'house' || !f.house) && (!f.inner || inH));
     grid = `<div class="grid" style="grid-template-columns:repeat(7,1fr);gap:5px">` + list.map(([k, f]) => `<div class="card" data-pf="${k}" style="align-items:center;text-align:center;padding:5px;cursor:pointer"><canvas width="32" height="32" data-fu="${k}" style="width:32px;height:32px"></canvas><div class="nm" style="font-size:11px">${f.name}</div><small style="font-size:9px">${needH(f.need)}</small></div>`).join('') + `</div><div class="row"><span class="mut">가구를 누른 뒤 ${s === 'house' ? '집' : '텐트'} 안의 칸을 누르세요.</span><div style="flex:1"></div><button class="btn red sm" data-pd="1">${ic('trash')}가구 철거 모드</button></div>`;
   }
   body.innerHTML = `<div class="col" style="flex:1"><div class="mut">보유 재료: ${mats}</div>${top}${grid}</div>`;
   body.querySelectorAll('[data-bt]').forEach(b => b.onclick = () => openPanel('build', { s: b.dataset.bt }));
   $('ptitle').querySelectorAll('[data-bt]').forEach(b => b.onclick = () => openPanel('build', { s: b.dataset.bt }));
   body.querySelectorAll('[data-bb]').forEach(b => b.onclick = () => { if (b.dataset.bb === 'tent') send({ t: 'build' }); else uiAsk('텐트를 철거할까요? (가구는 사라집니다)', () => send({ t: 'tentDel' })); });
+  body.querySelectorAll('[data-hw]').forEach(b => b.onclick = () => { send({ t: 'hdeco', wall: +b.dataset.hw }); setTimeout(() => S.panel && S.panel.kind === 'build' && openPanel('build', { s: 'house' }), 250); });
+  body.querySelectorAll('[data-hf]').forEach(b => b.onclick = () => { send({ t: 'hdeco', floor: +b.dataset.hf }); setTimeout(() => S.panel && S.panel.kind === 'build' && openPanel('build', { s: 'house' }), 250); });
   body.querySelectorAll('[data-fu]').forEach(c => drawFurn(c.getContext('2d'), c.dataset.fu, 0, 0, 0));
   body.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => { if (!myStruct(s)) return log('지금 이 지역에 내 ' + (s === 'house' ? '집' : '텐트') + '이 없습니다.', '#f99'); S.place = { s, k: b.dataset.pf }; $('panel').classList.add('hidden'); S.panel = null; log('설치할 칸을 누르세요. 여러 개 연속 설치 가능, 빈 곳을 누르면 종료.', '#ffe08a'); });
   body.querySelectorAll('[data-pd]').forEach(b => b.onclick = () => { if (!myStruct(s)) return; S.place = { s, del: 1 }; $('panel').classList.add('hidden'); S.panel = null; });
@@ -1015,7 +1021,7 @@ function closePM() { const d = $('pmenu'); if (d) d.remove(); }
 document.addEventListener('pointerdown', e => { const d = $('pmenu'); if (d && !d.contains(e.target)) d.remove(); }, true);
 openPlayerMenu = function (p) {
   closePM(); closePanel2();
-  const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const [crx, cry] = camC(); const camX = Math.floor(crx * TS + TS / 2 - W / 2), camY = Math.floor(cry * TS + TS / 2 - H / 2);
   const inParty = S.party && S.party.some(x => x.i === p.i), leader = S.party && S.party.some(x => x.i === S.myId && x.L);
   const following = S.follow === p.i;
   const d = document.createElement('div'); d.id = 'pmenu'; d.className = 'win';
@@ -1063,7 +1069,7 @@ const _cwX = canWalk;
 canWalk = function (x, y) { if (S.map && S.map.chests && S.map.chests.some(c => c.x === x && c.y === y)) return false; return _cwX(x, y); };
 cv.addEventListener('pointerdown', e => {
   if (!S.map || !S.me || S.place) return;
-  const camX = Math.floor(pos.rx * TS + TS / 2 - W / 2), camY = Math.floor(pos.ry * TS + TS / 2 - H / 2);
+  const [crx, cry] = camC(); const camX = Math.floor(crx * TS + TS / 2 - W / 2), camY = Math.floor(cry * TS + TS / 2 - H / 2);
   const tx = Math.floor((e.clientX / ZOOM + camX) / TS), ty = Math.floor((e.clientY / ZOOM + camY) / TS);
   const c = (S.map.chests || []).find(c => c.x === tx && c.y === ty);
   if (c) { if (Math.max(Math.abs(c.x - pos.x), Math.abs(c.y - pos.y)) <= 1) send({ t: 'openChest', id: c.i }); else log('보물상자에 가까이 가서 누르세요.', '#ffe08a'); return; }

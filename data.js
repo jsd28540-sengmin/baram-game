@@ -339,8 +339,21 @@
     window: { name: '창문', need: { '나무': 2, '돌': 1 }, wall: 1, house: 1, desc: '벽에 설치 (집 전용)' },
     door: { name: '문', need: { '나무': 4 }, wall: 1, house: 1, desc: '벽에 설치해 출입구 추가 (집 전용)' },
     painting: { name: '그림', need: { '나무': 2, '양털': 1 }, wall: 1, house: 1, desc: '벽 장식 (집 전용)' },
+    // ── 집 꾸미기 (집 안 전용) ──
+    sofa: { name: '소파', need: { '나무': 4, '양털': 4 }, house: 1, inner: 1, desc: '푹신한 소파' },
+    fireplace: { name: '벽난로', need: { '돌': 8, '나무': 2 }, house: 1, inner: 1, desc: '따뜻한 불빛' },
+    piano: { name: '피아노', need: { '나무': 10, '돌': 2 }, house: 1, inner: 1, desc: '고급 장식' },
+    aquarium: { name: '어항', need: { '돌': 3, '솜': 1 }, house: 1, inner: 1, desc: '물고기가 헤엄쳐요' },
+    floorlamp: { name: '스탠드', need: { '나무': 2, '횃불': 1 }, house: 1, inner: 1, desc: '은은한 조명' },
+    vase: { name: '꽃병', need: { '돌': 1, '솜': 1 }, house: 1, inner: 1, desc: '꽃 장식' },
+    doll: { name: '곰인형', need: { '양털': 3, '솜': 2 }, house: 1, inner: 1, desc: '귀여운 장식' },
+    clock: { name: '벽시계', need: { '나무': 2, '돌': 1 }, wall: 1, house: 1, inner: 1, desc: '벽 장식' },
+    curtain: { name: '커튼', need: { '양털': 3 }, wall: 1, house: 1, inner: 1, desc: '벽 장식' },
+    wreath: { name: '화환', need: { '솜': 2, '나무': 1 }, wall: 1, house: 1, inner: 1, desc: '벽 장식' },
   };
   D.HOUSE_COST = { '나무': 24, '돌': 16, '양털': 4 };
+  D.WALLPAPERS = [{ n: '크림 줄무늬', a: '#efe2c4', b: '#e2d1ac' }, { n: '하늘 꽃무늬', a: '#cfe4f2', b: '#b4d2e8' }, { n: '분홍 체크', a: '#f6d6dc', b: '#ecbfc8' }, { n: '숲 초록', a: '#cfe2bf', b: '#b6d0a2' }, { n: '나무 판자', a: '#b88a58', b: '#a37748' }, { n: '밤하늘', a: '#2e3560', b: '#262c52' }];
+  D.FLOORS = [{ n: '원목 마루', a: '#b07a46', b: '#9a6838' }, { n: '체크 타일', a: '#e8e2d4', b: '#b8b0a0' }, { n: '빨간 카펫', a: '#a8343a', b: '#922a30' }, { n: '돌 바닥', a: '#9a9690', b: '#86827c' }, { n: '하늘 카펫', a: '#5a8ad0', b: '#4a78bc' }, { n: '다다미', a: '#c8c07a', b: '#b0a866' }];
   D.WALK_FURN = new Set(['rug', 'door']);
 
   // 타일

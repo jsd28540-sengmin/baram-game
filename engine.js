@@ -488,7 +488,7 @@ function tentInterior(t) {
     for (let y = 2; y < IHT; y++) for (let x = 2; x < IW; x++) st(m, x, y, T.TFLOOR);
     st(m, 1 + IDX, IHT, T.TFLOOR); st(m, 1 + IDX, IHT + 1, T.TFLOOR);
     m.lights.push({ x: 1 + IDX, y: 3, r: 4 });
-    m.tents.push({ owner: t.owner, kind: 'tent', inner: 1, map: id, x: 1, y: 1, w: IW, h: IHT, furn: t.furn });
+    m.tents.push({ owner: t.owner, kind: 'tent', inner: 1, map: id, x: 1, y: 1, w: IW, h: IHT, furn: t.furn, deco: t.deco });
   }
   // 예전(큰 실내)에 놓은 가구 중 새 크기 밖은 정리
   { const keep = t.furn.filter(f => f.x >= 0 && f.y >= 0 && f.x < IW && f.y < IHT); if (keep.length !== t.furn.length) { t.furn.length = 0; keep.forEach(f => t.furn.push(f)); } }
@@ -504,10 +504,29 @@ function clearTentGround(m, t) {
   if (ch.length) broadcast({ t: 'tset', map: m.id, l: ch });
 }
 function tentExit(t) { const m = MAPS[t.map]; let x = t.x + TDX, y = t.y + TH; if (m && !walkable(m, x, y)) { outer: for (let r = 1; r <= 5; r++) for (let dy = 0; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const nx = t.x + TDX + dx, ny = t.y + TH + dy; if (walkable(m, nx, ny) && !tentAt(m, nx, ny)) { x = nx; y = ny; break outer; } } } return { x, y }; }
+// ═══ 집 실내 (입장하면 화면 전환, 9x7칸, 꾸미기) ═══
+const HIW = 11, HIH = 9, HDX = HIW >> 1;
+const houseInId = name => 'tent_h_' + name;
+function houseInterior(h) {
+  const id = houseInId(h.owner); let m = MAPS[id];
+  h.ifurn = h.ifurn || [{ k: 'window', x: 3, y: 0 }, { k: 'window', x: HIW - 4, y: 0 }, { k: 'rug', x: HDX, y: HIH - 3 }]; h.deco = h.deco || { wall: 0, floor: 0 };
+  if (!m) {
+    m = newMap(id, `${h.owner}의 집`, HIW + 2, HIH + 3, T.TWALL, { inner: 1 });
+    for (let y = 2; y < HIH; y++) for (let x = 2; x < HIW; x++) st(m, x, y, T.TFLOOR);
+    st(m, 1 + HDX, HIH, T.TFLOOR); st(m, 1 + HDX, HIH + 1, T.TFLOOR);
+    m.lights.push({ x: 1 + HDX, y: 3, r: 6 });
+    m.tents.push({ owner: h.owner, kind: 'house', inner: 1, map: id, x: 1, y: 1, w: HIW, h: HIH, furn: h.ifurn, deco: h.deco });
+  }
+  m.tents[0].furn = h.ifurn; m.tents[0].deco = h.deco; m.tentRef = h; m.isHouse = 1; return m;
+}
+function houseExit(h) { const m = MAPS[h.map]; const dr = (h.furn || []).find(f => f.k === 'door' && f.y === TH - 1) || (h.furn || []).find(f => f.k === 'door') || { x: TDX, y: TH - 1 }; let x = h.x + dr.x, y = h.y + dr.y + (dr.y === 0 ? -1 : 1); if (dr.x === 0) { x = h.x - 1; y = h.y + dr.y; } else if (dr.x === TW - 1) { x = h.x + TW; y = h.y + dr.y; } if (m && !walkable(m, x, y)) { outer: for (let r = 1; r <= 4; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (walkable(m, x + dx, y + dy) && !tentAt(m, x + dx, y + dy)) { x += dx; y += dy; break outer; } } return { x, y }; }
+function closeHouseInterior(h) { const im = MAPS[houseInId(h.owner)]; if (!im) return; const ex = houseExit(h); for (const q of PLAYERS.values()) if (q.map === im.id) teleport(q, h.map, ex.x, ex.y, 1); delete MAPS[im.id]; }
 function closeTentInterior(t) { const im = MAPS[tentInId(t.owner)]; if (!im) return; const ex = tentExit(t); for (const q of PLAYERS.values()) if (q.map === im.id) teleport(q, t.map, ex.x, ex.y, 1); delete MAPS[im.id]; }
-function ensureTentMap(id) { if (MAPS[id] || !id.startsWith('tent_')) return; const owner = id.slice(5); for (const m of Object.values(MAPS)) for (const t of m.tents) if (t.owner === owner && (t.kind || 'tent') === 'tent' && !t.inner) { tentInterior(t); return; } }
+function ensureTentMap(id) { if (MAPS[id] || !id.startsWith('tent_')) return; if (id.startsWith('tent_h_')) { const owner = id.slice(7); for (const m of Object.values(MAPS)) for (const t of m.tents) if (t.owner === owner && t.kind === 'house' && !t.inner) { houseInterior(t); return; } } const owner = id.slice(5); for (const m of Object.values(MAPS)) for (const t of m.tents) if (t.owner === owner && (t.kind || 'tent') === 'tent' && !t.inner) { tentInterior(t); return; } }
 function tentDoorCheck(p) {
   const m = MAPS[p.map];
+  if (m.inner && m.isHouse) { if (p.y >= 1 + HIH) { const h = m.tentRef; if (h && MAPS[h.map]) { const ex = houseExit(h); teleport(p, h.map, ex.x, ex.y, 1); sysMsg(p, '집 밖으로 나왔습니다.', '#ccc'); } } return; }
+  for (const t of m.tents) if (t.kind === 'house' && !t.inner && (t.furn || []).some(f => f.k === 'door' && p.x === t.x + f.x && p.y === t.y + f.y)) { const im = houseInterior(t); teleport(p, im.id, 1 + HDX, HIH - 1); sysMsg(p, t.owner === p.name ? '내 집에 들어왔습니다. [집짓기]에서 가구·벽지·바닥을 꾸며 보세요!' : `${t.owner}님의 집에 들어왔습니다.`, '#ffe08a'); return; }
   if (m.inner) { if (p.y >= 1 + IHT) { const t = m.tentRef; if (t && MAPS[t.map]) { const ex = tentExit(t); teleport(p, t.map, ex.x, ex.y, 1); sysMsg(p, '텐트 밖으로 나왔습니다.', '#ccc'); } } return; }
   for (const t of m.tents) if (isTentOut(t, m) && p.x === t.x + TDX && p.y === t.y + TH - 1) { const im = tentInterior(t); teleport(p, im.id, 1 + IDX, IHT - 1); sysMsg(p, t.owner === p.name ? '내 텐트에 들어왔습니다. [집짓기]에서 가구를 배치하세요. 아래 입구로 나가요.' : `${t.owner}님의 텐트에 들어왔습니다.`, '#ffd27a'); sendTents(im); return; }
 }
@@ -516,7 +535,7 @@ function tentBlock(t, x, y) {
   if (!t.inner && (t.kind || 'tent') === 'tent') return !(lx === TDX && ly === TH - 1); // 밖: 입구만 통과
   const f = t.furn.find(f => f.x === lx && f.y === ly);
   const wall = lx === 0 || lx === SW(t) - 1 || ly === 0 || ly === SH(t) - 1;
-  if (wall) { if (f && f.k === 'door') return false; if (t.kind !== 'house' && ly === SH(t) - 1 && lx === (SW(t) >> 1)) return false; return true; }
+  if (wall) { if (f && f.k === 'door') return false; if ((t.kind !== 'house' || t.inner) && ly === SH(t) - 1 && lx === (SW(t) >> 1)) return false; return true; } /* 집 실내 앞벽 가운데 = 출입문 */
   if (f && !D.WALK_FURN.has(f.k)) return true;
   return false;
 }
@@ -690,7 +709,7 @@ function sendMap(p) {
 }
 let _bs = null;
 function biomeStr(m) { if (_bs) return _bs; const k = { grass: 'g', forest: 'f', desert: 'd', snow: 's', swamp: 'w', volcano: 'v' }; _bs = m.biome.map(b => k[b]).join(''); return _bs; }
-function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t => ({ owner: t.owner, kind: t.kind || 'tent', inner: t.inner ? 1 : 0, x: t.x, y: t.y, w: t.w, h: t.h, furn: t.furn })), plots: PLOTS.filter(q => q.map === m.id).map(q => ({ id: q.id, x: q.x, y: q.y, sx: q.sx, sy: q.sy, owner: q.owner, price: q.price })) }, m.id); }
+function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t => ({ owner: t.owner, kind: t.kind || 'tent', inner: t.inner ? 1 : 0, x: t.x, y: t.y, w: t.w, h: t.h, furn: t.furn, deco: t.deco })), plots: PLOTS.filter(q => q.map === m.id).map(q => ({ id: q.id, x: q.x, y: q.y, sx: q.sx, sy: q.sy, owner: q.owner, price: q.price })) }, m.id); }
 
 function teleport(p, mapId, x, y, near) {
   const old = MAPS[p.map];
@@ -1273,6 +1292,7 @@ function enter(p, ws) {
   p.inv = p.inv || []; p.pouches = Array.isArray(p.pouches) ? p.pouches : [[], []]; p.eq = p.eq || {}; p.mounts = p.mounts || []; p.storage = p.storage || []; if (p.mount && !D.MOUNTS[p.mount]) p.mount = null; if (p.mounts.length) { for (const id of p.mounts) if (D.MOUNTS[id] && id !== p.mount && !mountItems(p).some(o => o.id === id)) giveMount(p, id); p.mounts = []; }
   for (const it of p.inv) if (it && it._rm) delete it._rm; // 예전 교환 버그 표시 정리
   // 텐트 안에서 접속이 끊겼으면: 텐트 입구 밖에서 시작 (실내는 그때그때 만드는 임시 공간)
+  if (String(p.map || '').startsWith('tent_h_')) { const owner = p.map.slice(7); let h = null; for (const mm of Object.values(MAPS)) for (const t of mm.tents || []) if (t.owner === owner && t.kind === 'house' && !t.inner) h = t; if (h) { const ex = houseExit(h); p.map = h.map; p.x = ex.x; p.y = ex.y; } else { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; } }
   if (String(p.map || '').startsWith('tent_')) { let out = null; const owner = p.map.slice(5); for (const mm of Object.values(MAPS)) for (const t of mm.tents || []) if (t.owner === owner && !t.inner && (t.kind || 'tent') === 'tent') out = { map: mm.id, x: t.x + (D.TENT_W >> 1), y: t.y + D.TENT_H }; if (out && MAPS[out.map]) { p.map = out.map; p.x = out.x; p.y = out.y; } else { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; } }
   if (!MAPS[p.map]) { p.map = 'world'; const s = MAPS.world.spawn; p.x = s.x; p.y = s.y; }
   if (!walkable(MAPS[p.map], p.x, p.y)) { const q = nearFree(MAPS[p.map], p.x, p.y); p.x = q.x; p.y = q.y; }
@@ -1356,13 +1376,14 @@ function handle(p, msg) {
       fx(m, { k: 'lvl', x: pl.sx, y: pl.sy }); announce(`🏠 ${p.name}님의 집이 ${pl.town}에 완성되었습니다!`, '#d8ffd0');
       p.ws.send({ t: 'dlg', close: 1 }); p.ws.send({ t: 'tentOpen', s: 'house' }); break;
     }
+    case 'hdeco': { if (!p.house || p.map !== houseInId(p.name)) return sysMsg(p, '집 안에서 꾸밀 수 있어요.'); const h = p.house; h.deco = h.deco || { wall: 0, floor: 0 }; if (msg.wall != null) h.deco.wall = clamp(msg.wall | 0, 0, D.WALLPAPERS.length - 1); if (msg.floor != null) h.deco.floor = clamp(msg.floor | 0, 0, D.FLOORS.length - 1); const im = MAPS[p.map]; im.tents[0].deco = h.deco; sendTents(im); dirty(p); break; }
     case 'plotSell': {
       const pl = PLOTS.find(q => q.id === p.plot); if (!pl) return;
-      if (p.house) { const hm = MAPS[p.house.map]; hm.tents = hm.tents.filter(t => t !== p.house); p.house = null; sendTents(hm); }
+      if (p.house) { closeHouseInterior(p.house); const hm = MAPS[p.house.map]; hm.tents = hm.tents.filter(t => t !== p.house); p.house = null; sendTents(hm); }
       pl.owner = null; p.plot = null; p.coins += Math.floor(pl.price / 2); dirty(p); sendTents(m); sysMsg(p, `땅을 팔았습니다. (+${Math.floor(pl.price / 2)} 코인)`); p.ws.send({ t: 'dlg', close: 1 }); break;
     }
     case 'furn': placeFurn(p, msg); break;
-    case 'furnDel': { let t = msg.s === 'house' ? p.house : p.tent; if (!t) return; if (msg.s !== 'house') { if (p.map !== tentInId(p.name)) return sysMsg(p, '텐트 안에서 철거하세요.'); t = MAPS[p.map].tents[0]; } else if (t.map !== p.map) return; if (t.kind === 'house' && t.furn.filter(f => f.k === 'door').length <= 1 && (t.furn.find(f => f.x === msg.x && f.y === msg.y) || {}).k === 'door') return sysMsg(p, '문은 최소 1개 있어야 합니다.'); const i = t.furn.findIndex(f => f.x === msg.x && f.y === msg.y); if (i >= 0) { const f = t.furn[i]; t.furn.splice(i, 1); const need = D.FURNITURE[f.k].need; for (const k in need) addItem(p, { k: 'mat', id: k, n: Math.floor(need[k] / 2) }); sysMsg(p, `${D.FURNITURE[f.k].name} 철거 (재료 절반 회수)`); sendTents(m); dirty(p); } break; }
+    case 'furnDel': { let t = msg.s === 'house' ? p.house : p.tent; if (!t) return; if (msg.s === 'house' && p.map === houseInId(p.name)) { const it = MAPS[p.map].tents[0]; const i = it.furn.findIndex(f => f.x === msg.x && f.y === msg.y); if (i >= 0) { const f = D.FURNITURE[it.furn[i].k]; it.furn.splice(i, 1); if (f) for (const [k, v] of Object.entries(f.need)) addItem(p, { k: 'mat', id: k, n: Math.ceil(v / 2) }); sendTents(MAPS[p.map]); dirty(p); } break; } if (msg.s !== 'house') { if (p.map !== tentInId(p.name)) return sysMsg(p, '텐트 안에서 철거하세요.'); t = MAPS[p.map].tents[0]; } else if (t.map !== p.map) return; if (t.kind === 'house' && t.furn.filter(f => f.k === 'door').length <= 1 && (t.furn.find(f => f.x === msg.x && f.y === msg.y) || {}).k === 'door') return sysMsg(p, '문은 최소 1개 있어야 합니다.'); const i = t.furn.findIndex(f => f.x === msg.x && f.y === msg.y); if (i >= 0) { const f = t.furn[i]; t.furn.splice(i, 1); const need = D.FURNITURE[f.k].need; for (const k in need) addItem(p, { k: 'mat', id: k, n: Math.floor(need[k] / 2) }); sysMsg(p, `${D.FURNITURE[f.k].name} 철거 (재료 절반 회수)`); sendTents(m); dirty(p); } break; }
     case 'tentDel': { if (!p.tent) return; closeTentInterior(p.tent); const tm = MAPS[p.tent.map]; tm.tents = tm.tents.filter(t => t !== p.tent); p.tent = null; if (p.storage.length) sysMsg(p, '보관상자의 물건은 다음 텐트로 옮겨집니다.'); sendTents(tm); dirty(p); sysMsg(p, '텐트를 철거했습니다.'); break; }
     case 'store': { const nb = npcNear(p); if (!(nb && nb.kind === 'bank') && !p.tent && !p.house) return; if (msg.dir === 'in') { const it = p.inv[msg.i | 0]; if (!it) return; if (p.storage.length >= STORE_MAX && it.k === 'gear') return sysMsg(p, '보관상자가 가득 찼습니다.'); p.inv.splice(msg.i | 0, 1); if (!addItem(p, it, 'storage')) p.inv.push(it); } else { const it = p.storage[msg.i | 0]; if (!it) return; if (p.inv.length >= INV_MAX && it.k === 'gear') return sysMsg(p, '가방이 가득 찼습니다.'); p.storage.splice(msg.i | 0, 1); if (!addItem(p, it)) p.storage.push(it); } dirty(p); break; }
     case 'cook': cook(p, msg.id); break;
@@ -1544,9 +1565,10 @@ function buildTent(p) {
 }
 function placeFurn(p, msg) {
   const t0 = msg.s === 'house' ? p.house : p.tent; if (!t0) return sysMsg(p, msg.s === 'house' ? '먼저 집을 지어야 합니다.' : '먼저 텐트를 지어야 합니다.');
-  const inside = msg.s !== 'house' && p.map === tentInId(p.name); if (msg.s !== 'house' && !inside) return sysMsg(p, '텐트 안에 들어가서 가구를 배치하세요. (텐트 입구로 들어가기)', '#ffd27a'); if (msg.s === 'house' && t0.map !== p.map) return sysMsg(p, '집에서 배치하세요.');
-  const t = inside ? MAPS[p.map].tents[0] : t0;
+  const inside = msg.s !== 'house' && p.map === tentInId(p.name); if (msg.s !== 'house' && !inside) return sysMsg(p, '텐트 안에 들어가서 가구를 배치하세요. (텐트 입구로 들어가기)', '#ffd27a'); const insideH = msg.s === 'house' && p.map === houseInId(p.name); if (msg.s === 'house' && !insideH && t0.map !== p.map) return sysMsg(p, '집에서 배치하세요.');
+  const t = inside || insideH ? MAPS[p.map].tents[0] : t0;
   const f = D.FURNITURE[msg.k]; if (!f) return;
+  if (insideH && msg.k === 'door') return sysMsg(p, '문은 집 밖(벽)에 설치합니다.'); if (f.inner && !insideH) return sysMsg(p, `${f.name}은(는) 집 안에서 꾸밀 수 있어요. (문으로 들어가기)`, '#ffd27a');
   if (f.house && t.kind !== 'house') return sysMsg(p, `${f.name}은(는) 마을의 집에만 설치할 수 있습니다.`);
   const lx = msg.x | 0, ly = msg.y | 0;
   const corner = (lx === 0 || lx === SW(t) - 1) && (ly === 0 || ly === SH(t) - 1);

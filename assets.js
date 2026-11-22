@@ -699,3 +699,61 @@
   v.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:3;background:radial-gradient(ellipse at 50% 48%,rgba(0,0,0,0) 62%,rgba(10,6,20,.22) 100%)';
   (document.getElementById('game') || document.body).insertAdjacentElement('afterend', v);
 })();
+
+// ═══════ 집 실내: 벽지·바닥 꾸미기 + 캐릭터 크기에 맞춘 큰 가구 + 새 꾸미기 가구 ═══════
+(function () {
+  const mkc = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const OL = '#2a1a10', cache = {};
+  const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  const box = (g, x, y, w, h, c, hi, sh) => { R(g, x - 2, y - 2, w + 4, h + 4, OL); R(g, x, y, w, h, c); if (hi) R(g, x, y, w, Math.max(2, h * 0.18), hi); if (sh) R(g, x, y + h - Math.max(2, h * 0.16), w, Math.max(2, h * 0.16), sh); };
+  const circ = (g, x, y, r, c) => { g.fillStyle = OL; g.beginPath(); g.arc(x, y, r + 2, 0, 7); g.fill(); g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  const DRAW = {
+    sofa(g) { box(g, 6, 20, 52, 22, '#c0504a', '#d8706a', '#9a3a36'); box(g, 4, 30, 10, 22, '#a8403c'); box(g, 50, 30, 10, 22, '#a8403c'); box(g, 12, 36, 40, 14, '#d0605a', '#e0807a'); R(g, 31, 38, 2, 12, '#a8403c'); R(g, 8, 52, 4, 6, OL); R(g, 52, 52, 4, 6, OL); },
+    fireplace(g, t) { box(g, 6, 10, 52, 48, '#8a8478', '#a8a296', '#6a665c'); for (let y = 14; y < 56; y += 8) for (let x = (y / 8 % 2) * 6 + 8; x < 56; x += 12) R(g, x, y, 1, 6, '#6a665c'); box(g, 4, 8, 56, 6, '#6a4a2a', '#8a6a3a'); box(g, 18, 30, 28, 26, '#1a0e08'); const f = Math.sin(t / 90) * 2; g.fillStyle = '#ff7a1a'; g.beginPath(); g.moveTo(22, 56); g.quadraticCurveTo(32, 30 + f, 42, 56); g.fill(); g.fillStyle = '#ffd34d'; g.beginPath(); g.moveTo(26, 56); g.quadraticCurveTo(32, 40 - f, 38, 56); g.fill(); },
+    piano(g) { box(g, 4, 14, 56, 30, '#2a2228', '#4a3e46', '#1a141a'); R(g, 8, 34, 48, 10, '#f4f0e8'); for (let x = 10; x < 56; x += 6) R(g, x, 34, 1, 10, '#8a8478'); for (let x = 12; x < 54; x += 12) { R(g, x, 34, 3, 6, '#111'); R(g, x + 6, 34, 3, 6, '#111'); } R(g, 8, 44, 4, 14, OL); R(g, 52, 44, 4, 14, OL); box(g, 20, 18, 24, 10, '#f4ecd8'); R(g, 23, 21, 18, 1, '#555'); R(g, 23, 24, 14, 1, '#555'); },
+    aquarium(g, t) { box(g, 6, 18, 52, 34, '#6ac8f0', '#a8e8ff', '#3a8ac0'); R(g, 8, 44, 48, 6, '#d8c890'); const fx = 14 + (Math.sin(t / 600) * 0.5 + 0.5) * 30; g.fillStyle = '#ff8a2a'; g.beginPath(); g.ellipse(fx, 32, 5, 3, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(fx - 5, 32); g.lineTo(fx - 9, 29); g.lineTo(fx - 9, 35); g.fill(); g.fillStyle = '#ffe14a'; g.beginPath(); g.ellipse(64 - fx, 38, 4, 2.5, 0, 0, 7); g.fill(); R(g, 46, 30, 2, 14, '#3a9a4a'); R(g, 50, 34, 2, 10, '#3a9a4a'); box(g, 10, 52, 44, 6, '#6a4a2a'); },
+    floorlamp(g, t) { R(g, 30, 22, 4, 32, OL); R(g, 31, 22, 2, 32, '#c8a060'); box(g, 22, 52, 20, 5, '#6a4a2a'); g.fillStyle = OL; g.beginPath(); g.moveTo(18, 24); g.lineTo(46, 24); g.lineTo(40, 6); g.lineTo(24, 6); g.closePath(); g.fill(); g.fillStyle = '#ffe8a8'; g.beginPath(); g.moveTo(21, 22); g.lineTo(43, 22); g.lineTo(38, 8); g.lineTo(26, 8); g.closePath(); g.fill(); g.globalAlpha = 0.25 + Math.sin(t / 300) * 0.05; g.fillStyle = '#ffd27a'; g.beginPath(); g.arc(32, 18, 18, 0, 7); g.fill(); g.globalAlpha = 1; },
+    vase(g) { g.fillStyle = OL; g.beginPath(); g.ellipse(32, 46, 13, 12, 0, 0, 7); g.fill(); g.fillStyle = '#5a8ad0'; g.beginPath(); g.ellipse(32, 46, 11, 10, 0, 0, 7); g.fill(); box(g, 27, 30, 10, 8, '#5a8ad0', '#8ab0e8'); R(g, 24, 46, 16, 2, '#f4f0e8'); R(g, 30, 14, 2, 18, '#3a9a4a'); R(g, 24, 18, 2, 14, '#3a9a4a'); R(g, 38, 16, 2, 16, '#3a9a4a'); circ(g, 31, 12, 5, '#ff6a8a'); circ(g, 25, 16, 4, '#ffd34d'); circ(g, 39, 14, 4, '#ffffff'); },
+    doll(g) { circ(g, 32, 40, 13, '#b07a46'); circ(g, 32, 22, 11, '#b07a46'); circ(g, 23, 13, 4, '#b07a46'); circ(g, 41, 13, 4, '#b07a46'); circ(g, 32, 26, 4, '#e8c8a0'); R(g, 28, 20, 2, 3, OL); R(g, 35, 20, 2, 3, OL); R(g, 31, 25, 3, 2, OL); circ(g, 20, 44, 5, '#b07a46'); circ(g, 44, 44, 5, '#b07a46'); R(g, 26, 34, 12, 4, '#e0405a'); },
+    clock(g, t) { circ(g, 32, 30, 18, '#8a5a30'); circ(g, 32, 30, 14, '#f8f2e4'); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; R(g, 32 + Math.cos(a) * 11 - 1, 30 + Math.sin(a) * 11 - 1, 2, 2, '#555'); } const s = t / 1000; g.strokeStyle = OL; g.lineWidth = 2.5; g.beginPath(); g.moveTo(32, 30); g.lineTo(32 + Math.cos(s / 60 - 1.57) * 7, 30 + Math.sin(s / 60 - 1.57) * 7); g.stroke(); g.lineWidth = 1.5; g.beginPath(); g.moveTo(32, 30); g.lineTo(32 + Math.cos(s - 1.57) * 11, 30 + Math.sin(s - 1.57) * 11); g.stroke(); },
+    curtain(g) { box(g, 4, 6, 56, 5, '#8a5a30', '#b07a46'); for (const x0 of [6, 36]) { g.fillStyle = OL; g.fillRect(x0 - 1, 11, 24, 46); g.fillStyle = '#c04a6a'; g.fillRect(x0, 11, 22, 44); g.fillStyle = '#d86a8a'; for (let x = x0 + 3; x < x0 + 22; x += 6) g.fillRect(x, 11, 2, 44); } R(g, 6, 34, 22, 3, '#ffd34d'); R(g, 36, 34, 22, 3, '#ffd34d'); },
+    wreath(g) { g.strokeStyle = OL; g.lineWidth = 12; g.beginPath(); g.arc(32, 30, 16, 0, 7); g.stroke(); g.strokeStyle = '#2a8a3a'; g.lineWidth = 8; g.beginPath(); g.arc(32, 30, 16, 0, 7); g.stroke(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; circ(g, 32 + Math.cos(a) * 16, 30 + Math.sin(a) * 16, 2.5, i % 2 ? '#ff4a4a' : '#ffd34d'); } box(g, 26, 44, 12, 6, '#d83a3a'); },
+  };
+  const ANIM = { fireplace: 1, aquarium: 1, floorlamp: 1, clock: 1 };
+  const _df = drawFurn;
+  drawFurn = function (g, k, x, y, t, owner) {
+    const d = DRAW[k]; if (!d) return _df(g, k, x, y, t, owner);
+    const key = k + (ANIM[k] ? '|' + Math.floor((t || 0) / 120) % 50 : ''); let c = cache[key]; if (!c) { c = mkc(64, 64); d(c.getContext('2d'), t || 0); if (Object.keys(cache).length > 400) for (const q in cache) delete cache[q]; cache[key] = c; }
+    const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.drawImage(c, x, y, 32, 32); g.imageSmoothingEnabled = sm;
+  };
+  // ── 집 실내 그리기 ──
+  const _dti = window.drawTentInside;
+  window.drawTentInside = function (t, sx, sy, now) {
+    if (t.kind !== 'house') return _dti(t, sx, sy, now);
+    const dc = t.deco || {}, WP = GD.WALLPAPERS[dc.wall | 0] || GD.WALLPAPERS[0], FL = GD.FLOORS[dc.floor | 0] || GD.FLOORS[0];
+    const x0 = t.x * TS - sx, y0 = t.y * TS - sy, w = t.w, h = t.h, g = ctx;
+    // 바닥
+    for (let ly = 1; ly < h - 1; ly++) for (let lx = 1; lx < w - 1; lx++) { const X = x0 + lx * TS, Y = y0 + ly * TS, f = dc.floor | 0;
+      if (f === 1 || f === 5) { R(g, X, Y, TS, TS, (lx + ly) % 2 ? FL.a : FL.b); if (f === 5) { R(g, X, Y + TS - 1, TS, 1, '#8a8448'); R(g, X + TS - 1, Y, 1, TS, '#8a8448'); } }
+      else if (f === 3) { R(g, X, Y, TS, TS, FL.a); R(g, X + ((ly % 2) ? 0 : 16), Y, 1, TS, FL.b); R(g, X, Y + TS - 1, TS, 1, FL.b); }
+      else if (f === 2 || f === 4) { R(g, X, Y, TS, TS, FL.a); if ((lx + ly) % 3 === 0) R(g, X + 12, Y + 12, 8, 8, FL.b); }
+      else { R(g, X, Y, TS, TS, FL.a); for (let i = 0; i < 4; i++) R(g, X, Y + i * 8 + 7, TS, 1, FL.b); R(g, X + ((lx * 7 + ly * 3) % 3) * 10 + 4, Y, 1, TS, FL.b); } }
+    // 바닥 가장자리 그림자
+    { const gr = g.createLinearGradient(0, y0 + TS, 0, y0 + TS * 2); gr.addColorStop(0, 'rgba(0,0,0,.28)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x0 + TS, y0 + TS, (w - 2) * TS, TS); }
+    // 뒷벽 (벽지) — 위로 1.6칸 높게
+    const wt = y0 - 1.6 * TS, wb = y0 + TS;
+    R(g, x0, wt, w * TS, wb - wt, WP.a); for (let x = x0 + 6; x < x0 + w * TS; x += 16) R(g, x, wt, 6, wb - wt, WP.b);
+    R(g, x0, wt, w * TS, 6, '#6a4a2a'); R(g, x0, wt + 6, w * TS, 2, '#8a6a3a'); R(g, x0, wb - 8, w * TS, 8, '#7a5230'); R(g, x0, wb - 8, w * TS, 2, '#9a7248');
+    // 옆벽·앞벽 (문 자리 비움)
+    const side = '#5a3a22'; R(g, x0, wt, TS * 0.55, (h + 1.6) * TS, side); R(g, x0 + (w - 0.55) * TS, wt, TS * 0.55, (h + 1.6) * TS, side);
+    const dx = w >> 1, by = y0 + (h - 1) * TS; R(g, x0, by + TS * 0.35, dx * TS, TS * 0.65, side); R(g, x0 + (dx + 1) * TS, by + TS * 0.35, (w - dx - 1) * TS, TS * 0.65, side);
+    R(g, x0 + dx * TS - 3, by + TS * 0.2, 3, TS * 0.8, '#3a2412'); R(g, x0 + (dx + 1) * TS, by + TS * 0.2, 3, TS * 0.8, '#3a2412');
+    R(g, x0 + dx * TS, by + TS * 0.7, TS, TS * 0.3, '#8a6a3a');
+    // 가구: 벽에 거는 것은 벽지 위, 나머지는 캐릭터 크기에 맞게 크게
+    const K = 1.45, fs = [...t.furn].sort((a, b) => a.y - b.y);
+    for (const f of fs) { const FD = GD.FURNITURE[f.k] || {}; let X = x0 + f.x * TS, Y = y0 + f.y * TS;
+      if (f.y === 0 && FD.wall) Y -= TS * 0.55;
+      const ax = X + 16, ay = Y + 32; g.save(); g.translate(ax, ay); g.scale(K, K); g.translate(-ax, -ay); drawFurn(g, f.k, X, Y, now); g.restore(); }
+    drawText(t.owner + '의 집', x0 + w * TS / 2, wt - 6, '#ffe0a0', 12);
+  };
+})();

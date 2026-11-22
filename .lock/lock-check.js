@@ -68,6 +68,16 @@ must('data.js', 'D.mountBonus = ', '탈것 전투 옵션 유지');
 must('game.js', 'VH / (19.5 * TS)', '시점 거리 유지');
 must('assets.js', "['drawPlayer', 'drawMon', 'drawNpc', 'drawDrop'].forEach(wrap);", '그래픽 고품질 축소 유지');
 must('game.js', "/* 조금 작게 */ ctx.imageSmoothingEnabled = true; ctx.drawImage(dropIcon(d)", '드랍 아이템 아이콘 그리기 유지');
+must('engine.js', 'function houseInterior(h)', '집 입장 시 실내 맵으로 화면 전환');
+must('engine.js', "case 'hdeco'", '집 벽지·바닥 꾸미기');
+must('engine.js', 'furn: t.furn, deco: t.deco }', '꾸미기 정보 전송');
+must('engine.js', "(t.kind !== 'house' || t.inner) && ly === SH(t) - 1", '집 실내 출입문 통과(서버)');
+must('game.js', "(t.kind !== 'house' || t.inner) && ly === SH_(t) - 1", '집 실내 출입문 통과(폰)');
+must('game.js', 'function camC()', '집 안 카메라 방 중앙 고정');
+must('game.js', 'let _inH = false; try {', '집 안 확대 (시작 시 S 미초기화 오류 방지)');
+must('assets.js', 'const K = 1.45, fs = [...t.furn]', '집 실내 가구 캐릭터 크기 확대');
+must('data.js', 'WALLPAPERS', '벽지 목록');
+must('ui.js', 'data-hw=', '벽지 선택 버튼');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
