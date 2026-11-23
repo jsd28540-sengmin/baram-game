@@ -35,7 +35,7 @@ must('engine.js', "if (it.k === 'mount') return sysMsg(p, '탈것은 버릴 수 
 must('ui.js', "if (s === 'mount') { eq += me.mount ?", '장비창 탈것 칸 유지');
 must('index.html', '.touchmode #qs{left:auto!important;right:12px!important;bottom:198px!important}', '퀵슬롯은 보조버튼 줄 위 유지');
 must('ui.js', "st.insertAdjacentHTML('afterend', pouchesH());", '장비창 주머니 표시 유지');
-must('ui.js', "const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', 'prev', 'boots', 'mount'];", '장비창 미리보기는 빈칸 안에(주머니 밀림 방지)');
+must('ui.js', "const order = ['necklace', 'helmet', 'cape', 'weapon', 'gloves', 'prev', 'armor', 'shield', 'ring', 'boots', 'mount', null];", '장비창 미리보기는 빈칸 안에(주머니 밀림 방지) + 장신구 칸');
 must('engine.js', "t = v < 0.012 ? T.TREE : v < 0.09 ? T.FLOWER : T.GRASS;", '나무 개수 줄인 상태 유지');
 must('game.js', "setTimeout(() => location.reload(), 50); };", '캐릭터 만들기 뒤로가기 = 새로고침 (먹통 방지)');
 must('chars.js', "// 치유사 두건은 머리색을 따라감", '치유사 외형 색 변경 유지');
@@ -83,6 +83,17 @@ must('game.js', 'if (!m.inner) groundGrade(g, px, m);', '바닥 묶음에 색감
 must('gfx.js', 'function seamCell(idx)', '바닥 타일 이음매(격자 줄) 제거');
 must('gfx.js', 'function cleanTrees(c)', '나무 흰 테두리·회색 원판 제거');
 must('gfx.js', 'GFX.spr = cleanTrees(gradeSheet(GFX.spr', '스프라이트 색감 보정');
+must('engine.js', 'function surpriseTick(now)', '깜짝 보스 무작위 등장');
+must('engine.js', 'const SB_TIME = 10 * 60000;', '깜짝 보스 제한시간 10분');
+must('engine.js', 'function sbKilled(m, mon, killer)', '깜짝 보스 특별 아이템·좋은 옵션 장비');
+must('engine.js', 'try { surpriseTick(now); }', '깜짝 보스 틱 연결');
+must('game.js', 'function sbTint(img, hu)', '깜짝 보스 외형 변형(색)');
+must('game.js', 'const MBK = mo.sb ? 2.1', '깜짝 보스 크게');
+must('game.js', 'function sbBanner()', '깜짝 보스 화면 알림 띠');
+must('data.js', "'necklace', 'ring', 'cape'", '장신구 장착 칸(목걸이·반지·망토)');
+must('sprites.js', "case 'necklace':", '장신구 아이콘');
+must('data.js', 'if (m.boss) { hp *= 50; atk *= 2.3;', '보스 난이도 상향');
+must('engine.js', 'mon.maxHp * 17); mon.atk = Math.round(mon.atk * 1.75)', '중보스 난이도 상향');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

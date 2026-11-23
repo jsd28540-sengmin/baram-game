@@ -370,7 +370,8 @@ function onMsg(m) {
     case 'tentOpen': openBuild(m.s || 'tent'); break;
     case 'trade': if (m.close) { S.trade = null; if (S.panel && S.panel.kind === 'trade') closePanel(); } else { S.trade = m; openPanel('trade'); } break;
     case 'tradeAsk': openAsk(m); break;
-    case 'boss': S.bossList = m.list; if (S.panel && S.panel.kind === 'boss') rerenderPanel(); break;
+    case 'sboss': S.sb = m.off ? null : Object.assign(m, { end: Date.now() + (m.left || 0) }); sbBanner(); break;
+    case 'boss': S.bossList = m.list; if ('sb' in m) { S.sb = m.sb ? Object.assign(m.sb, { end: Date.now() + (m.sb.left || 0) }) : null; sbBanner(); } if (S.panel && S.panel.kind === 'boss') rerenderPanel(); break;
     case 'upgRes': flash(m.ok ? '#7dffb0' : '#ff5a5a'); break;
   }
 }
@@ -825,25 +826,49 @@ function drawNpc(n, sx, sy, now) {
   drawText(n.name, x, y + 15, '#ffe08a', 13);
   const bob = Math.sin(now / 250) * 3; drawText(n.kind === 'guide' ? '?' : '!', x, y - 76 + bob, '#ffd000', 18);
 }
+/* 깜짝 보스: 필드 몬스터 그림을 색을 바꿔 변형 (+ 붉은 눈빛 테두리) */
+const SBT = new Map();
+function sbTint(img, hu) {
+  const key = img; let byH = SBT.get(key); if (!byH) { byH = new Map(); SBT.set(key, byH); if (SBT.size > 200) SBT.clear(); }
+  let c = byH.get(hu); if (c) return c;
+  const w = img.width, h = img.height; c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.drawImage(img, 0, 0); g.globalCompositeOperation = 'color'; g.globalAlpha = 0.55; g.fillStyle = `hsl(${hu},85%,50%)`; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.25; g.fillStyle = '#5a2040'; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'destination-in'; g.globalAlpha = 1; g.drawImage(img, 0, 0);
+  c.dw = img.dw; c.dh = img.dh; c.ox = img.ox; c.bob = img.bob; byH.set(hu, c); return c;
+}
+/* 깜짝 보스 알림 띠: 남은 시간 + 방향 */
+function sbBanner() {
+  let el = document.getElementById('sbBan');
+  if (!S.sb) { if (el) el.remove(); return; }
+  if (!el) { el = document.createElement('div'); el.id = 'sbBan'; el.style.cssText = 'position:fixed;left:calc(50% + 94px);transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);max-width:calc(100% - 500px);overflow:hidden;text-overflow:ellipsis;z-index:15;padding:4px 11px;border-radius:13px;background:linear-gradient(90deg,#3a1a00e8,#5a2a00e8);border:1.5px solid #ffdf4a;color:#ffe9a0;font-weight:800;font-size:12px;box-shadow:0 0 14px #ffb02088;pointer-events:none;white-space:nowrap;animation:sbPulse 1.2s infinite alternate';
+    document.body.appendChild(el); if (!document.getElementById('sbCss')) { const st = document.createElement('style'); st.id = 'sbCss'; st.textContent = '@keyframes sbPulse{from{box-shadow:0 0 6px #ffb02066}to{box-shadow:0 0 18px #ffdf4acc}}'; document.head.appendChild(st); } }
+  const upd = () => { if (!S.sb || !document.getElementById('sbBan')) return; const left = Math.max(0, S.sb.end - Date.now()); const mm = Math.floor(left / 60000), ss = Math.floor(left / 1000) % 60;
+    let where = S.sb.mapName || ''; if (S.map && S.sb.map === S.map.id) { const dx = S.sb.x - pos.x, dy = S.sb.y - pos.y, d = Math.round(Math.hypot(dx, dy)); const ar = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'][((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8]; where = d <= 3 ? '바로 근처!' : `${ar} ${d}칸`; }
+    el.textContent = `⚡ ${S.sb.name} · ${where} · ${mm}:${String(ss).padStart(2, '0')}`; };
+  upd(); clearInterval(sbBanner._t); sbBanner._t = setInterval(() => { if (!S.sb) { clearInterval(sbBanner._t); const e = document.getElementById('sbBan'); if (e) e.remove(); return; } upd(); }, 1000);
+}
 function drawMon(mo, sx, sy, now) {
   const def = mo.s ? GD.SUMMONS[mo.t] : GD.MONS[mo.t]; if (!def) return;
   const x = mo.rx * TS + 16 - sx, y = mo.ry * TS + 32 - sy; if (x < -150 || x > W + 150 || y < -150 || y > H + 150) return;
   const walking = now < (mo.walkUntil || 0); const fr = walking ? (now / 140 | 0) % 2 : (now / 500 | 0) % 2;
-  const img = ((!mo.s || (window.MON_ATLAS && MON_ATLAS[mo.t])) && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); const MBK = mo.mb ? 1.7 : 1, IW = (img.dw || img.width) * MBK, IH = (img.dh || img.height) * MBK, OXX = (img.ox || 0) * MBK;
+  const img = ((!mo.s || (window.MON_ATLAS && MON_ATLAS[mo.t])) && window.monAtlasImg && monAtlasImg(mo, now, walking)) || monSprite(mo.t, mo.flip, fr, mo.mu, mo.s ? def : null); let img2 = img; if (mo.sb) { img2 = sbTint(img, mo.hu || 0); if (S.sb && S.sb.map === S.map.id) { S.sb.x = mo.x; S.sb.y = mo.y; } } const MBK = mo.sb ? 2.1 : mo.mb ? 1.7 : 1, IW = (img.dw || img.width) * MBK, IH = (img.dh || img.height) * MBK, OXX = (img.ox || 0) * MBK;
   // 보스/돌연변이 오라
-  if (def.boss || mo.mu || mo.s || mo.mb) {
-    const ac = def.boss ? def.aura : mo.mb ? '#ff9a1a' : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;
+  if (def.boss || mo.mu || mo.s || mo.mb || mo.sb) {
+    const ac = mo.sb ? (mo.ac || '#ffdf4a') : def.boss ? def.aura : mo.mb ? '#ff9a1a' : mo.s ? '#b47cff' : '#b040ff'; const pr = 0.5 + Math.sin(now / 200) * 0.25;
     const gr = ctx.createRadialGradient(x, y - IH / 2, 4, x, y - IH / 2, IW * 0.7);
-    gr.addColorStop(0, ac + (def.boss ? 'aa' : '66')); gr.addColorStop(1, ac + '00'); ctx.globalAlpha = pr; ctx.fillStyle = gr; ctx.fillRect(x - IW, y - IH * 1.3, IW * 2, IH * 1.6); ctx.globalAlpha = 1;
+    gr.addColorStop(0, ac + (def.boss || mo.sb ? 'aa' : '66')); gr.addColorStop(1, ac + '00'); ctx.globalAlpha = pr; ctx.fillStyle = gr; ctx.fillRect(x - IW, y - IH * 1.3, IW * 2, IH * 1.6); ctx.globalAlpha = 1;
+    if (mo.sb) { ctx.strokeStyle = ac; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.48, IW * 0.16, 0, 0, 7); ctx.stroke(); if ((now / 90 | 0) % 7 === 0) { ctx.strokeStyle = '#fffbe0'; ctx.lineWidth = 2; ctx.beginPath(); let bx = x + (Math.random() - 0.5) * IW * 0.6, by = y - IH * 1.05; ctx.moveTo(bx, by); for (let i = 0; i < 4; i++) { bx += (Math.random() - 0.5) * 16; by += IH * 0.22; ctx.lineTo(bx, by); } ctx.stroke(); } }
     if (def.boss) { ctx.strokeStyle = def.aura; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.45, IW * 0.15, 0, 0, 7); ctx.stroke(); for (let i = 0; i < 6; i++) { const a = now / 400 + i * 1.05; ctx.fillStyle = def.aura; ctx.fillRect(x + Math.cos(a) * IW * 0.45, y - 2 + Math.sin(a) * IW * 0.15 - ((now / 10 + i * 20) % 40), 3, 3); } }
   }
   ctx.fillStyle = '#0005'; ctx.beginPath(); ctx.ellipse(x, y - 2, IW * 0.3, 5 * def.size, 0, 0, 7); ctx.fill();
   if (!def.fly && def.kind !== 'bat' && def.kind !== 'ghost') shadowAt(x, y, Math.max(8, IW * 0.28)); else shadowAt(x, y + 4, Math.max(6, IW * 0.2));
-  ctx.drawImage(img, Math.round(x - IW / 2 + OXX), Math.round(y - IH + (img.bob || 0)), IW, IH);
+  ctx.drawImage(img2, Math.round(x - IW / 2 + OXX), Math.round(y - IH + (img.bob || 0)), IW, IH);
   NAMEQ.push(() => {
   const top = y - IH - 4;
   if (S.target === mo.i) { ctx.strokeStyle = '#ff4040'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, y - 2, Math.max(16, IW * 0.35), 7, 0, 0, 7); ctx.stroke(); }
-  if (mo.mb) { drawText(`⚔ 중보스 ${def.name} Lv${mo.lv}`, x, top - 10, '#ffb040', 14); ctx.fillStyle = '#000'; ctx.fillRect(x - 40, top - 5, 80, 6); ctx.fillStyle = '#ff9a1a'; ctx.fillRect(x - 40, top - 5, 0.8 * mo.h, 6); }
+  if (mo.sb) { drawText(`⚡ 깜짝 보스 ${mo.sn || def.name} Lv${mo.lv}`, x, top - 10, mo.ac || '#ffdf4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = mo.ac || '#ffdf4a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
+  else if (mo.mb) { drawText(`⚔ 중보스 ${def.name} Lv${mo.lv}`, x, top - 10, '#ffb040', 14); ctx.fillStyle = '#000'; ctx.fillRect(x - 40, top - 5, 80, 6); ctx.fillStyle = '#ff9a1a'; ctx.fillRect(x - 40, top - 5, 0.8 * mo.h, 6); }
   else if (def.boss) { drawText(`☠ ${def.name} Lv${def.lv}`, x, top - 10, '#ff4a4a', 15); ctx.fillStyle = '#000'; ctx.fillRect(x - 50, top - 5, 100, 7); ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 50, top - 5, mo.h, 7); }
   else {
     if (mo.h < 100 || S.target === mo.i) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, top, 32, 4); ctx.fillStyle = mo.s ? '#b47cff' : '#ff4a4a'; ctx.fillRect(x - 16, top, 32 * mo.h / 100, 4); }
@@ -1050,7 +1075,7 @@ function renderPanel() {
     case 'inv': {
       mode = 'inv';
       h = `<h2>🎒 가방과 장비</h2><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div class="eqgrid">`;
-      const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', null, 'boots', null];
+      const order = ['helmet', 'necklace', 'weapon', 'gloves', 'armor', 'shield', 'ring', 'boots', 'cape'];
       order.forEach(s => { if (!s) { h += '<div></div>'; return; } const it = me.eq[s]; h += it ? `<div class="cell eqs r${it.rar}" data-eq="${s}"><canvas width="32" height="32" data-eqi="${s}"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell eqs" data-eq="${s}"><span class="lbl">${GD.SLOT_NAME[s]}</span></div>`; });
       const st = me.st;
       h += `</div><div class="stat" style="min-width:120px"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b><span>처치 수</span><b>${fmt(me.kills || 0)}</b></div></div><div>${invGrid('inv')}<div style="font-size:11px;color:#a7b0bf;margin-top:4px">${me.inv.length}/36칸 · 아이템을 눌러 착용/사용. 다른 직업 장비는 플레이어끼리 교환하세요!</div></div></div>`;

@@ -424,6 +424,18 @@ function itemIcon(it) {
           else if (job === 'mage') { poly([[ox + 25, oy + 23], [ox + 29, oy + 18], [ox + 28, oy + 25]], c1); circ(ox + 29, oy + 18, 1.3, GOLD); P(ox + 5, oy + 3, 12, 1, GOLD); }
           else { P(ox + 6, oy + 12, 10, 2, c2); poly([[ox + 18, oy + 20], [ox + 25, oy + 23], [ox + 25, oy + 25], [ox + 17, oy + 23]], c2); px(ox + 9, oy + 16, GOLD); px(ox + 13, oy + 16, GOLD); } };
         draw(-4, -1, true); draw(2, 2, false); break; }
+      case 'necklace': { // 목걸이: 금줄 + 등급색 보석
+        arcS(16, 9, 10, 0.25, Math.PI - 0.25, GOLDD, 3); arcS(16, 9, 10, 0.25, Math.PI - 0.25, GOLD, 1.6);
+        for (let i = 0; i < 7; i++) { const a = 0.35 + i * (Math.PI - 0.7) / 6; circ(16 + Math.cos(a) * 10, 9 + Math.sin(a) * 10, 1.3, GOLDL); }
+        poly([[16, 17], [22, 23], [16, 30], [10, 23]], '#1a1010'); poly([[16, 18.5], [20.5, 23], [16, 28.5], [11.5, 23]], C); poly([[16, 18.5], [20.5, 23], [16, 23], [11.5, 23]], Cl); circ(14.5, 21.5, 1, '#fff'); break; }
+      case 'ring': { // 반지: 금 고리 + 보석
+        g.strokeStyle = '#1a1010'; g.lineWidth = 6; g.beginPath(); g.ellipse(16, 20, 9, 8, 0, 0, 7); g.stroke(); g.strokeStyle = GOLD; g.lineWidth = 3.4; g.beginPath(); g.ellipse(16, 20, 9, 8, 0, 0, 7); g.stroke();
+        g.strokeStyle = GOLDL; g.lineWidth = 1.2; g.beginPath(); g.ellipse(16, 20, 9, 8, 0, Math.PI * 1.1, Math.PI * 1.6); g.stroke();
+        circ(16, 10, 6, '#1a1010'); circ(16, 10, 4.6, C); circ(14.6, 8.6, 1.6, Cl); px(17, 11, Cd); break; }
+      case 'cape': { // 망토
+        poly([[9, 4], [23, 4], [29, 28], [22, 30], [16, 27], [10, 30], [3, 28]], '#1a1010');
+        poly([[10, 5], [22, 5], [27, 27], [22, 28.5], [16, 25.5], [10, 28.5], [5, 27]], C); poly([[10, 5], [16, 5], [16, 25.5], [10, 28.5], [5, 27]], Cl); L(16, 6, 16, 25, Cd);
+        P(9, 3, 14, 3, GOLDD); P(10, 3, 12, 2, GOLD); circ(16, 5, 2, GOLDL); break; }
       case 'shield':
         poly([[4, 3], [28, 3], [28, 14], [25, 22], [16, 30], [7, 22], [4, 14]], Cl);
         poly([[6, 5], [26, 5], [26, 14], [23, 21], [16, 27], [9, 21], [6, 14]], C);

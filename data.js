@@ -212,15 +212,16 @@
     let atk = Math.floor(5 + l * 3.1);
     let def = Math.floor(l * 1.45);
     let exp = Math.floor(8 + Math.pow(l, 1.65) * 3.2);
-    if (m.boss) { hp *= 42; atk *= 2.05; def *= 1.55; exp *= 30; }
+    if (m.boss) { hp *= 50; atk *= 2.3; def *= 1.7; exp *= 32; } // 보스 난이도 상향
     if (night) { hp *= 1.15; atk *= 1.15; }
     if (mutant) { hp *= 2.2; atk *= 1.45; def *= 1.3; exp *= 3; }
     return { hp: Math.floor(hp), atk: Math.floor(atk), def: Math.floor(def), exp: Math.floor(exp), coin: Math.floor(3 + l * 2.1) }; // 경제 조정: 몬스터 코인 약 절반
   };
 
   // ───────── 아이템 ─────────
-  D.SLOTS = ['helmet', 'armor', 'gloves', 'boots', 'weapon', 'shield'];
-  D.SLOT_NAME = { helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', weapon: '무기', shield: '방패' };
+  D.SLOTS = ['helmet', 'armor', 'gloves', 'boots', 'weapon', 'shield', 'necklace', 'ring', 'cape'];
+  D.ACC = { necklace: 1, ring: 1, cape: 1 }; // 장신구(목걸이·반지·망토)
+  D.SLOT_NAME = { helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', weapon: '무기', shield: '방패', necklace: '목걸이', ring: '반지', cape: '망토' };
   D.TIER_PREFIX = ['낡은', '청동', '무쇠', '강철', '은빛', '흑철', '청옥', '적염', '용린', '천공', '성휘', '혼돈', '신룡', '태초', '멸천', '전설의'];
   D.TIER_COLOR = ['#8a7a66', '#b87333', '#7d8590', '#aab4c0', '#e6eef5', '#3a3a48', '#2fb9a8', '#d8402a', '#7a3ad8', '#ffd84a', '#5ad8ff', '#ff4ad8', '#ff8a1a', '#f4f4ff', '#3affb0', '#ffcc00'];
   D.tierOf = lvl => lvl <= 50 ? Math.min(9, Math.floor((lvl - 1) / 5)) : lvl >= 100 ? 15 : Math.min(14, 9 + Math.ceil((lvl - 50) / 10));
@@ -230,9 +231,9 @@
   D.bossGearLv = (bossLv, R) => { if (bossLv <= 50) return Math.max(1, bossLv); let g = Math.min(90, Math.floor(bossLv / 10) * 10); if (bossLv >= 100 && (R ? R() : Math.random()) < 0.15) g = 100; return g; };
   // 직업별 장비 이름
   D.GEAR = {
-    warrior: { helmet: '투구', armor: '판금갑옷', gloves: '건틀릿', boots: '철각반', shield: '방패' },
-    mage: { helmet: '마법모자', armor: '마법로브', gloves: '비단장갑', boots: '마법신발' },
-    healer: { helmet: '두건', armor: '경갑', gloves: '사수장갑', boots: '가죽장화' },
+    warrior: { helmet: '투구', armor: '판금갑옷', gloves: '건틀릿', boots: '철각반', shield: '방패', necklace: '투사의 목걸이', ring: '전투 반지', cape: '전투 망토' },
+    mage: { helmet: '마법모자', armor: '마법로브', gloves: '비단장갑', boots: '마법신발', necklace: '마력 목걸이', ring: '마력 반지', cape: '마법 망토' },
+    healer: { helmet: '두건', armor: '경갑', gloves: '사수장갑', boots: '가죽장화', necklace: '성스러운 목걸이', ring: '치유의 반지', cape: '순례자 망토' },
   };
   D.WEAPONS = {
     sword: { name: '검', job: 'warrior', spd: 1.0 }, axe: { name: '도끼', job: 'warrior', spd: 0.85, m: 1.15 }, spear: { name: '창', job: 'warrior', spd: 0.95, m: 1.07 },
@@ -241,7 +242,7 @@
   };
   D.RARITY = [{ n: '일반', c: '#8b93a1' }, { n: '고급', c: '#0ea5e9' }, { n: '희귀', c: '#a855f7' }, { n: '영웅', c: '#f59e0b' }, { n: '전설', c: '#ff4d2e' }];
   D.OPT_NAME = { atk: '공격력', def: '방어력', hp: '체력', mp: '마나', crit: '치명타%', luck: '행운%' };
-  D.SLOT_DEF_MUL = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4, shield: 0.85 };
+  D.SLOT_DEF_MUL = { helmet: 0.5, armor: 1, gloves: 0.35, boots: 0.4, shield: 0.85, cape: 0.45 };
 
   // 재료
   D.MATS = {
@@ -270,7 +271,7 @@
   // 장비 효력: 요구 레벨 미달이면 착용은 되지만 효력이 줄어든다 (레벨이 오를수록 회복, 도달 시 100%)
   D.gearReq = it => Math.max(1, (it.lvl || 1) - 3);
   D.gearEff = (lv, it) => { const req = D.gearReq(it); if (lv >= req) return { main: 1, extra: 1, req }; const k = Math.max(0, lv / req); const main = Math.min(0.85, 0.25 + 0.6 * Math.pow(k, 1.3)); return { main, extra: main * 0.5, req }; };
-  D.isMainStat = (it, key) => key === 'atk' || key === 'def' || (key === 'hp' && it.slot === 'armor') || (key === 'mp' && it.wt === 'wand');
+  D.isMainStat = (it, key) => key === 'atk' || key === 'def' || (key === 'hp' && (it.slot === 'armor' || it.slot === 'necklace' || it.slot === 'cape')) || (key === 'mp' && (it.wt === 'wand' || it.slot === 'necklace')) || (key === 'crit' && it.slot === 'ring');
   D.upgradeMat = lvl => lvl <= 15 ? '철광석' : lvl <= 30 ? '은광석' : lvl <= 45 ? '마력석' : '용의비늘';
   D.UPG_RATE = [100, 95, 88, 78, 66, 55, 45, 35, 25, 15];
   D.upgradeCost = (it) => ({ mat: D.upgradeMat(it.lvl), n: it.plus + 2, coin: Math.floor((it.lvl * 40 * (it.plus + 1) + 100) * 1.6) });

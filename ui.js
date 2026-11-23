@@ -242,12 +242,12 @@ function renderPanel() {
   switch (P.kind) {
     case 'inv': {
       T('bag', '가방과 장비', `<div style="flex:1"></div>${coinH(me.coins)}`);
-      const order = ['helmet', null, 'weapon', 'gloves', 'armor', 'shield', 'prev', 'boots', 'mount'];
-      let eq = '<div class="grid" style="grid-template-columns:repeat(3,42px)">';
+      const order = ['necklace', 'helmet', 'cape', 'weapon', 'gloves', 'prev', 'armor', 'shield', 'ring', 'boots', 'mount', null];
+      let eq = '<div class="grid" style="grid-template-columns:repeat(4,42px)">';
       order.forEach(s => { if (!s) { eq += '<div></div>'; return; } if (s === 'prev') { eq += `<div style="width:42px;height:42px;border-radius:6px;background:radial-gradient(#ffffff18,#0000 72%)"><canvas id="eqprev" width="84" height="84" style="width:42px;height:42px"></canvas></div>`; return; } if (s === 'mount') { eq += me.mount ? `<div class="cell r3" style="width:42px;height:42px" data-eqm="1" title="탈것"><canvas width="32" height="32" data-ic="eqm" style="width:34px;height:34px"></canvas></div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">탈것</span></div>`; return; } const it = me.eq[s]; eq += it ? `<div class="cell r${it.rar}" style="width:42px;height:42px" data-eq="${s}"><canvas width="32" height="32" data-ic="eq:${s}" style="width:34px;height:34px"></canvas>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:42px;height:42px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; });
       eq += '</div>';
       const st = me.st;
-      h = `<div class="col" style="width:150px">${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
+      h = `<div class="col" style="width:186px">${eq}<div class="box stat"><span>체력</span><b>${st.maxHp}</b><span>마나</span><b>${st.maxMp}</b><span>공격력</span><b>${st.atk}</b><span>방어력</span><b>${st.def}</b><span>치명타</span><b>${st.crit}%</b><span>행운</span><b>${st.luck}%</b></div></div>
         <div class="col" style="flex:1">${bagH('inv', 9, 52)}<div class="mut">${me.inv.length}/36칸 · Lv${me.lv} ${GD.JOBS[me.job].name} · 처치 ${fmt(me.kills || 0)} · 아이템을 누른 뒤 주머니를 누르면 주머니에 넣어요.</div></div>`;
       body.innerHTML = h; bindBag(body, 'inv');
       body.querySelectorAll('canvas[data-ic^="eq:"]').forEach(c => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(itemIcon(me.eq[c.dataset.ic.slice(3)]), 0, 0); });
@@ -330,7 +330,7 @@ function renderPanel() {
     case 'boss': {
       T('skull', '보스 출현 시간표', `<div style="flex:1"></div><span class="mut">협력한 모두에게 직업별 보스 전용 장비</span>`);
       const L = S.bossList || [];
-      h = `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + L.map(b => `<div class="card" style="flex-direction:row;align-items:center;gap:8px"><canvas width="112" height="112" data-bm2="${b.name}" style="width:56px;height:56px;flex:none;background:radial-gradient(circle at 50% 60%,#ffffff1a,var(--bg3) 70%);border-radius:6px"></canvas><div style="flex:1;min-width:0"><div class="nm">${b.name} <span class="mut">Lv${b.lv}</span></div><small>${b.where}</small><div>${b.alive ? '<b class="rl">출현 중!</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div></div></div>`).join('') + '</div>';
+      h = (S.sb ? `<div class="card" style="border:1.5px solid #ffdf4a;background:#3a2200;margin-bottom:6px"><b style="color:#ffdf4a">⚡ 지금 깜짝 보스 출현 중: ${esc(S.sb.name)}</b><span class="mut">${esc(S.sb.mapName || '')} · 10분 안에 처치하지 못하면 사라져요 · 특별 장신구·좋은 옵션 장비</span></div>` : `<div class="mut" style="margin-bottom:4px">⚡ 시간표에 없는 <b>깜짝 보스</b>가 필드에 무작위로 나타나기도 해요 (10분 한정).</div>`) + `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + L.map(b => `<div class="card" style="flex-direction:row;align-items:center;gap:8px"><canvas width="112" height="112" data-bm2="${b.name}" style="width:56px;height:56px;flex:none;background:radial-gradient(circle at 50% 60%,#ffffff1a,var(--bg3) 70%);border-radius:6px"></canvas><div style="flex:1;min-width:0"><div class="nm">${b.name} <span class="mut">Lv${b.lv}</span></div><small>${b.where}</small><div>${b.alive ? '<b class="rl">출현 중!</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div></div></div>`).join('') + '</div>';
       body.innerHTML = h; paintBossFaces(body); return;
     }
     case 'chest': {
@@ -1010,7 +1010,7 @@ function placePartyBox() { const el = $('partybox'), mi = $('mini'); if (!el) re
 setInterval(placePartyBox, 1000); addEventListener('resize', () => setTimeout(placePartyBox, 200));
 const _smW = small; small = function (...a) { $('panel2').style.width = ''; return _smW(...a); };
 function openInspect(m) {
-  const order = ['helmet', 'weapon', 'armor', 'shield', 'gloves', 'boots'];
+  const order = ['helmet', 'weapon', 'armor', 'shield', 'gloves', 'boots', 'necklace', 'ring', 'cape'];
   const cells = order.map(s => { const it = m.eq[s]; return it ? `<div class="cell lab r${it.rar}" style="width:52px;height:62px" data-ins="${s}"><canvas width="32" height="32" data-insc="${s}"></canvas><span class="inm">${esc(it.name)}</span>${it.plus ? `<span class="pl">+${it.plus}</span>` : ''}</div>` : `<div class="cell empty" style="width:52px;height:62px"><span class="lb">${GD.SLOT_NAME[s]}</span></div>`; }).join('');
   small(`${m.name}님의 장비`, 'shield', `<div class="row" style="gap:12px;align-items:flex-start"><div class="grid" style="grid-template-columns:repeat(3,52px)">${cells}</div><div class="box stat" style="flex:1"><span>레벨</span><b>${m.lv}</b><span>직업</span><b>${JOBN(m.job)}</b><span>체력</span><b>${m.st.maxHp}</b><span>공격력</span><b>${m.st.atk}</b><span>방어력</span><b>${m.st.def}</b><span>처치</span><b>${fmt(m.kills)}</b></div></div><div class="mut" style="margin-top:6px">장비를 누르면 능력치를 볼 수 있어요.</div>`);
   const b = $('pbody2'); $('panel2').style.width = '400px';
