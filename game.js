@@ -646,6 +646,7 @@ function drawGroundTile(m, x, y, X0, Y0, fr) {
     else if (m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE)) under = biomeChar(x, y);
     else if (!m.biome && id === T.ROCK) under = 'c';
     const anim = id === T.WATER || id === T.LAVA ? fr : 0;
+    TEXPOS.x = x; TEXPOS.y = y;
     { const ti = tileImg(id, v, m.pal, m.castle, anim, under); if (ti.height > 64) ctx.drawImage(ti, X0, Y0 - 10, TS, ti.height * TS / 64); else ctx.drawImage(ti, X0, Y0, TS, TS); }
     if (m.dark && GD.BLOCK.has(id) && id !== T.WATER && id !== T.LAVA) { ctx.fillStyle = m.castle ? 'rgba(10,6,20,.22)' : 'rgba(8,6,14,.52)'; ctx.fillRect(X0, Y0, TS, TS); }
     drawDecor(id, x, y, X0, Y0);

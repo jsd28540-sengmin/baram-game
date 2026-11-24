@@ -82,7 +82,9 @@ must('game.js', 'function groundGrade(g, px, m)', '배경 색감 보정(캐릭�
 must('game.js', 'if (!m.inner) groundGrade(g, px, m);', '바닥 묶음에 색감 보정 적용');
 must('gfx.js', 'function seamCell(idx)', '바닥 타일 이음매(격자 줄) 제거');
 must('gfx.js', 'function cleanTrees(c)', '나무 흰 테두리·회색 원판 제거');
-must('gfx.js', 'GFX.spr = cleanTrees(gradeSheet(GFX.spr', '스프라이트 색감 보정');
+must('gfx.js', "GFX.spr = gradeSheet(GFX.spr, 0.18, '#eee9dc');", '스프라이트 색감 보정(새 소품 그림)');
+must('gfx.js', 'function texMat(id, under, castle)', '새 바닥 그림(이음매 없는 큰 그림) 적용');
+must('gfx.js', "GFX.spr.src = 'gfx/sprites2x.webp", '새 나무·건물·소품 그림');
 must('engine.js', 'function surpriseTick(now)', '깜짝 보스 무작위 등장');
 must('engine.js', 'const SB_TIME = 10 * 60000;', '깜짝 보스 제한시간 10분');
 must('engine.js', 'function sbKilled(m, mon, killer)', '깜짝 보스 특별 아이템·좋은 옵션 장비');

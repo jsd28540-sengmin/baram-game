@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════
 //  그래픽 아틀라스 (GPT 시안 그대로) — gfx/tiles.png, gfx/sprites.png
 // ═══════════════════════════════════════════
-const GFX = { ok: false, tiles: new Image(), spr: new Image(), A: window.GFX_ATLAS };
+const GFX = { ok: false, tiles: new Image(), spr: new Image(), A: window.GFX_ATLAS, SS: 2 }; /* 소품 그림: 새 GPT 시트(2배 해상도) */
 /* 스프라이트(나무·건물·소품) 색감 보정: 바닥과 같은 톤으로 채도·밝기 살짝 낮춤 → 캐릭터와 어울림 */
 function gradeSheet(img, sat, mul) { try { const c = document.createElement('canvas'); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
   g.globalCompositeOperation = 'saturation'; g.globalAlpha = sat; g.fillStyle = '#808080'; g.fillRect(0, 0, c.width, c.height);
@@ -19,7 +19,7 @@ function cleanTrees(c) { try { if (!c.getContext) return c; const g = c.getConte
       if (mx > 110 && mx - mn < 34) { d[i] = 18; d[i + 1] = 26; d[i + 2] = 12; d[i + 3] = 80; } }
     g.putImageData(im, x0, y0); }
   return c; } catch (e) { return c; } }
-(function () { let n = 0; const done = () => { if (++n === 2) { GFX.GROUND = new Set(['grass', 'forest', 'dirt', 'sand', 'snow', 'swamp', 'volc'].flatMap(k => GFX.A.tiles[k] || [])); GFX.spr = cleanTrees(gradeSheet(GFX.spr, 0.3, '#e8e2d2')); GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); })();
+(function () { let n = 0; const done = () => { if (++n === 2) { GFX.GROUND = new Set(['grass', 'forest', 'dirt', 'sand', 'snow', 'swamp', 'volc'].flatMap(k => GFX.A.tiles[k] || [])); GFX.spr = gradeSheet(GFX.spr, 0.18, '#eee9dc'); /* 새 그림은 흰 테두리가 없어 나무 정리 불필요 */ GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.onerror = () => { GFX.SS = 1; GFX.spr.onerror = null; GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); }; GFX.spr.src = 'gfx/sprites2x.webp?v=' + (window.BUILDV || 1); })();
 const gTile = (name, i) => { const L = GFX.A.tiles[name]; return L[((i % L.length) + L.length) % L.length]; };
 /* 바닥 타일 이음매 제거: 원본 타일 가장자리에 어두운 띠가 있어 화면에 가로줄·격자가 보였음 → 반 칸 밀린 그림과 가운데 기준으로 섞어 가장자리를 매끈하게 */
 const SEAM = new Map();
@@ -38,7 +38,7 @@ function gfxCellCanvas(idx, extra) {
   if (GFX.GROUND && GFX.GROUND.has(idx)) g.drawImage(seamCell(idx), 0, 0); else g.drawImage(GFX.tiles, (idx % 16) * 64, Math.floor(idx / 16) * 64, 64, 64, 0, 0, 64, 64); if (extra) extra(g); return c;
 }
 function sprRect(k) { return GFX.A.sprites[k]; }
-function drawSpr(k, dx, dy, dw, dh, g = ctx) { const r = sprRect(k); if (!r) return; g.drawImage(GFX.spr, r[0], r[1], r[2], r[3], dx, dy, dw, dh); }
+function drawSpr(k, dx, dy, dw, dh, g = ctx) { const r = sprRect(k); if (!r) return; const S = GFX.SS; g.drawImage(GFX.spr, r[0] * S, r[1] * S, r[2] * S, r[3] * S, dx, dy, dw, dh); }
 // 땅 종류 → 타일
 const UNDER_TILE = { g: ['grass'], f: ['forest'], d: ['sand'], s: ['snow'], w: ['swamp'], v: ['volc', 1] };
 function groundCell(u, v) { const t = UNDER_TILE[u] || UNDER_TILE.g; return t[1] != null ? GFX.A.tiles[t[0]][t[1]] : gTile(t[0], v); }
@@ -46,12 +46,26 @@ function groundCell(u, v) { const t = UNDER_TILE[u] || UNDER_TILE.g; return t[1]
 function wallSlice(key, v, full) {
   const r = sprRect(key); if (!r) return null; const sw = Math.min(r[2], 54); const sx = r[0] + Math.floor(((r[2] - sw) * ((v % 3) / 2))) ;
   const c = mk(64, full ? 84 : 64), g = c.getContext('2d'); g.imageSmoothingEnabled = true;
-  if (full) g.drawImage(GFX.spr, sx, r[1], sw, r[3], 0, 0, 64, 84); else g.drawImage(GFX.spr, sx, r[1] + r[3] - Math.round(sw * 0.98), sw, Math.round(sw * 0.98), 0, 0, 64, 64);
+  const S = GFX.SS; if (full) g.drawImage(GFX.spr, sx * S, r[1] * S, sw * S, r[3] * S, 0, 0, 64, 84); else g.drawImage(GFX.spr, sx * S, (r[1] + r[3] - Math.round(sw * 0.98)) * S, sw * S, Math.round(sw * 0.98) * S, 0, 0, 64, 64);
   return c;
 }
 const _tileImgEnv = tileImg;
+/* 새 바닥 그림(이음매 없는 큰 그림 한 장, 10칸 주기): 칸의 실제 위치로 잘라 써서 이음매·격자가 생기지 않음 */
+const TEXPOS = { x: 0, y: 0 }, GTEX = {}, GTP = 10;
+for (const n of ['grass', 'forest', 'dirt', 'cobble']) { const im = new Image(); im.onload = () => { im.ok = 1; tileCache.clear(); if (typeof gChunks !== 'undefined') gChunks.clear(); }; im.src = 'gfx/ground_' + n + '.webp?v=' + (window.BUILDV || 1); GTEX[n] = im; }
+function texMat(id, under, castle) {
+  if (castle) return null;
+  if (id === T.GRASS || id === T.FLOWER) return 'grass'; if (id === T.FOREST) return 'forest'; if (id === T.ROAD) return 'dirt'; if (id === T.STONE) return 'cobble';
+  if (id === T.TREE || id === T.FENCE || id === T.ROCK) { const u = under || (id === T.ROCK ? '' : 'g'); return u === 'g' ? 'grass' : u === 'f' ? 'forest' : null; }
+  return null;
+}
 tileImg = function (id, v, pal, castle, frame, under) {
   if (!GFX.ok) return _tileImgEnv(id, v, pal, castle, frame, under);
+  { const mt = texMat(id, under, castle), tx = mt && GTEX[mt]; if (tx && tx.ok) {
+    const gx = ((TEXPOS.x % GTP) + GTP) % GTP, gy = ((TEXPOS.y % GTP) + GTP) % GTP, key = 'T|' + mt + '|' + gx + '|' + gy + '|' + (id === T.FENCE ? 'f' : '');
+    let c = tileCache.get(key); if (c) return c; c = mk(64, 64); const g = c.getContext('2d'); g.drawImage(tx, gx * 64, gy * 64, 64, 64, 0, 0, 64, 64);
+    if (id === T.FENCE) { const r = sprRect('fence'), S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }
+    tileCache.set(key, c); return c; } }
   const key = 'G|' + id + '|' + v + '|' + frame + '|' + under + '|' + castle + '|' + pal;
   let c = tileCache.get(key); if (c) return c;
   let cell = null, extra = null;
@@ -71,7 +85,7 @@ tileImg = function (id, v, pal, castle, frame, under) {
     case T.CARPET: cell = GFX.A.tiles.castle[1 + (v % 2)]; break;
     case T.CAVE: cell = gTile('dirt', v); extra = g => { g.fillStyle = 'rgba(38,26,44,0.5)'; g.fillRect(0, 0, 64, 64); }; break;
     case T.TREE: case T.PINE: case T.DEADTREE: case T.CACTUS: case T.ROCK: cell = groundCell(under || (id === T.PINE ? 's' : id === T.CACTUS ? 'd' : id === T.DEADTREE ? 'w' : id === T.ROCK && castle ? 'v' : 'g'), v); if (id === T.ROCK && under === 'c') cell = GFX.A.tiles.volc[2]; break;
-    case T.FENCE: cell = groundCell(under || 'g', v); extra = g => { const r = sprRect('fence'); g.drawImage(GFX.spr, r[0] + 20, r[1], 54, r[3], 0, 24, 64, 40); }; break;
+    case T.FENCE: cell = groundCell(under || 'g', v); extra = g => { const r = sprRect('fence'); const S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }; break;
     case T.WALL: case T.CASTLEWALL: case T.CAVEWALL: case T.RUINWALL: { const k = id === T.WALL ? 'wall' : id === T.CASTLEWALL ? 'castlewall' : id === T.RUINWALL ? 'ruinwall' : (v % 4 === 1 ? 'cavewall2' : 'cavewall'); c = wallSlice(k, v, false); break; }
     case T.BARS: { const fl = mk(64, 64), g = fl.getContext('2d'); g.drawImage(gfxCellCanvas(GFX.A.tiles.flag2[0]), 0, 0); drawSpr('bars', 2, 0, 60, 64, g); c = fl; break; }
     case T.UP: case T.DOWN: { const fl = gfxCellCanvas(castle ? GFX.A.tiles.flag2[0] : GFX.A.tiles.volc[2]); drawSpr(id === T.UP ? 'stairs' : 'stairs2', 6, 2, 52, 60, fl.getContext('2d')); if (id === T.DOWN) { const g = fl.getContext('2d'); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, 64, 64); } c = fl; break; }
@@ -122,7 +136,7 @@ const chestGfx = new Map();
 chestSprite = function (t, open) {
   if (!GFX.ok) return _csEnv(t, open);
   const k = (t >= 5 ? 'c5' : t === 4 ? 'c4' : t === 3 ? 'c3' : 'c1') + (open ? 'o' : '');
-  let c = chestGfx.get(k); if (c) return c; const r = sprRect(k); c = mk(32, 32); const g = c.getContext('2d'); const sc = Math.min(30 / r[2], 30 / r[3]); const w = r[2] * sc, h = r[3] * sc; g.drawImage(GFX.spr, r[0], r[1], r[2], r[3], (32 - w) / 2, 32 - h, w, h); chestGfx.set(k, c); return c;
+  let c = chestGfx.get(k); if (c) return c; const r = sprRect(k); c = mk(32, 32); const g = c.getContext('2d'); const sc = Math.min(30 / r[2], 30 / r[3]); const w = r[2] * sc, h = r[3] * sc; const S = GFX.SS; g.drawImage(GFX.spr, r[0] * S, r[1] * S, r[2] * S, r[3] * S, (32 - w) / 2, 32 - h, w, h); chestGfx.set(k, c); return c;
 };
 // 장식: 풀숲·꽃덤불·버섯·그루터기·수련
 function decorAt(id, x, y) {
