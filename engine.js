@@ -383,6 +383,27 @@ function addChest(m, x, y, tier, o = {}) { const c = Object.assign({ id: 'c' + (
     });
   });
 })();
+// ═══════════════ 고난도 맵: 바람의 대륙 · 심연 (같은 지형, 몬스터 +30레벨, Lv60 이상) ═══════════════
+const HARD_LV = 30, HARD_MIN = 60;
+(function makeHardWorld() {
+  const w = MAPS.world;
+  // 청풍마을 동쪽 길을 지도 동쪽 끝까지 이어 '심연으로 가는 길'을 만든다
+  const town = w.towns.find(t => t.name === '청풍마을') || w.towns[0]; const ry = Math.round((town.y0 + town.y1) / 2);
+  for (let x = town.x1 + 1; x < WW - 1; x++) for (const dy of [0, 1]) { const v = gt(w, x, ry + dy); if (v !== T.WATER && v !== T.LAVA) st(w, x, ry + dy, T.ROAD); else st(w, x, ry + dy, T.BRIDGE); }
+  const h = newMap('world2', '바람의 대륙 · 심연', WW, WH, T.GRASS, { hard: HARD_LV });
+  h.t = new Uint8Array(w.t); h.biome = w.biome; h.ponds = w.ponds;
+  h.labels = w.labels.map(l => Object.assign({}, l)); h.lights = w.lights.map(l => Object.assign({}, l));
+  h.towns = w.towns.map(t => Object.assign({}, t)); h.npcs = w.npcs.map(n => Object.assign({}, n));
+  h.zones = w.zones.map(z => Object.assign({}, z, { count: 0, mb: null, mbAt: 0, name: z.name ? z.name + ' (심연)' : z.name }));
+  for (const l of h.labels) if (/Lv\d+~\d+/.test(l.text)) l.text = l.text.replace(/Lv(\d+)~(\d+)/, (_, a, b) => `Lv${+a + HARD_LV}~${+b + HARD_LV}`);
+  h.labels.push({ x: WW - 6, y: ry - 2, text: '⚠ 심연의 길 (Lv60↑)', c: '#ff8a8a' });
+  w.labels.push({ x: WW - 8, y: ry - 2, text: '→ 심연으로 (Lv60↑)', c: '#ff8a8a' });
+  // 오가는 길 (동쪽 끝 ↔ 심연 서쪽 시작) — 심연 쪽은 같은 길의 동쪽 끝에서 다시 돌아오는 입구
+  for (const dy of [0, 1]) {
+    w.portals[(WW - 2) + ',' + (ry + dy)] = { to: 'world2', x: town.x1 + 3, y: ry + dy, label: '심연으로', minLv: HARD_MIN };
+    h.portals[(WW - 2) + ',' + (ry + dy)] = { to: 'world', x: WW - 4, y: ry + dy, label: '바람의 대륙으로' };
+  }
+})();
 function makeLegend(lid) {
   const L = D.LEGENDS[lid]; if (!L) return null;
   const it = makeGear(L.job, L.slot, 50, { wt: L.wt, minRar: 3, bonus: 60 });
@@ -707,11 +728,11 @@ function fx(m, o) { if (FX_SID && (o.k === 'skill' || o.k === 'proj') && !o.s) o
 
 function sendMap(p) {
   const m = MAPS[p.map];
-  p.ws.send({ t: 'map', inner: m.inner || 0, chests: chestList(p, m), ponds: m.ponds || null, id: m.id, name: m.name, w: m.w, h: m.h, tiles: b64(m.t), portals: m.portals, npcs: m.npcs, labels: m.labels, lights: m.lights, towns: m.towns.map(t => ({ name: t.name, x0: t.x0, y0: t.y0, x1: t.x1, y1: t.y1 })), dark: m.dark, pal: m.pal || 0, castle: m.castle || 0, biome: m.id === 'world' ? biomeStr(m) : null });
+  p.ws.send({ t: 'map', inner: m.inner || 0, chests: chestList(p, m), ponds: m.ponds || null, id: m.id, name: m.name, w: m.w, h: m.h, tiles: b64(m.t), portals: m.portals, npcs: m.npcs, labels: m.labels, lights: m.lights, towns: m.towns.map(t => ({ name: t.name, x0: t.x0, y0: t.y0, x1: t.x1, y1: t.y1 })), dark: m.dark, pal: m.pal || 0, castle: m.castle || 0, biome: m.biome ? biomeStr(m) : null });
   sendTents(m);
 }
 let _bs = null;
-function biomeStr(m) { if (_bs) return _bs; const k = { grass: 'g', forest: 'f', desert: 'd', snow: 's', swamp: 'w', volcano: 'v' }; _bs = m.biome.map(b => k[b]).join(''); return _bs; }
+function biomeStr(m) { if (m._bs) return m._bs; const k = { grass: 'g', forest: 'f', desert: 'd', snow: 's', swamp: 'w', volcano: 'v' }; m._bs = m.biome.map(b => k[b]).join(''); return m._bs; }
 function sendTents(m) { broadcast({ t: 'tents', map: m.id, list: m.tents.map(t => ({ owner: t.owner, kind: t.kind || 'tent', inner: t.inner ? 1 : 0, x: t.x, y: t.y, w: t.w, h: t.h, furn: t.furn, deco: t.deco })), plots: PLOTS.filter(q => q.map === m.id).map(q => ({ id: q.id, x: q.x, y: q.y, sx: q.sx, sy: q.sy, owner: q.owner, price: q.price })) }, m.id); }
 
 function teleport(p, mapId, x, y, near) {
@@ -736,10 +757,10 @@ function nearestTown(p) {
 // ═══════════════ 몬스터 ═══════════════
 let nightNow = false;
 function spawnMon(m, type, x, y, o = {}) {
-  const def = D.MONS[type]; if (!def) return null;
+  let def = D.MONS[type]; if (!def) return null; const HL = m.hard && !def.boss ? m.hard : 0; if (HL) def = Object.assign({}, def, { lv: def.lv + HL });
   const mutant = !!o.mutant;
   const s = D.monStats(def, nightNow, mutant);
-  const mon = { id: 'm' + uid(), type, map: m.id, x, y, hx: x, hy: y, dir: 0, hp: s.hp, maxHp: s.hp, atk: s.atk, def: s.def, exp: s.exp, coin: s.coin, lv: def.lv + (mutant ? 3 : 0), boss: !!def.boss, mutant, zone: o.zone, nextMove: Date.now() + ri(0, 1500), nextAtk: 0, target: null, dmgBy: {} };
+  const mon = { id: 'm' + uid(), type, map: m.id, x, y, hx: x, hy: y, dir: 0, hp: s.hp, maxHp: s.hp, atk: s.atk, def: s.def, exp: s.exp, coin: s.coin, lv: def.lv + (mutant ? 3 : 0), hl: HL || 0, boss: !!def.boss, mutant, zone: o.zone, nextMove: Date.now() + ri(0, 1500), nextAtk: 0, target: null, dmgBy: {} };
   m.mons.set(mon.id, mon); occAdd(m, x, y);
   return mon;
 }
@@ -767,7 +788,7 @@ const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 function killMon(m, mon, killer) {
   m.mons.delete(mon.id); occDel(m, mon.x, mon.y);
   if (mon.summon) return;
-  const def = D.MONS[mon.type];
+  const def = mon.hl ? Object.assign({}, D.MONS[mon.type], { lv: D.MONS[mon.type].lv + mon.hl }) : D.MONS[mon.type]; /* 심연 몬스터는 높아진 레벨로 보상 */
   fx(m, { k: 'die', x: mon.x, y: mon.y, b: mon.boss ? 1 : 0 });
   if (mon.zone) mon.zone.count--;
   if (mon.sb) sbKilled(m, mon, killer);
@@ -1393,10 +1414,10 @@ function handle(p, msg) {
       if (!ok) { p.ep = (p.ep || 0) + 1; p.ws.send({ t: 'pos', x: p.x, y: p.y, ep: p.ep }); return; }
       p.mvTok -= 1; p.x = x; p.y = y; p.lastMove = now; if (msg.ct) p.lastCt = msg.ct; p.sleeping = false; if (p.fishing) { p.fishing = null; sysMsg(p, '낚시를 멈췄습니다.', '#ccc'); }
       // 자동 줍기 없음: [줍기] 버튼(스페이스)으로만 가방에 들어옴
-      const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
+      const pt = m.portals[x + ',' + y]; if (pt && pt.minLv && p.lv < pt.minLv) { if (!p._gateT || Date.now() - p._gateT > 3000) { p._gateT = Date.now(); sysMsg(p, `⚠ 이 길 너머는 심연입니다. Lv${pt.minLv} 이상만 갈 수 있어요.`, '#ff8a8a'); } } else if (pt) { teleport(p, pt.to, pt.x, pt.y, pt.near); if (pt.to === 'world2') sysMsg(p, '⚠ 심연에 들어왔습니다. 몬스터가 훨씬 강해요! (+30레벨)', '#ff8a8a'); } else tentDoorCheck(p);
       break;
     }
-    case 'dbg': if (!ENV.DEBUG) return; if (msg.job && D.JOBS[msg.job]) { p.job = msg.job; calc(p); } if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
+    case 'dbg': if (!ENV.DEBUG) return; if (msg.mount && D.MOUNTS[msg.mount] && !p.mounts.includes(msg.mount)) { p.mounts.push(msg.mount); dirty(p); } if (msg.job && D.JOBS[msg.job]) { p.job = msg.job; calc(p); } if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
     case 'face': p.dir = clamp(msg.d | 0, 0, 3); break;
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;
@@ -1472,7 +1493,7 @@ function handle(p, msg) {
       dirty(p); break;
     }
     case 'sleep': p.sleeping = !p.sleeping && !p.dead; break;
-    case 'respawn': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
+    case 'respawn': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, p.map === 'world2' ? 'world2' : 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
     case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 5).map(x => typeof x === 'string' && D.CONSUMES[x] ? x : null) : []; dirty(p); break;
     case 'boss': p.ws.send({ t: 'boss', list: bossSchedule(), sb: sbInfo() }); break;
     // 교환
@@ -1561,7 +1582,7 @@ function useItem(p, i) {
   calc(p);
   if (c.back) { const b = p.backPos; p.backPos = null; teleport(p, MAPS[b.map] ? b.map : 'world', b.x, b.y, 1); sysMsg(p, '귀환 전 위치로 돌아왔습니다.'); }
   if (c.recall) { const cm = MAPS[p.map]; if (!inTown(cm, p.x, p.y)) p.backPos = { map: p.map, x: p.x, y: p.y };
-    const t = nearestTown(p); teleport(p, 'world', t.spawn.x, t.spawn.y, 1); sysMsg(p, `${t.name}(으)로 귀환했습니다.`); }
+    const t = nearestTown(p); teleport(p, p.map === 'world2' ? 'world2' : 'world', t.spawn.x, t.spawn.y, 1); sysMsg(p, `${t.name}(으)로 귀환했습니다.`); }
   if (c.hp) { const h = Math.min(c.hp, p.st.maxHp - p.hp); p.hp += h; fx(MAPS[p.map], { k: 'heal', x: p.x, y: p.y, v: h }); }
   if (c.mp) { p.mp = Math.min(p.st.maxMp, p.mp + c.mp); fx(MAPS[p.map], { k: 'mana', x: p.x, y: p.y, v: c.mp }); }
   if (c.buff) addBuff(p, c.name, c.buff, c.dur);
@@ -1723,7 +1744,7 @@ function tick() {
 let started = false;
 const API = {
   MAPS, ATLAS, PLOTS, D,
-  biomeStr: () => biomeStr(MAPS.world),
+  biomeStr: (id) => biomeStr(MAPS[id || 'world']),
   start(saves, io) {
     if (started) return; started = true;
     if (io) IO = io; loadSaves(saves);

@@ -55,6 +55,7 @@ const TEXPOS = { x: 0, y: 0 }, GTEX = {}, GTP = 10;
 const GPER = { castle: 20, lava: 20 }; /* 나머지는 10칸 주기 */
 for (const n of ['grass', 'forest', 'dirt', 'cobble', 'sand', 'snow', 'swamp', 'ash', 'cave', 'water', 'lava', 'castle']) { const im = new Image(); im.onload = () => { im.ok = 1; tileCache.clear(); if (typeof gChunks !== 'undefined') gChunks.clear(); }; im.src = 'gfx/ground_' + n + '.webp?v=' + (window.BUILDV || 1); GTEX[n] = im; }
 function texMat(id, under, castle) {
+  if ((id === T.ROOF || id === T.HOUSE) && bldCovered(TEXPOS.x, TEXPOS.y)) return 'cobble'; /* 새 건물 그림 아래 옛 지붕 칸이 비쳐 보이던 문제 */
   if (id === T.CASTLE) return 'castle'; if (id === T.LAVA) return 'lava'; if (id === T.WATER) return 'water'; if (id === T.CAVE) return 'cave';
   if (castle) return null;
   if (id === T.SAND) return 'sand'; if (id === T.SNOW) return 'snow'; if (id === T.SWAMP) return 'swamp'; if (id === T.ASH) return 'ash';
@@ -102,7 +103,8 @@ tileImg = function (id, v, pal, castle, frame, under) {
     case T.CAVE: cell = gTile('dirt', v); extra = g => { g.fillStyle = 'rgba(38,26,44,0.5)'; g.fillRect(0, 0, 64, 64); }; break;
     case T.TREE: case T.PINE: case T.DEADTREE: case T.CACTUS: case T.ROCK: cell = groundCell(under || (id === T.PINE ? 's' : id === T.CACTUS ? 'd' : id === T.DEADTREE ? 'w' : id === T.ROCK && castle ? 'v' : 'g'), v); if (id === T.ROCK && under === 'c') cell = GFX.A.tiles.volc[2]; break;
     case T.FENCE: cell = groundCell(under || 'g', v); extra = g => { const r = sprRect('fence'); const S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }; break;
-    case T.WALL: case T.CASTLEWALL: case T.CAVEWALL: case T.RUINWALL: { const k = id === T.WALL ? 'wall' : id === T.CASTLEWALL ? 'castlewall' : id === T.RUINWALL ? 'ruinwall' : (v % 4 === 1 ? 'cavewall2' : 'cavewall'); c = wallSlice(k, v, false); break; }
+    case T.WALL: if (GTEX.cobble && GTEX.cobble.ok) { c = townWall(TEXPOS.x, TEXPOS.y); break; } /* falls through */
+    case T.CASTLEWALL: case T.CAVEWALL: case T.RUINWALL: { const k = id === T.WALL ? 'wall' : id === T.CASTLEWALL ? 'castlewall' : id === T.RUINWALL ? 'ruinwall' : (v % 4 === 1 ? 'cavewall2' : 'cavewall'); c = wallSlice(k, v, false); break; }
     case T.BARS: { const fl = mk(64, 64), g = fl.getContext('2d'); g.drawImage(gfxCellCanvas(GFX.A.tiles.flag2[0]), 0, 0); drawSpr('bars', 2, 0, 60, 64, g); c = fl; break; }
     case T.UP: case T.DOWN: { const fl = gfxCellCanvas(castle ? GFX.A.tiles.flag2[0] : GFX.A.tiles.volc[2]); drawSpr(id === T.UP ? 'stairs' : 'stairs2', 6, 2, 52, 60, fl.getContext('2d')); if (id === T.DOWN) { const g = fl.getContext('2d'); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, 0, 64, 64); } c = fl; break; }
   }
@@ -173,7 +175,7 @@ function drawDecor(id, x, y, X0, Y0) {
 }
 // 던전 입구 (동굴 / 성문)
 function drawEntrances(m, sx, sy, ents) {
-  if (!GFX.ok || m.id !== 'world') return;
+  if (!GFX.ok || !/^world/.test(m.id)) return;
   for (const k in m.portals) { const p = m.portals[k]; if (!p.label || !/\d$/.test(p.to)) continue; const [x, y] = k.split(',').map(Number);
     const castle = /^(obs|demon|ruin|abyss|prison)/.test(p.to); const key = castle ? 'gate' : 'cave'; const r = sprRect(key); const w = (castle ? 4.6 : 3.8) * TS, h = w * r[3] / r[2];
     ents.push({ y: y + 0.5, f: () => drawSpr(key, Math.round(x * TS + 16 - w / 2 - sx), Math.round((y + 1) * TS - h - sy), Math.round(w), Math.round(h)) }); }
@@ -210,3 +212,35 @@ drawEdges = function (id, x, y, X0, Y0) {
   for (const [dx, dy, a, b, dir] of DG) { const n = matAt(x + dx, y + dy); if (n && n !== me && MATPRI[n] > pm && side[a] !== n && side[b] !== n && GTEX[n] && GTEX[n].ok) ctx.drawImage(blendTile(n, x, y, dir), X0, Y0, TS, TS); }
   if (me === 'water') { /* 물가: 젖은 테두리 그늘 */ for (let k = 0; k < 4; k++) { const n = side[k]; if (n && n !== 'water' && n !== 'lava') { const t = tileAt(x + NB[k][0], y + NB[k][1]); if (t === T.BRIDGE) continue; const gr = k === 0 ? ctx.createLinearGradient(0, Y0, 0, Y0 + TS * 0.35) : k === 2 ? ctx.createLinearGradient(0, Y0 + TS, 0, Y0 + TS * 0.65) : k === 1 ? ctx.createLinearGradient(X0 + TS, 0, X0 + TS * 0.65, 0) : ctx.createLinearGradient(X0, 0, X0 + TS * 0.35, 0); gr.addColorStop(0, 'rgba(20,40,40,.35)'); gr.addColorStop(1, 'rgba(20,40,40,0)'); ctx.fillStyle = gr; ctx.fillRect(X0, Y0, TS, TS); } } }
 };
+
+// ═══ 새 건물 그림이 덮는 칸 (옛 지붕·벽 칸은 바닥으로) ═══
+function bldCovered(x, y) { const m = S.map; if (!m || !m.labels) return false; if (m._bc === undefined || m._bcL !== m.labels) { m._bcL = m.labels; m._bc = new Set(); for (const l of m.labels) if (l.roofC && BLD_KIND[l.text]) for (let yy = l.by - 1; yy <= l.by + 3; yy++) for (let xx = l.bx; xx <= l.bx + 4; xx++) m._bc.add(xx + ',' + yy); } return m._bc.has(x + ',' + y); }
+// ═══ 마을 성벽: 칸마다 탑 조각이 반복되던 것을 이어진 성벽으로 (가로=성벽 정면, 세로=성벽 윗면) ═══
+function townWall(x, y) {
+  const W_ = T.WALL, up = tileAt(x, y - 1) === W_, dn = tileAt(x, y + 1) === W_, lf = tileAt(x - 1, y) === W_, rt = tileAt(x + 1, y) === W_;
+  const vert = (up || dn) && !(lf || rt), post = (up || dn) && (lf || rt);
+  const gm = ['cobble', 'grass', 'sand', 'snow', 'dirt', 'forest'].find(n => [matAt(x, y + 1), matAt(x, y - 1), matAt(x - 1, y), matAt(x + 1, y)].includes(n)) || 'cobble';
+  const key = 'TW|' + (vert ? 'v' : post ? 'p' : 'h') + '|' + (up ? 1 : 0) + (dn ? 1 : 0) + (lf ? 1 : 0) + (rt ? 1 : 0) + '|' + gm + '|' + ((x + y * 3) & 3);
+  let c = tileCache.get(key); if (c) return c; c = mk(64, 64); const g = c.getContext('2d');
+  const gt = GTEX[gm]; if (gt && gt.ok) g.drawImage(gt, ((x % 10) + 10) % 10 * 64, ((y % 10) + 10) % 10 * 64, 64, 64, 0, 0, 64, 64);
+  const OL = '#2e2824', ST = '#a39687', ST2 = '#8f8274', MO = '#6b6056', CAP = '#c2b6a6', CAPD = '#9a8e80';
+  const bricks = (X, Y, w, h, rowH, colW, off) => { g.fillStyle = ST; g.fillRect(X, Y, w, h); for (let r = 0, yy = Y; yy < Y + h; r++, yy += rowH) { g.fillStyle = MO; g.fillRect(X, yy, w, 1); const o = (r & 1) ? colW / 2 : 0; for (let xx = X - o + off; xx < X + w; xx += colW) if (xx > X) g.fillRect(xx, yy, 1, Math.min(rowH, Y + h - yy)); g.fillStyle = ST2; for (let xx = X - o + off + 3; xx < X + w - 3; xx += colW) if (((xx + r * 7 + x * 5) & 15) < 5) g.fillRect(Math.max(X, xx), yy + 2, 6, rowH - 3); } };
+  if (vert) { /* 세로: 위에서 본 성벽 윗길 */
+    const L = 14, R = 50, T0 = up ? 0 : 6, B0 = dn ? 64 : 58;
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(R, T0 + 4, 6, B0 - T0); g.fillRect(L - 4, T0 + 4, 4, B0 - T0);
+    g.fillStyle = OL; g.fillRect(L - 2, T0, R - L + 4, B0 - T0);
+    bricks(L, T0, R - L, B0 - T0, 10, 18, x * 7);
+    g.fillStyle = CAP; g.fillRect(L, T0, 5, B0 - T0); g.fillRect(R - 5, T0, 5, B0 - T0); g.fillStyle = CAPD; g.fillRect(L + 4, T0, 1, B0 - T0); g.fillRect(R - 5, T0, 1, B0 - T0);
+    for (let yy = T0 + 4; yy < B0 - 6; yy += 16) { g.fillStyle = OL; g.fillRect(L - 2, yy - 1, 8, 9); g.fillRect(R - 6, yy - 1, 8, 9); g.fillStyle = CAP; g.fillRect(L - 1, yy, 6, 7); g.fillRect(R - 5, yy, 6, 7); }
+  } else { /* 가로(또는 모서리 기둥): 성벽 정면 + 윗부분 총안 */
+    const L = lf ? 0 : 4, R = rt ? 64 : 60, top = 10, bot = 60;
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(L, bot, R - L, 4);
+    g.fillStyle = OL; g.fillRect(L - (lf ? 0 : 2), top - 2, R - L + (lf ? 0 : 2) + (rt ? 0 : 2), bot - top + 2);
+    bricks(L, top + 8, R - L, bot - top - 8, 9, 20, x * 64);
+    g.fillStyle = CAP; g.fillRect(L, top, R - L, 8); g.fillStyle = CAPD; g.fillRect(L, top + 6, R - L, 2);
+    for (let xx = (lf ? -((x * 64) % 24) : L); xx < R; xx += 24) { const a = Math.max(L, xx), b = Math.min(R, xx + 12); if (b <= a) continue; g.fillStyle = OL; g.fillRect(a - 1, top - 9, b - a + 2, 10); g.fillStyle = CAP; g.fillRect(a, top - 8, b - a, 8); g.fillStyle = '#d6cbbb'; g.fillRect(a, top - 8, b - a, 2); }
+    g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(L, bot - 10, R - L, 10);
+    if (post || up || dn) { /* 세로 성벽과 만나는 곳: 굵은 기둥 */ g.fillStyle = OL; g.fillRect(18, 0, 28, 64); bricks(20, 0, 24, 62, 10, 12, 0); g.fillStyle = CAP; g.fillRect(20, 0, 24, 6); }
+  }
+  tileCache.set(key, c); return c;
+}

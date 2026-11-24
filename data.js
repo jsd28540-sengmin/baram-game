@@ -212,6 +212,7 @@
     let atk = Math.floor(5 + l * 3.1);
     let def = Math.floor(l * 1.45);
     let exp = Math.floor(8 + Math.pow(l, 1.65) * 3.2);
+    { const k = Math.min(1, l / 60); hp *= 1.12 + k * 0.3; atk *= 1.08 + k * 0.24; def *= 1.12 + k * 0.18; exp *= 1.06; } /* 전체 난이도 상향: 레벨이 높을수록 더 단단·강하게 (초보 구간은 살짝만) */
     if (m.boss) { hp *= 50; atk *= 2.3; def *= 1.7; exp *= 32; } // 보스 난이도 상향
     if (night) { hp *= 1.15; atk *= 1.15; }
     if (mutant) { hp *= 2.2; atk *= 1.45; def *= 1.3; exp *= 3; }

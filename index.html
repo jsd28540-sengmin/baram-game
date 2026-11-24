@@ -108,7 +108,7 @@ input:focus{outline:none;border-color:var(--acc)}
 .pn-head .t{font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px;flex:1;min-width:0;white-space:nowrap}
 .pn-head .t svg.ic{color:var(--gold)}
 .xbtn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--line);border-radius:4px;color:var(--tx);cursor:pointer}
-.pn-body{flex:1;min-height:0;padding:10px 12px;display:flex;gap:12px;overflow:hidden}
+.pn-body{flex:1;min-height:0;padding:10px 12px;display:flex;gap:12px;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain} /* 내용이 넘치면 모든 창 스크롤 */
 .col{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0}
 .box{background:var(--bg2);border:1px solid rgba(255,255,255,.05);border-radius:4px;padding:7px 9px}
 .txt{font-size:11px;line-height:1.5;color:#cfd4dc;white-space:pre-wrap;overflow:hidden}
@@ -156,7 +156,7 @@ input:focus{outline:none;border-color:var(--acc)}
 #qs .qut{display:none}.touchmode #qs .qut{display:flex}.touchmode #qs .qsdiv{display:block}#qs .qsdiv{display:none}
 .tb .kn{position:absolute;left:3px;top:1px;font-size:8px;color:#93b4ff}
 .panel.full{left:0;top:0;width:calc(var(--vwp,100vw) / var(--hz));height:calc(var(--vhp,100vh) / var(--hz));transform:scale(var(--hz));transform-origin:0 0;border-radius:0;border:0;background:#20242a}
-.npcl{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0}
+.npcl{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.npcl>.tiles{flex:0 0 auto!important} /* 내용이 많으면 왼쪽 목록 스크롤 */
 .npcr{width:400px;flex:0 0 400px;display:flex;flex-direction:column;gap:6px;background:var(--bg2);border-radius:5px;padding:8px}
 .npchead{display:flex;gap:10px;align-items:flex-start}
 .npchead canvas{width:42px;height:60px;flex:0 0 42px;background:var(--bg3);border-radius:4px}
@@ -301,26 +301,26 @@ html,body{height:var(--vhp,100%)}
 <div id="panel2" class="panel small win hidden"><div class="pn-head"><div class="t" id="ptitle2"></div><button class="xbtn" id="px2"></button></div><div id="pbody2" style="padding:10px 12px"></div></div>
 <div id="tip" class="win hidden"></div>
 <div id="rotate"><span id="rotic"></span><div style="font-size:18px;font-weight:800">가로로 돌려주세요</div><div style="font-size:12px;opacity:.7">바람의 대륙은 가로 화면 전용이에요</div></div>
-<script>window.BUILD="web";window.BUILDV="1795528901";</script>
-<script src="mqtt.min.js?v=1795528901"></script>
-<script src="data.js?v=1795528901"></script>
-<script src="engine.js?v=1795528901"></script>
-<script src="sprites.js?v=1795528901"></script>
-<script src="env.js?v=1795528901"></script>
-<script src="gfx/chars.js?v=1795528901"></script>
-<script src="chars.js?v=1795528901"></script>
-<script src="gfx/atlas.js?v=1795528901"></script>
-<script src="gfx.js?v=1795528901"></script>
-<script src="tent.js?v=1795528901"></script>
-<script src="game.js?v=1795528901"></script>
-<script src="net-rtc.js?v=1795528901"></script>
-<script src="smooth.js?v=1795528901"></script>
-<script src="gfx/mons.js?v=1795528901"></script>
-<script src="monsters.js?v=1795528901"></script>
-<script src="ui.js?v=1795528901"></script>
-<script src="gfx/items.js?v=1795528901"></script>
-<script src="gfx/forms.js?v=1795528901"></script>
-<script src="gfx/classes.js?v=1795528901"></script>
-<script src="assets.js?v=1795528901"></script>
+<script>window.BUILD="web";window.BUILDV="1795531941";</script>
+<script src="mqtt.min.js?v=1795531941"></script>
+<script src="data.js?v=1795531941"></script>
+<script src="engine.js?v=1795531941"></script>
+<script src="sprites.js?v=1795531941"></script>
+<script src="env.js?v=1795531941"></script>
+<script src="gfx/chars.js?v=1795531941"></script>
+<script src="chars.js?v=1795531941"></script>
+<script src="gfx/atlas.js?v=1795531941"></script>
+<script src="gfx.js?v=1795531941"></script>
+<script src="tent.js?v=1795531941"></script>
+<script src="game.js?v=1795531941"></script>
+<script src="net-rtc.js?v=1795531941"></script>
+<script src="smooth.js?v=1795531941"></script>
+<script src="gfx/mons.js?v=1795531941"></script>
+<script src="monsters.js?v=1795531941"></script>
+<script src="ui.js?v=1795531941"></script>
+<script src="gfx/items.js?v=1795531941"></script>
+<script src="gfx/forms.js?v=1795531941"></script>
+<script src="gfx/classes.js?v=1795531941"></script>
+<script src="assets.js?v=1795531941"></script>
 </body>
 </html>

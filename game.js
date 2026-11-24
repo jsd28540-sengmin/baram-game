@@ -377,7 +377,7 @@ function onMsg(m) {
 }
 function loadMap(m) {
   let t; if (m.tiles) { const bin = atob(m.tiles); t = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) t[i] = bin.charCodeAt(i); }
-  else if (window.ENGINE && ENGINE.MAPS[m.id]) { t = ENGINE.MAPS[m.id].t.slice(); if (m.id === 'world') m.biome = ENGINE.biomeStr(); }
+  else if (window.ENGINE && ENGINE.MAPS[m.id]) { t = ENGINE.MAPS[m.id].t.slice(); if (ENGINE.MAPS[m.id].biome) m.biome = ENGINE.biomeStr(m.id); }
   else { t = new Uint8Array(m.w * m.h); }
   S.map = Object.assign({}, m, { t }); S.P.clear(); S.M.clear(); S.D = []; S.fx = []; S.tents = []; S.plots = [];
   S.roof = new Map(); for (const l of m.labels) if (l.roofC) for (let y = l.by; y < l.by + 2; y++) for (let x = l.bx; x < l.bx + 5; x++) S.roof.set(x + ',' + y, l.roofC);
@@ -652,15 +652,15 @@ function drawGroundTile(m, x, y, X0, Y0, fr) {
     drawDecor(id, x, y, X0, Y0);
     if (!m.castle) drawEdges(id, x, y, X0, Y0);
     const blk = GD.BLOCK.has(id);
-    if (m.biome && !blk) { const n = vnoise(x, y); if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.18).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.2).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
+    if (m.biome && !blk && !(window.GFX && GFX.ok)) { const n = vnoise(x, y); /* 새 바닥 그림에선 칸마다 네모 얼룩이 생겨 끔 */ if (n > 0.56) { ctx.fillStyle = `rgba(255,236,150,${((n - 0.56) * 0.18).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } else if (n < 0.44) { ctx.fillStyle = `rgba(0,25,10,${((0.44 - n) * 0.2).toFixed(3)})`; ctx.fillRect(X0, Y0, TS, TS); } }
     if (id === T.WATER) { }
     else if (!blk) {
       if (AO2(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.aoN, X0, Y0);
       if (AO2(tileAt(x - 1, y))) ctx.drawImage(FX_IMG.aoW, X0, Y0);
       if (AO2(tileAt(x + 1, y))) ctx.drawImage(FX_IMG.aoE, X0, Y0);
-    } else if (id === T.HOUSE && tileAt(x, y - 1) === T.ROOF) { ctx.drawImage(FX_IMG.aoN, X0, Y0); ctx.drawImage(FX_IMG.aoN, X0, Y0);
-    } else if (id === T.WALL && !m.dark) { if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0); if (tileAt(x, y - 1) !== T.WALL) ctx.drawImage(crenImg, X0, Y0 - 10);
-    } else if (TALL.has(id)) {
+    } else if (id === T.HOUSE && tileAt(x, y - 1) === T.ROOF && !(window.GFX && GFX.ok && bldCovered(x, y))) { ctx.drawImage(FX_IMG.aoN, X0, Y0); ctx.drawImage(FX_IMG.aoN, X0, Y0);
+    } else if (id === T.WALL && !m.dark && !(window.GFX && GFX.ok)) { if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0); if (tileAt(x, y - 1) !== T.WALL) ctx.drawImage(crenImg, X0, Y0 - 10);
+    } else if (TALL.has(id) && !(id === T.WALL && window.GFX && GFX.ok) && !(id === T.HOUSE && window.GFX && GFX.ok && bldCovered(x, y))) {
       if (!GD.BLOCK.has(tileAt(x, y + 1))) ctx.drawImage(FX_IMG.face, X0, Y0);
       if (!GD.BLOCK.has(tileAt(x, y - 1))) ctx.drawImage(FX_IMG.top, X0, Y0);
     }
@@ -772,7 +772,7 @@ function frame(nowMs) {
   }
   for (const [id, x, y, u] of trees) ents.push({ y: y - 0.01, f: () => drawTreeAt(id, x, y, sx, sy, u) });
   if (!m.dark) for (const l of m.labels) if (l.roofC && BLD_KIND[l.text] && l.bx + 5 >= x0 - 1 && l.bx <= x1 + 1 && l.by >= y0 - 5 && l.by <= y1 + 2) ents.push({ y: l.by + 3.4, f: () => drawBuilding(l, sx, sy, now) });
-  if (m.id === 'world') for (const t of m.towns || []) { if (/주택가/.test(t.name)) continue; const fx = (t.x0 + t.x1) >> 1, fy = (t.y0 + t.y1) >> 1; for (let yy = fy - 1; yy <= fy + 1; yy++) for (let xx = fx - 1; xx <= fx + 1; xx++) if (tileAt(xx, yy) === T.WATER && tileAt(xx - 1, yy) === T.STONE && tileAt(xx + 1, yy) === T.STONE) ents.push({ y: yy + 0.6, f: () => drawFountain(xx, yy, sx, sy, now) }); }
+  if (/^world/.test(m.id)) for (const t of m.towns || []) { if (/주택가/.test(t.name)) continue; const fx = (t.x0 + t.x1) >> 1, fy = (t.y0 + t.y1) >> 1; for (let yy = fy - 1; yy <= fy + 1; yy++) for (let xx = fx - 1; xx <= fx + 1; xx++) if (tileAt(xx, yy) === T.WATER && tileAt(xx - 1, yy) === T.STONE && tileAt(xx + 1, yy) === T.STONE) ents.push({ y: yy + 0.6, f: () => drawFountain(xx, yy, sx, sy, now) }); }
   drawEntrances(m, sx, sy, ents);
   for (const c of (m.chests || [])) if (c.x >= x0 - 1 && c.x <= x1 + 1 && c.y >= y0 - 1 && c.y <= y1 + 2) ents.push({ y: c.y - 0.02, f: () => drawChest(c, sx, sy, now) });
   for (const t of S.tents) if (isOuterTent(t) && t.x + 10 >= x0 && t.x - 1 <= x1 && t.y + 8 >= y0 && t.y - 3 <= y1) ents.push({ y: t.y + 6.4, f: () => drawTentOut(t, sx, sy, now) });
@@ -942,8 +942,9 @@ function drawLight(sx, sy, now) {
   const m = S.map; let a = m.dark ? (m.castle ? 0.3 : 0.5) : S.nl * 0.6; /* 던전·밤 어둠 조금 걷어냄 */
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
   if (m.inner) a = String(m.id).startsWith('tent_h_') ? 0.12 : 0.5;
+  const abyss = m.id === 'world2'; if (abyss) a = Math.max(a, 0.24); /* 심연: 붉은 보랏빛 어스름으로 다른 맵임을 표시 */
   if (a < 0.02) return;
-  lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = m.inner ? `rgba(20,10,4,${a})` : `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
+  lcx.globalCompositeOperation = 'source-over'; lcx.clearRect(0, 0, W, H); lcx.fillStyle = m.inner ? `rgba(20,10,4,${a})` : abyss ? `rgba(46,6,34,${a})` : `rgba(6,8,28,${a})`; lcx.fillRect(0, 0, W, H);
   lcx.globalCompositeOperation = 'destination-out';
   const L = (x, y, r, i = 1) => { const px = x * TS + 16 - sx, py = y * TS + 10 - sy, R = r * TS; if (px < -R || px > W + R || py < -R || py > H + R) return; const gr = lcx.createRadialGradient(px, py, 0, px, py, R); gr.addColorStop(0, `rgba(0,0,0,${i})`); gr.addColorStop(0.5, `rgba(0,0,0,${i * 0.7})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); lcx.fillStyle = gr; lcx.fillRect(px - R, py - R, R * 2, R * 2); };
   const fl = 1 + Math.sin(now / 120) * 0.04;
@@ -1221,7 +1222,7 @@ function bindAtlas(body) {
   g.font = 'bold 12px sans-serif';
   for (const t of A.towns) { g.lineWidth = 3; g.strokeStyle = '#000'; g.strokeText('⌂ ' + t.name, t.x * 2, t.y * 2 + 4); g.fillStyle = '#ffe08a'; g.fillText('⌂ ' + t.name, t.x * 2, t.y * 2 + 4); }
   // 내 위치
-  let mx = pos.x, my = pos.y; if (S.map.id !== 'world') { const dg = A.dungeons.find(d => d.name === DG_ID[S.map.id.replace(/\d+$/, '')]); if (dg) { mx = dg.x; my = dg.y; } }
+  let mx = pos.x, my = pos.y; if (!/^world/.test(S.map.id)) { const dg = A.dungeons.find(d => d.name === DG_ID[S.map.id.replace(/\d+$/, '')]); if (dg) { mx = dg.x; my = dg.y; } }
   g.fillStyle = '#fff'; g.beginPath(); g.arc(mx * 2, my * 2, 6, 0, 7); g.fill(); g.fillStyle = '#ff2a2a'; g.beginPath(); g.arc(mx * 2, my * 2, 4, 0, 7); g.fill();
   c.onclick = e => {
     const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 240, y = (e.clientY - r.top) / r.height * 240;

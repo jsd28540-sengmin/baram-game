@@ -331,7 +331,7 @@ function renderPanel() {
       T('skull', '보스 출현 시간표', `<div style="flex:1"></div><span class="mut">협력한 모두에게 직업별 보스 전용 장비</span>`);
       const L = S.bossList || [];
       h = (S.sb ? `<div class="card" style="border:1.5px solid #ffdf4a;background:#3a2200;margin-bottom:6px"><b style="color:#ffdf4a">⚡ 지금 깜짝 보스 출현 중: ${esc(S.sb.name)}</b><span class="mut">${esc(S.sb.mapName || '')} · 10분 안에 처치하지 못하면 사라져요 · 특별 장신구·좋은 옵션 장비</span></div>` : `<div class="mut" style="margin-bottom:4px">⚡ 시간표에 없는 <b>깜짝 보스</b>가 필드에 무작위로 나타나기도 해요 (10분 한정).</div>`) + `<div class="grid" style="grid-template-columns:repeat(3,1fr);gap:6px;flex:1;align-content:start">` + L.map(b => `<div class="card" style="flex-direction:row;align-items:center;gap:8px"><canvas width="112" height="112" data-bm2="${b.name}" style="width:56px;height:56px;flex:none;background:radial-gradient(circle at 50% 60%,#ffffff1a,var(--bg3) 70%);border-radius:6px"></canvas><div style="flex:1;min-width:0"><div class="nm">${b.name} <span class="mut">Lv${b.lv}</span></div><small>${b.where}</small><div>${b.alive ? '<b class="rl">출현 중!</b>' : `<span class="yl">${Math.max(0, Math.ceil(b.inMin))}분 후</span>`}</div></div></div>`).join('') + '</div>';
-      body.innerHTML = h; paintBossFaces(body); return;
+      body.innerHTML = `<div style="display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow-y:auto">${h}</div>`; paintBossFaces(body); return; /* 세로로 쌓고 넘치면 스크롤 */
     }
     case 'chest': {
       T('bag', '보관상자');
@@ -432,7 +432,7 @@ function renderAtlas(body) {
   for (const d of A.dungeons) { const [a] = lvRange(d.lv); mark(d.x * 2, d.y * 2, diffColor(a), d.type); label(d.name, d.x * 2, d.y * 2 - 13, '#fff', 13); }
   for (const b of A.fieldBosses) mark(b.x * 2, b.y * 2, '#ef4444', 'boss');
   for (const t of A.towns) { mark(t.x * 2, t.y * 2, '#fbbf24', 'town'); label(t.name, t.x * 2, t.y * 2 + 22, '#fbbf24', 14); }
-  let mx = pos.x, my = pos.y; if (S.map.id !== 'world') { const dg = A.dungeons.find(d => d.name === DG_ID[S.map.id.replace(/\d+$/, '')]); if (dg) { mx = dg.x; my = dg.y; } }
+  let mx = pos.x, my = pos.y; if (!/^world/.test(S.map.id)) { const dg = A.dungeons.find(d => d.name === DG_ID[S.map.id.replace(/\d+$/, '')]); if (dg) { mx = dg.x; my = dg.y; } }
   g.fillStyle = '#fff'; g.fillRect(mx * 2 - 6, my * 2 - 6, 12, 12); g.fillStyle = '#3b82f6'; g.fillRect(mx * 2 - 4, my * 2 - 4, 8, 8);
   c.onclick = e => {
     const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 240, y = (e.clientY - r.top) / r.height * 240;
@@ -661,12 +661,12 @@ function renderNpc(P) {
     }
     case 'stable': {
       T('horse', d.npc || '마구간');
-      L = npcHeadH(d, 'stable') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr);flex:1">` + Object.entries(GD.MOUNTS).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="tile" style="justify-content:space-between"><canvas width="56" height="80" data-mt="${id}" style="width:56px;height:80px"></canvas><div class="nm">${mt.name}</div><small class="mut">속도 x${mt.spd}</small>${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `${coinH(mt.price)}<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>`}</div>`; }).join('') + '</div>';
+      L = npcHeadH(d, 'stable') + `<div class="tiles" style="grid-template-columns:repeat(4,1fr);flex:1">` + Object.entries(GD.MOUNTS).filter(([id, mt]) => mt.price || me.mounts.includes(id)).map(([id, mt]) => { const own = me.mounts.includes(id); return `<div class="tile" style="justify-content:space-between"><canvas width="56" height="80" data-mt="${id}" style="width:56px;height:80px"></canvas><div class="nm">${mt.name}</div><small class="mut">속도 x${mt.spd}</small>${own ? `<button class="btn sm pri" data-ride="${id}" style="width:100%">${ic('check')}타기</button>` : `${mt.price ? coinH(mt.price) + `<button class="btn sm" data-bm="${id}" style="width:100%" ${me.coins < mt.price ? 'disabled' : ''}>구매</button>` : '<small class="mut">보스 드랍 전용</small>'}`}</div>`; }).join('') + '</div>';
       break;
     }
     case 'master': {
       T('crown', d.npc || '전직관');
-      L = npcHeadH(d, 'master') + `<div class="tiles" style="grid-template-columns:1fr 1fr;flex:1">` + d.opts.map(o => `<div class="card" style="padding:10px"><div class="nm" style="font-size:15px;color:#c4b5fd">${o.name}</div><small style="font-size:11px">${o.desc}</small><div class="row" style="flex-wrap:wrap;gap:3px">${o.skills.map(s => `<span class="tab" style="height:22px">${ic('zap')}&nbsp;${s}</span>`).join('')}</div><div style="flex:1"></div>${d.can ? `<button class="btn pri" data-pro="${o.id}">${ic('star')}전직하기</button>` : `<div class="mut">Lv${GD.PROMO_LEVEL}에 전직 가능</div>`}</div>`).join('') + '</div>';
+      L = npcHeadH(d, 'master') + `<div class="tiles" style="grid-template-columns:1fr 1fr;flex:0 0 auto;align-items:start">` + d.opts.map(o => promoCardH(o) + `<div style="flex:1"></div>${d.can ? `<button class="btn pri" data-pro="${o.id}">${ic('star')}전직하기</button>` : `<div class="mut">Lv${GD.PROMO_LEVEL}에 전직 가능</div>`}</div>`).join('') + '</div>';
       break;
     }
     case 'guide': case 'talk': {
@@ -1148,7 +1148,7 @@ setInterval(() => {
   let el = $('nightwarn');
   const m = S.map; if (!m || !S.me) return;
   const safe = (m.towns || []).some(t => pos.x >= t.x0 && pos.x <= t.x1 && pos.y >= t.y0 && pos.y <= t.y1) || S.tents.some(t => pos.x >= t.x && pos.x < t.x + GD.TENT_W && pos.y >= t.y && pos.y < t.y + GD.TENT_H);
-  const show = m.id === 'world' && (S.nl || 0) > 0.5 && !safe;
+  const show = /^world/.test(m.id) && (S.nl || 0) > 0.5 && !safe;
   if (show && !el) { el = document.createElement('div'); el.id = 'nightwarn'; el.innerHTML = `${ic('moon')}밤 — 어둠 추적자 출몰! 텐트·마을로 피하세요`; $('hud').appendChild(el); }
   if (!show && el) el.remove();
 }, 1000);
@@ -1230,7 +1230,7 @@ function drawBigMap() {
     else if (/Lv\d/.test(t) && /굴|성|감옥|광산|성채/.test(t)) items.push([t, l.x, l.y, l.c || '#ff9a8a', bigZoom ? 13 : 11, 2]);
     else if (bigZoom) items.push([t, l.x, l.y, '#e8ffd0', 11, 6]);
   }
-  if (m.id === 'world' && S.atlas) for (const z of S.atlas.zones || []) items.push([`${z.name} Lv${z.lv}`, (z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 'rgba(232,255,208,.85)', bigZoom ? 12 : 10, 3]);
+  if (/^world/.test(m.id) && S.atlas) for (const z of S.atlas.zones || []) items.push([`${z.name} Lv${z.lv}`, (z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 'rgba(232,255,208,.85)', bigZoom ? 12 : 10, 3]);
   items.sort((a, b) => a[5] - b[5]).forEach(([t, x, y, c, sz]) => put(t, X(x), Y(y), c, sz));
   // NPC
   if (bigZoom) for (const n of m.npcs || []) { g.fillStyle = '#ffd000'; g.fillRect(X(n.x) - 2, Y(n.y) - 2, 5, 5); }
@@ -1340,3 +1340,17 @@ document.addEventListener('pointerup', e => {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') apply(); });
   let lastMap = null; setInterval(() => { const id = S.map && S.map.id; if (lastMap && id && id !== lastMap) apply(); lastMap = id; }, 500);
 })();
+
+/* 전직 선택 카드: 직업 특징 + 능력치 막대 + 스킬마다 설명 (고르기 쉽게) */
+function promoCardH(o) {
+  const J = GD.JOBS[o.id] || {}, base = GD.JOBS[J.base] || {};
+  const bar = (lab, v, col) => { const pct = Math.max(8, Math.min(100, Math.round((v || 1) / 2 * 100))); return `<div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:34px;color:#aab">${lab}</span><span style="flex:1;height:7px;background:#0005;border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${pct}%;background:${col}"></i></span><b style="width:30px;text-align:right;color:#ddd">x${(v || 1).toFixed(2)}</b></div>`; };
+  const role = (J.mDef || 1) >= 1.5 ? '🛡 앞에서 몬스터를 막는 탱커' : (J.mAtk || 1) >= 1.35 ? '⚔ 한 방이 강한 공격수' : /heal|bless|bigheal/.test(Object.values(GD.SKILL).filter(k => k.jobs.includes(o.id)).map(k => k.fx).join()) ? '✚ 동료를 살리는 지원가' : /summon/.test(Object.values(GD.SKILL).filter(k => k.jobs.includes(o.id)).map(k => k.kind).join()) ? '☠ 소환수와 함께 싸우는 지휘관' : '✦ 넓은 범위를 쓸어버리는 광역 딜러';
+  const sks = Object.values(GD.SKILL).filter(k => k.jobs.includes(o.id) && !k.jobs.includes(J.base) && !(J.from && k.jobs.includes(J.from)));
+  const kindN = { melee: '근접', proj: '원거리', multi: '다중', aoeSelf: '주변 광역', aoeTarget: '지정 광역', line: '직선 관통', heal: '치유', buff: '강화', partyBuff: '파티 강화', taunt: '도발', summon: '소환' };
+  return `<div class="card" style="padding:10px;gap:6px"><div class="nm" style="font-size:15px;color:#c4b5fd">${o.name} <small class="mut" style="font-weight:400">${base.name || ''} 계열</small></div>
+  <div style="font-size:12px;color:#ffe08a;font-weight:700">${role}</div><small style="font-size:11px;line-height:1.45">${o.desc || J.desc || ''}</small>
+  <div style="display:flex;flex-direction:column;gap:2px">${bar('체력', J.mHp, '#ef5350')}${bar('공격', J.mAtk, '#ffb020')}${bar('방어', J.mDef, '#5aa0ff')}</div>
+  <div class="lbl" style="margin-top:2px">새로 배우는 스킬</div>
+  ${sks.map(k => `<div style="background:#0003;border-radius:5px;padding:5px 7px;font-size:11px;line-height:1.4"><b style="color:#fff">${ic('zap')} ${k.name}</b> <span class="mut">Lv${k.lv} · ${kindN[k.kind] || ''}${k.cd ? ' · 재사용 ' + Math.round(k.cd / 1000) + '초' : ''}</span><br><span style="color:#cfd4dc">${k.desc || ''}</span></div>`).join('') || o.skills.map(s => `<span class="tab" style="height:22px">${ic('zap')}&nbsp;${s}</span>`).join('')}`;
+}

@@ -45,7 +45,7 @@ must('game.js', "saves: S, srv: NET.serverOnly ? 1 : 0, solo: NET.serverOnly ? 0
 must('ui.js', "if (u === 'talk') talkBtn();", '말걸기 버튼: NPC/플레이어/안내');
 must('ui.js', 'function placePartyBox()', '모바일 파티창은 미니맵 왼쪽');
 must('assets.js', '// 변신 상태 공격 모션', '변신 공격 모션 유지');
-must('assets.js', "const S2 = Math.min(1.25, 139 / Math.max(60, rb.h)), rw2 = rb.w * S2, up = rb.h * 0.68", '탈것 탑승 자세(상체+다리) 유지');
+must('assets.js', 'function mountBack(cv, d)', '탈것 등선 위에 올라탄 자세 유지');
 must('assets.js', '// ═══════ 버튼 잘 눌리게', '버튼 터치 안정화(누르는 중 재그리기 보류·즉시 클릭) 유지');
 must('engine.js', "w: t.w, h: t.h, furn: t.furn", '텐트 실내 크기 전달(출구 막힘 방지)');
 must('engine.js', 'function tentExit(t)', '텐트 출구 안전 위치');
@@ -108,6 +108,14 @@ must('gfx.js', 'function blendTile(mt, wx, wy, dir)', '지형 경계 자연스�
 must('gfx.js', 'function fenceVert(x, y)', '세로 울타리 바르게');
 must('gfx.js', "/* 붉은 융단: 칸마다 격자선이", '융단 이어 그리기');
 must('gfx.js', '/* 줄 맞춰 똑같이 찍힌 것처럼', '나무·바위 크기·위치 변화');
+must('engine.js', 'function makeHardWorld()', '고난도 맵 심연(Lv60+)');
+must('engine.js', 'pt.minLv && p.lv < pt.minLv', '심연 입장 레벨 제한');
+must('data.js', 'hp *= 1.12 + k * 0.3; atk *= 1.08 + k * 0.24;', '전체 난이도 상향');
+must('ui.js', 'function promoCardH(o)', '전직 직업·스킬 설명');
+must('index.html', '.npcl>.tiles{flex:0 0 auto!important}', '창 목록 스크롤');
+must('ui.js', "보스 드랍 전용", '희귀 탈것 NaN 가격 방지');
+must('gfx.js', 'function townWall(x, y)', '마을 성벽 이어 그리기');
+must('gfx.js', 'function bldCovered(x, y)', '새 건물 아래 옛 지붕 숨김');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
