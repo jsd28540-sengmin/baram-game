@@ -19,7 +19,7 @@ function cleanTrees(c) { try { if (!c.getContext) return c; const g = c.getConte
       if (mx > 110 && mx - mn < 34) { d[i] = 18; d[i + 1] = 26; d[i + 2] = 12; d[i + 3] = 80; } }
     g.putImageData(im, x0, y0); }
   return c; } catch (e) { return c; } }
-(function () { let n = 0; const done = () => { if (++n === 2) { GFX.GROUND = new Set(['grass', 'forest', 'dirt', 'sand', 'snow', 'swamp', 'volc'].flatMap(k => GFX.A.tiles[k] || [])); GFX.spr = gradeSheet(GFX.spr, 0.18, '#eee9dc'); /* 새 그림은 흰 테두리가 없어 나무 정리 불필요 */ GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.onerror = () => { GFX.SS = 1; GFX.spr.onerror = null; GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); }; GFX.spr.src = 'gfx/sprites2x.webp?v=' + (window.BUILDV || 1); })();
+(function () { let n = 0; const done = () => { if (++n === 2) { GFX.GROUND = new Set(['grass', 'forest', 'dirt', 'sand', 'snow', 'swamp', 'volc'].flatMap(k => GFX.A.tiles[k] || [])); /* 새 그림은 색 보정 없이 원본 색 그대로 (보정하면 칙칙해짐) */ GFX.ok = true; tileCache.clear(); } }; GFX.tiles.onload = done; GFX.spr.onload = done; GFX.tiles.src = 'gfx/tiles.png?v=' + (window.BUILDV || 1); GFX.spr.onerror = () => { GFX.SS = 1; GFX.spr.onerror = null; GFX.spr.src = 'gfx/sprites.png?v=' + (window.BUILDV || 1); }; GFX.spr.src = 'gfx/sprites2x.webp?v=' + (window.BUILDV || 1); })();
 const gTile = (name, i) => { const L = GFX.A.tiles[name]; return L[((i % L.length) + L.length) % L.length]; };
 /* 바닥 타일 이음매 제거: 원본 타일 가장자리에 어두운 띠가 있어 화면에 가로줄·격자가 보였음 → 반 칸 밀린 그림과 가운데 기준으로 섞어 가장자리를 매끈하게 */
 const SEAM = new Map();
@@ -38,7 +38,7 @@ function gfxCellCanvas(idx, extra) {
   if (GFX.GROUND && GFX.GROUND.has(idx)) g.drawImage(seamCell(idx), 0, 0); else g.drawImage(GFX.tiles, (idx % 16) * 64, Math.floor(idx / 16) * 64, 64, 64, 0, 0, 64, 64); if (extra) extra(g); return c;
 }
 function sprRect(k) { return GFX.A.sprites[k]; }
-function drawSpr(k, dx, dy, dw, dh, g = ctx) { const r = sprRect(k); if (!r) return; const S = GFX.SS; g.drawImage(GFX.spr, r[0] * S, r[1] * S, r[2] * S, r[3] * S, dx, dy, dw, dh); }
+function drawSpr(k, dx, dy, dw, dh, g = ctx) { const r = sprRect(k); if (!r) return; const S = GFX.SS, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(GFX.spr, r[0] * S, r[1] * S, r[2] * S, r[3] * S, dx, dy, dw, dh); g.imageSmoothingEnabled = sm; } /* 2배 그림을 줄여 그릴 때 계단 깨짐 방지 */
 // 땅 종류 → 타일
 const UNDER_TILE = { g: ['grass'], f: ['forest'], d: ['sand'], s: ['snow'], w: ['swamp'], v: ['volc', 1] };
 function groundCell(u, v) { const t = UNDER_TILE[u] || UNDER_TILE.g; return t[1] != null ? GFX.A.tiles[t[0]][t[1]] : gTile(t[0], v); }

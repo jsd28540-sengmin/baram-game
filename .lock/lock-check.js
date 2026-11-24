@@ -82,7 +82,10 @@ must('game.js', 'function groundGrade(g, px, m)', '배경 색감 보정(캐릭�
 must('game.js', 'if (!m.inner) groundGrade(g, px, m);', '바닥 묶음에 색감 보정 적용');
 must('gfx.js', 'function seamCell(idx)', '바닥 타일 이음매(격자 줄) 제거');
 must('gfx.js', 'function cleanTrees(c)', '나무 흰 테두리·회색 원판 제거');
-must('gfx.js', "GFX.spr = gradeSheet(GFX.spr, 0.18, '#eee9dc');", '스프라이트 색감 보정(새 소품 그림)');
+must('gfx.js', '/* 새 그림은 색 보정 없이 원본 색 그대로', '새 소품 원본 색(칙칙함 방지)');
+must('game.js', "g.globalAlpha = m.dark ? 0.06 : 0.14; g.fillStyle = '#fff4d8';", '바닥 밝은 톤(칙칙함 방지)');
+must('index.html', 'filter:saturate(1.04) contrast(1.06) brightness(1.03)', '화면 선명도');
+must('gfx.js', "g.imageSmoothingQuality = 'high'; g.drawImage(GFX.spr", '소품 매끈하게 줄이기');
 must('gfx.js', 'function texMat(id, under, castle)', '새 바닥 그림(이음매 없는 큰 그림) 적용');
 must('gfx.js', "GFX.spr.src = 'gfx/sprites2x.webp", '새 나무·건물·소품 그림');
 must('engine.js', 'function surpriseTick(now)', '깜짝 보스 무작위 등장');

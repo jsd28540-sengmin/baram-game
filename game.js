@@ -669,9 +669,8 @@ function drawGroundTile(m, x, y, X0, Y0, fr) {
    해결: 바닥 묶음 그림을 만들 때 한 번만 채도 ↓ · 밝기 ↓ · 따뜻한 톤으로 맞춤 (매 프레임 비용 없음) */
 function groundGrade(g, px, m) {
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalCompositeOperation = 'saturation'; g.globalAlpha = m.dark ? 0.22 : 0.34; g.fillStyle = '#808080'; g.fillRect(0, 0, px, px);
-  g.globalCompositeOperation = 'multiply'; g.globalAlpha = m.dark ? 0.5 : 0.9; g.fillStyle = m.castle ? '#e6e0ec' : '#e2dccb'; g.fillRect(0, 0, px, px);
-  g.globalCompositeOperation = 'soft-light'; g.globalAlpha = 0.18; g.fillStyle = '#7a6a50'; g.fillRect(0, 0, px, px);
+  /* 새 GPT 바닥은 이미 차분한 색이라, 예전처럼 채도·밝기를 깎으면 칙칙해짐 → 햇살 느낌만 살짝 */
+  g.globalCompositeOperation = 'soft-light'; g.globalAlpha = m.dark ? 0.06 : 0.14; g.fillStyle = '#fff4d8'; g.fillRect(0, 0, px, px);
   g.restore();
 }
 const GCH = 8, gChunks = new Map(); let gKey = '';
@@ -940,7 +939,7 @@ function placeAt(tx, ty) {
   if (S.place.del) send({ t: 'furnDel', s: S.place.s, x: lx, y: ly }); else send({ t: 'furn', s: S.place.s, k: S.place.k, x: lx, y: ly });
 }
 function drawLight(sx, sy, now) {
-  const m = S.map; let a = m.dark ? (m.castle ? 0.42 : 0.66) : S.nl * 0.7;
+  const m = S.map; let a = m.dark ? (m.castle ? 0.3 : 0.5) : S.nl * 0.6; /* 던전·밤 어둠 조금 걷어냄 */
   if (m.dark && S.nl > 0) a = Math.min(0.92, a + S.nl * 0.05);
   if (m.inner) a = String(m.id).startsWith('tent_h_') ? 0.12 : 0.5;
   if (a < 0.02) return;
