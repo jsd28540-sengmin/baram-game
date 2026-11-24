@@ -571,6 +571,7 @@ function drawFx(now, sx, sy, layer) {
     const X = (x) => x * TS + TS / 2 - sx, Y = (y) => y * TS + TS / 2 - sy;
     const text = ['dmg', 'heal', 'mana', 'coin'].includes(f.k);
     if ((layer === 'top') !== text) continue;
+    if (f.hide) continue; /* 그림 스킬 이펙트로 대체됨 */
     g.save();
     switch (f.k) {
       case 'dmg': case 'heal': case 'mana': case 'coin': {

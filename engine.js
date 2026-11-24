@@ -702,7 +702,8 @@ const dirty = p => { p.dirty = true; };
 function sysMsg(p, text, c = '#ffe28a') { if (p.ws) p.ws.send({ t: 'msg', text, c }); }
 function broadcast(o, mapId) { const s = JSON.stringify(o); for (const p of PLAYERS.values()) if (!mapId || p.map === mapId) p.ws.send(s); }
 function announce(text, c = '#ffb84d') { broadcast({ t: 'msg', text, c, big: 1 }); }
-function fx(m, o) { m.fx.push(o); }
+let FX_SID = null; /* 지금 쓰는 스킬 id — 스킬 이펙트 그림 연결용 */
+function fx(m, o) { if (FX_SID && (o.k === 'skill' || o.k === 'proj') && !o.s) o.s = FX_SID; m.fx.push(o); }
 
 function sendMap(p) {
   const m = MAPS[p.map];
@@ -1206,8 +1207,8 @@ function useSkill(p, sid) {
   if ((p.cds[sid] || 0) > now) return;
   calc(p);
   const mpc = D.skillMp(sk, p.lv, p.job); if (p.mp < mpc) return sysMsg(p, '마나가 부족합니다. (파란 물약!)', '#7ab4ff');
-  let ok = true; const A = p.st.atk;
-  switch (sk.kind) {
+  let ok = true; const A = p.st.atk; FX_SID = sid;
+  try { switch (sk.kind) {
     case 'melee': { const t = frontMon(m, p) || (p.target && m.mons.get(p.target) && dist(m.mons.get(p.target), p) < 1.6 ? m.mons.get(p.target) : null); if (!t) { ok = false; sysMsg(p, '앞에 적이 없습니다.', '#bbb'); break; } faceTo(p, t); fx(m, { k: 'skill', f: sk.fx, x: t.x, y: t.y, c: sk.col, id: p.id }); hitMon(m, t, p, A, sk.mul); if (sk.fx === 'slash3') { setTimeout(() => m.mons.has(t.id) && hitMon(m, t, p, A, sk.mul * 0.25), 180); } break; }
     case 'proj': { const t = pickTarget(m, p, sk.range); if (!t) { ok = false; sysMsg(p, '사거리 안에 적이 없습니다.', '#bbb'); break; } faceTo(p, t); fx(m, { k: 'proj', f: sk.fx, fx: p.x, fy: p.y, tx: t.x, ty: t.y, c: sk.col }); hitMon(m, t, p, A, sk.mul); break; }
     case 'multi': { const ts = [...m.mons.values()].filter(x => !x.summon && dist(x, p) <= sk.range && los(m, p, x)).sort((a, b) => dist(a, p) - dist(b, p)).slice(0, sk.n); if (!ts.length) { ok = false; sysMsg(p, '사거리 안에 적이 없습니다.', '#bbb'); break; } faceTo(p, ts[0]); let prev = p; ts.forEach(t => { fx(m, { k: 'proj', f: sk.fx, fx: prev.x, fy: prev.y, tx: t.x, ty: t.y, c: sk.col }); if (sk.fx === 'bolt') prev = t; hitMon(m, t, p, A, sk.mul); }); break; }
@@ -1229,7 +1230,7 @@ function useSkill(p, sid) {
       }
       break;
     }
-  }
+  } } finally { FX_SID = null; }
   if (!ok) return;
   p.combatT = now; p.mp -= mpc; p.cds[sid] = now + sk.cd; p.sleeping = false; dirty(p);
 }
@@ -1395,7 +1396,7 @@ function handle(p, msg) {
       const pt = m.portals[x + ',' + y]; if (pt) teleport(p, pt.to, pt.x, pt.y, pt.near); else tentDoorCheck(p);
       break;
     }
-    case 'dbg': if (!ENV.DEBUG) return; if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
+    case 'dbg': if (!ENV.DEBUG) return; if (msg.job && D.JOBS[msg.job]) { p.job = msg.job; calc(p); } if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
     case 'face': p.dir = clamp(msg.d | 0, 0, 3); break;
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;

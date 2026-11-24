@@ -94,6 +94,10 @@ must('data.js', "'necklace', 'ring', 'cape'", '장신구 장착 칸(목걸이·�
 must('sprites.js', "case 'necklace':", '장신구 아이콘');
 must('data.js', 'if (m.boss) { hp *= 50; atk *= 2.3;', '보스 난이도 상향');
 must('engine.js', 'mon.maxHp * 17); mon.atk = Math.round(mon.atk * 1.75)', '중보스 난이도 상향');
+must('engine.js', 'let FX_SID = null;', '스킬 이펙트에 스킬 id 전달');
+must('assets.js', "const SH = {}, CEL = 192;", '스킬 이펙트 그림 시트');
+must('assets.js', 'if (!sheet(sn)) return _add(f);', '그림 못 받으면 기존 이펙트로');
+must('game.js', 'if (f.hide) continue;', '그림 이펙트로 대체된 기존 이펙트 숨김');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

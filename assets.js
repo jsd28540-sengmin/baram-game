@@ -757,3 +757,63 @@
     drawText(t.owner + '의 집', x0 + w * TS / 2, wt - 6, '#ffe0a0', 12);
   };
 })();
+
+// ═══════ 스킬 이펙트 그림 (GPT 시트 15장, 4프레임) ═══════
+(function () {
+  // [시트, 줄, 방식, 크기(칸), 바닥기준(0~1)]  방식: area 대상/자기 위치, proj 날아가며+명중, impact 대상마다 명중, line 직선, once 시전자 1회
+  const M = {
+    w_smash: ['w1', 0, 'area', 2.4, .75], w_spin: ['w1', 1, 'area', 0, .6], w_roar: ['w1', 2, 'area', 2.6, .8], g_wall: ['w1', 3, 'area', 2.6, .82],
+    g_taunt: ['w2', 0, 'area', 0, .55], g_quake: ['w2', 1, 'area', 0, .72], b_rage: ['w2', 2, 'area', 2.6, .8], b_combo: ['w2', 3, 'area', 2.4, .6],
+    b_storm: ['w3', 0, 'area', 0, .78], pa_wall: ['w3', 1, 'area', 0, .8], pa_hammer: ['w3', 2, 'area', 0, .78], fo_iron: ['w3', 3, 'area', 2.8, .85],
+    g_knight: ['w5', 0, 'area', 2.8, .85], g_king: ['w5', 1, 'area', 3, .85], b_knight: ['w5', 2, 'area', 2.8, .85], b_king: ['w5', 3, 'area', 3, .85],
+    fo_taunt: ['w2', 1, 'area', 0, .72], bm_dance: ['w2', 3, 'impact', 2, .6], de_crush: ['h6', 1, 'area', 0, .75], de_end: ['m1', 3, 'area', 0, .78],
+    m_fire: ['m1', 0, 'proj', 1.9, .6], m_frost: ['m1', 1, 'area', 0, .75], m_chain: ['m1', 2, 'impact', 2.2, .6], e_meteor: ['m1', 3, 'area', 0, .78],
+    e_bliz: ['m2', 0, 'area', 0, .78], e_hell: ['m2', 1, 'area', 0, .75], e_aura: ['m2', 2, 'area', 2.8, .7], e_cata: ['m2', 3, 'area', 0, .72],
+    s_wolf: ['m3', 0, 'area', 2.2, .75], s_golem: ['m3', 1, 'area', 2.6, .8], s_spirit: ['m3', 2, 'area', 2.4, .78], s_prison: ['m3', 3, 'area', 0, .82],
+    s_lich: ['m4', 0, 'area', 2.8, .8], am_surge: ['m4', 1, 'area', 2.8, .8], am_rain: ['m4', 2, 'area', 0, .78], cm_slow: ['m4', 3, 'area', 0, .78],
+    cm_haste: ['m5', 0, 'area', 0, .78], lk_legion: ['m5', 1, 'area', 2.4, .75], lk_dk: ['m5', 2, 'area', 2.8, .8], hx_plague: ['m5', 3, 'area', 0, .8],
+    h_shot: ['h1', 0, 'proj', 1.7, .5], h_heal: ['h1', 1, 'area', 0, .75], h_multi: ['h1', 2, 'once', 2.4, .5], r_rain: ['h1', 3, 'area', 0, .8],
+    r_pierce: ['h2', 0, 'line', 0, .5], r_aid: ['h2', 1, 'area', 0, .75], r_eye: ['h2', 2, 'area', 2.6, .7], r_snipe: ['h2', 3, 'proj', 2.6, .8],
+    p_great: ['h3', 0, 'area', 0, .78], p_bless: ['h3', 1, 'area', 0, .78], p_holy: ['h3', 2, 'area', 0, .6], p_revive: ['h3', 3, 'area', 0, .82],
+    p_angel: ['h4', 0, 'area', 0, .82], sn_head: ['h4', 1, 'proj', 1.8, .5], sn_focus: ['h4', 2, 'area', 2.6, .65], aa_rain: ['h4', 3, 'area', 0, .82],
+    aa_storm: ['h5', 0, 'once', 3, .78], st_light: ['h5', 1, 'area', 0, .72], st_miracle: ['h5', 2, 'area', 0, .82], iq_bolt: ['h5', 3, 'area', 0, .82],
+    iq_judge: ['h6', 0, 'area', 0, .8], bm_flash: ['h2', 0, 'line', 0, .5],
+  };
+  const SH = {}, CEL = 192;
+  const sheet = n => { let o = SH[n]; if (!o) { o = SH[n] = new Image(); o.src = 'gfx/sfx/' + n + '.webp'; } return o.complete && o.naturalWidth ? o : null; };
+  // 처음 화면에 들어올 때 내 직업 시트를 미리 받아둠
+  setTimeout(() => { try { const used = new Set(Object.values(M).map(v => v[0])); for (const n of used) sheet(n); } catch (e) { } }, 6000);
+  const L = []; const lastOnce = {};
+  const _add = addFx;
+  addFx = function (f) {
+    const mp = f && f.s && M[f.s];
+    if (mp && (f.k === 'skill' || f.k === 'proj')) {
+      const [sn, row, mode, size, by] = mp; const now = performance.now();
+      if (!sheet(sn)) return _add(f); // 그림 아직 못 받음 → 기존 이펙트
+      if (mode === 'proj' && f.k === 'proj') { _add(f); f.hide = 1; L.push({ sn, row, f0: 0, f1: 1, t0: now, dur: f.dur, fx: f.fx, fy: f.fy, tx: f.tx, ty: f.ty, sz: size, by, rot: 1 }); L.push({ sn, row, f0: 2, f1: 3, t0: now + f.dur, dur: 380, x: f.tx, y: f.ty, sz: size * 1.25, by }); return; }
+      if (mode === 'impact' && f.k === 'proj') { _add(f); L.push({ sn, row, f0: 0, f1: 3, t0: now + f.dur * 0.8, dur: 520, x: f.tx, y: f.ty, sz: size, by }); return; }
+      if (mode === 'once' && f.k === 'proj') { _add(f); if (now - (lastOnce[f.s] || 0) > 300) { lastOnce[f.s] = now; L.push({ sn, row, f0: 0, f1: 3, t0: now, dur: 600, x: f.fx, y: f.fy, sz: size, by, ang: mp[2] === 'once' && f.s === 'h_multi' ? Math.atan2(f.ty - f.fy, f.tx - f.fx) : null }); } return; }
+      if (f.k === 'skill') { _add(f); f.hide = 1;
+        let sz = size || Math.min(/meteor|rain/.test(f.f) ? 7 : 5.2, Math.max(2.6, (f.r || 1.5) * 2 + 0.8)), dur = Math.max(f.dur || 650, mode === 'area' && /meteor|rain/.test(f.f) ? 950 : 720);
+        if (mode === 'line') { const d = [[0, 1], [-1, 0], [1, 0], [0, -1]][f.d | 0], r = f.r || 5; L.push({ sn, row, f0: 0, f1: 3, t0: now, dur: 520, x: f.x + d[0] * r / 2, y: f.y + d[1] * r / 2, sz: r + 1, by, ang: Math.atan2(d[1], d[0]) }); return; }
+        L.push({ sn, row, f0: 0, f1: 3, t0: now, dur, x: f.x, y: f.y, sz, by, id: f.id }); return; }
+    }
+    return _add(f);
+  };
+  const _dfx = drawFx;
+  drawFx = function (now, sx, sy, layer) {
+    _dfx(now, sx, sy, layer); if (layer === 'top' || !L.length) return;
+    const g = ctx;
+    for (let i = L.length - 1; i >= 0; i--) { const e = L[i]; const k = (now - e.t0) / e.dur; if (k >= 1) { L.splice(i, 1); continue; } if (k < 0) continue;
+      const im = sheet(e.sn); if (!im) continue;
+      const fr = Math.min(e.f1, e.f0 + Math.floor(k * (e.f1 - e.f0 + 1)));
+      let x = e.x, y = e.y, ang = e.ang;
+      if (e.rot) { x = e.fx + (e.tx - e.fx) * k; y = e.fy + (e.ty - e.fy) * k; ang = Math.atan2(e.ty - e.fy, e.tx - e.fx); }
+      const px = x * TS + TS / 2 - sx, py = y * TS + TS / 2 - sy - (e.rot || ang != null ? 12 : 0);
+      const W = e.sz * TS / 0.86; const a = k > 0.82 ? (1 - k) / 0.18 : 1;
+      g.save(); g.globalAlpha = a; g.translate(px, py); if (ang != null) g.rotate(ang);
+      g.drawImage(im, fr * CEL, e.row * CEL, CEL, CEL, -W / 2, ang != null ? -W / 2 : -W * e.by, W, W);
+      g.restore(); }
+  };
+  window.SKFX = { M, L };
+})();
