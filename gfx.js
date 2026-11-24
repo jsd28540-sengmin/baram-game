@@ -67,10 +67,12 @@ tileImg = function (id, v, pal, castle, frame, under) {
   if (!GFX.ok) return _tileImgEnv(id, v, pal, castle, frame, under);
   { const mt = texMat(id, under, castle), tx = mt && GTEX[mt]; if (tx && tx.ok) {
     const P = GPER[mt] || GTP, an = mt === 'water' || mt === 'lava' ? (frame | 0) : 0; /* 물·용암은 프레임마다 그림을 살짝 흘려 움직임 */
-    const gx = ((TEXPOS.x % P) + P) % P, gy = ((TEXPOS.y % P) + P) % P, key = 'T|' + mt + '|' + gx + '|' + gy + '|' + an + '|' + (id === T.FENCE ? 'f' : '') + (id === T.CAVE ? 'c' : '');
+    const gx = ((TEXPOS.x % P) + P) % P, gy = ((TEXPOS.y % P) + P) % P, key = 'T|' + mt + '|' + gx + '|' + gy + '|' + an + '|' + (id === T.FENCE ? (fenceVert(TEXPOS.x, TEXPOS.y) ? 'fv' : 'f') : '') + (id === T.CAVE ? 'c' : '');
     let c = tileCache.get(key); if (c) return c; c = mk(64, 64); const g = c.getContext('2d');
     if (an) { const W = P * 64, ox = (gx * 64 + an * 6) % W, oy = (gy * 64 + an * 3) % W; for (const dx of [0, W]) for (const dy of [0, W]) g.drawImage(tx, dx - ox, dy - oy); } else g.drawImage(tx, gx * 64, gy * 64, 64, 64, 0, 0, 64, 64);
-    if (id === T.FENCE) { const r = sprRect('fence'), S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }
+    if (id === T.FENCE) { const vert = fenceVert(TEXPOS.x, TEXPOS.y), SS = GFX.SS;
+      if (vert) { /* 세로 울타리: 기둥 + 세로 난간 (가로 울타리를 쌓아 사다리처럼 보이던 문제) */ g.fillStyle = '#3a2412'; g.fillRect(27, 0, 10, 64); g.fillStyle = '#8a5a2e'; g.fillRect(29, 0, 6, 64); g.fillStyle = '#a8743e'; g.fillRect(29, 0, 2, 64); const r = sprRect('fencepost'); g.drawImage(GFX.spr, r[0] * SS, r[1] * SS, r[2] * SS, r[3] * SS, 18, 8, 28, 50); }
+      else { const r = sprRect('fence'); g.drawImage(GFX.spr, (r[0] + 20) * SS, r[1] * SS, 54 * SS, r[3] * SS, 0, 24, 64, 40); } }
     tileCache.set(key, c); return c; } }
   const key = 'G|' + id + '|' + v + '|' + frame + '|' + under + '|' + castle + '|' + pal;
   let c = tileCache.get(key); if (c) return c;
@@ -88,7 +90,15 @@ tileImg = function (id, v, pal, castle, frame, under) {
     case T.LAVA: cell = gTile('lava', v + frame * 2); break;
     case T.WATER: cell = gTile('water', v + frame); break;
     case T.CASTLE: cell = castle ? GFX.A.tiles.flag2[v % 3] : GFX.A.tiles.castle[0]; break;
-    case T.CARPET: cell = GFX.A.tiles.castle[1 + (v % 2)]; break;
+    case T.CARPET: { /* 붉은 융단: 칸마다 격자선이 보이던 것을 이어진 융단 + 바깥 테두리만 금색으로 */
+      const C = T.CARPET, x = TEXPOS.x, y = TEXPOS.y, n = [tileAt(x, y - 1) === C, tileAt(x + 1, y) === C, tileAt(x, y + 1) === C, tileAt(x - 1, y) === C];
+      const ck = 'CARPET|' + n.map(b => b ? 1 : 0).join('') + '|' + ((x + y) & 1); let cc = tileCache.get(ck); if (cc) return cc;
+      cc = mk(64, 64); const g = cc.getContext('2d'); if (GTEX.castle && GTEX.castle.ok) g.drawImage(GTEX.castle, ((x % 20) + 20) % 20 * 64, ((y % 20) + 20) % 20 * 64, 64, 64, 0, 0, 64, 64);
+      const L = n[3] ? 0 : 6, R = n[1] ? 64 : 58, U = n[0] ? 0 : 6, D = n[2] ? 64 : 58;
+      g.fillStyle = '#6a1418'; g.fillRect(L, U, R - L, D - U); g.fillStyle = '#8a2026'; g.fillRect(L + (n[3] ? 0 : 4), U + (n[0] ? 0 : 4), R - L - (n[3] ? 0 : 4) - (n[1] ? 0 : 4), D - U - (n[0] ? 0 : 4) - (n[2] ? 0 : 4));
+      g.fillStyle = 'rgba(255,200,120,.06)'; for (let i = 0; i < 64; i += 8) g.fillRect(0, i + ((x + y) & 1) * 4, 64, 2);
+      g.fillStyle = '#d0a040'; if (!n[0]) g.fillRect(L, U, R - L, 3); if (!n[2]) g.fillRect(L, D - 3, R - L, 3); if (!n[3]) g.fillRect(L, U, 3, D - U); if (!n[1]) g.fillRect(R - 3, U, 3, D - U);
+      tileCache.set(ck, cc); return cc; }
     case T.CAVE: cell = gTile('dirt', v); extra = g => { g.fillStyle = 'rgba(38,26,44,0.5)'; g.fillRect(0, 0, 64, 64); }; break;
     case T.TREE: case T.PINE: case T.DEADTREE: case T.CACTUS: case T.ROCK: cell = groundCell(under || (id === T.PINE ? 's' : id === T.CACTUS ? 'd' : id === T.DEADTREE ? 'w' : id === T.ROCK && castle ? 'v' : 'g'), v); if (id === T.ROCK && under === 'c') cell = GFX.A.tiles.volc[2]; break;
     case T.FENCE: cell = groundCell(under || 'g', v); extra = g => { const r = sprRect('fence'); const S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }; break;
@@ -114,10 +124,13 @@ drawTreeAt = function (id, x, y, sx, sy, under) {
   else if (id === T.DEADTREE || under === 'w' || under === 'v') k = 'dead';
   else if (under === 'f') k = v === 1 ? 'pine' : 'oak';
   else k = v === 2 ? 'apple' : v === 3 ? 'cherry' : 'oak';
-  const r = sprRect(k); const sc = id === T.ROCK ? 0.42 : k === 'cactus' ? 0.6 : 0.64; const w = r[2] * sc, h = r[3] * sc;
-  const bx = x * TS + 16 - sx, by = (y + 1) * TS - sy - (id === T.ROCK ? 3 : 2);
+  /* 줄 맞춰 똑같이 찍힌 것처럼 보이던 문제: 칸마다 크기·위치·좌우를 조금씩 다르게 */
+  let hh = Math.imul(x * 374761393 + y * 668265263, 1274126177); hh ^= hh >>> 13; const q1 = ((hh >>> 0) % 1000) / 1000, q2 = ((hh >>> 10) % 1000) / 1000, q3 = ((hh >>> 20) % 1000) / 1000;
+  const r = sprRect(k); const sc = (id === T.ROCK ? 0.42 : k === 'cactus' ? 0.6 : 0.64) * (0.86 + q1 * 0.26); const w = r[2] * sc, h = r[3] * sc;
+  const bx = x * TS + 16 - sx + (q2 - 0.5) * 12, by = (y + 1) * TS - sy - (id === T.ROCK ? 3 : 2) + (q3 - 0.5) * 6;
   ctx.fillStyle = 'rgba(20,40,10,.25)'; ctx.beginPath(); ctx.ellipse(bx, by - 2, w * 0.36, 5, 0, 0, 7); ctx.fill();
-  drawSpr(k, Math.round(bx - w / 2), Math.round(by - h), Math.round(w), Math.round(h));
+  if (q3 > 0.5) { ctx.save(); ctx.translate(Math.round(bx), 0); ctx.scale(-1, 1); drawSpr(k, Math.round(-w / 2), Math.round(by - h), Math.round(w), Math.round(h)); ctx.restore(); }
+  else drawSpr(k, Math.round(bx - w / 2), Math.round(by - h), Math.round(w), Math.round(h));
 };
 // 건물
 const BLD_SPR = { shop: 'b_shop', gear: 'b_gear', smith: 'b_smith', stable: 'b_stable', master: 'b_master', bank: 'b_bank' };
@@ -165,3 +178,35 @@ function drawEntrances(m, sx, sy, ents) {
     const castle = /^(obs|demon|ruin|abyss|prison)/.test(p.to); const key = castle ? 'gate' : 'cave'; const r = sprRect(key); const w = (castle ? 4.6 : 3.8) * TS, h = w * r[3] / r[2];
     ents.push({ y: y + 0.5, f: () => drawSpr(key, Math.round(x * TS + 16 - w / 2 - sx), Math.round((y + 1) * TS - h - sy), Math.round(w), Math.round(h)) }); }
 }
+
+// ═══ 지형 경계 자연스럽게: 계단처럼 딱 끊기던 경계를, 이웃 지형 그림이 들쭉날쭉 스며들게 ═══
+function fenceVert(x, y) { try { const F = T.FENCE; if (tileAt(x - 1, y) === F || tileAt(x + 1, y) === F) return false; return tileAt(x, y - 1) === F || tileAt(x, y + 1) === F; } catch (e) { return false; } }
+const MATPRI = { grass: 8, forest: 7, snow: 6, sand: 5, swamp: 4, ash: 4, dirt: 3, cobble: 2, cave: 1, castle: 1, water: 0, lava: 0 };
+function matAt(x, y) { const m = S.map; if (!m || x < 0 || y < 0 || x >= m.w || y >= m.h) return null; const id = m.t[y * m.w + x]; const under = m.biome && (id === T.TREE || id === T.FLOWER || id === T.ROCK || id === T.FENCE) ? biomeChar(x, y) : ''; return texMat(id, under, m.castle); }
+const BLEND = new Map();
+const hsh = (x, y) => { let h = Math.imul(x * 374761393 + y * 668265263, 1274126177); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
+function blendTile(mt, wx, wy, dir) { /* dir 0위 1오 2아래 3왼 4~7 모서리 */
+  const P = GPER[mt] || GTP, gx = ((wx % P) + P) % P, gy = ((wy % P) + P) % P, key = mt + '|' + gx + '|' + gy + '|' + dir;
+  let c = BLEND.get(key); if (c) return c; if (BLEND.size > 3000) BLEND.clear();
+  c = mk(64, 64); const g = c.getContext('2d'); g.drawImage(GTEX[mt], gx * 64, gy * 64, 64, 64, 0, 0, 64, 64);
+  try { const im = g.getImageData(0, 0, 64, 64), d = im.data;
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+      let dist; if (dir === 0) dist = y; else if (dir === 1) dist = 63 - x; else if (dir === 2) dist = 63 - y; else if (dir === 3) dist = x;
+      else { const cx = dir === 4 || dir === 7 ? 0 : 63, cy = dir === 4 || dir === 5 ? 0 : 63; dist = Math.hypot(x - cx, y - cy) - 4; }
+      const along = dir === 0 || dir === 2 ? wx * 64 + x : dir === 1 || dir === 3 ? wy * 64 + y : wx * 64 + x + wy * 64 + y;
+      const wob = Math.sin(along * 0.11) * 4 + Math.sin(along * 0.037 + 1.7) * 5 + (hsh(wx * 64 + x, wy * 64 + y) - 0.5) * 5;
+      const edge = (dir >= 4 ? 20 : 23) + wob, a = Math.max(0, Math.min(1, (edge - dist) / 5));
+      d[(y * 64 + x) * 4 + 3] = Math.round(a * 255); }
+    g.putImageData(im, 0, 0); } catch (e) { }
+  BLEND.set(key, c); return c;
+}
+const _edgesOld = drawEdges;
+drawEdges = function (id, x, y, X0, Y0) {
+  const m = S.map; const me = GFX.ok && m && !m.castle ? matAt(x, y) : null;
+  if (!me || !GTEX[me] || !GTEX[me].ok) return _edgesOld(id, x, y, X0, Y0);
+  const pm = MATPRI[me]; const side = [];
+  for (let k = 0; k < 4; k++) { const n = matAt(x + NB[k][0], y + NB[k][1]); side[k] = n; if (n && n !== me && MATPRI[n] > pm && GTEX[n] && GTEX[n].ok) ctx.drawImage(blendTile(n, x, y, k), X0, Y0, TS, TS); }
+  const DG = [[1, -1, 0, 1, 5], [1, 1, 1, 2, 6], [-1, 1, 2, 3, 7], [-1, -1, 3, 0, 4]];
+  for (const [dx, dy, a, b, dir] of DG) { const n = matAt(x + dx, y + dy); if (n && n !== me && MATPRI[n] > pm && side[a] !== n && side[b] !== n && GTEX[n] && GTEX[n].ok) ctx.drawImage(blendTile(n, x, y, dir), X0, Y0, TS, TS); }
+  if (me === 'water') { /* 물가: 젖은 테두리 그늘 */ for (let k = 0; k < 4; k++) { const n = side[k]; if (n && n !== 'water' && n !== 'lava') { const t = tileAt(x + NB[k][0], y + NB[k][1]); if (t === T.BRIDGE) continue; const gr = k === 0 ? ctx.createLinearGradient(0, Y0, 0, Y0 + TS * 0.35) : k === 2 ? ctx.createLinearGradient(0, Y0 + TS, 0, Y0 + TS * 0.65) : k === 1 ? ctx.createLinearGradient(X0 + TS, 0, X0 + TS * 0.65, 0) : ctx.createLinearGradient(X0, 0, X0 + TS * 0.35, 0); gr.addColorStop(0, 'rgba(20,40,40,.35)'); gr.addColorStop(1, 'rgba(20,40,40,0)'); ctx.fillStyle = gr; ctx.fillRect(X0, Y0, TS, TS); } } }
+};

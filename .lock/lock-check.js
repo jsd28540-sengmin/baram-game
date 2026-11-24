@@ -101,6 +101,10 @@ must('assets.js', "const SH = {}, CEL = 192;", '스킬 이펙트 그림 시트')
 must('assets.js', 'if (!sheet(sn)) return _add(f);', '그림 못 받으면 기존 이펙트로');
 must('game.js', 'if (f.hide) continue;', '그림 이펙트로 대체된 기존 이펙트 숨김');
 must('gfx.js', "if (id === T.CASTLE) return 'castle'; if (id === T.LAVA) return 'lava';", '새 바닥 그림 9종(사막·설원·늪·화산·성·동굴·물·용암)');
+must('gfx.js', 'function blendTile(mt, wx, wy, dir)', '지형 경계 자연스럽게 스며들기');
+must('gfx.js', 'function fenceVert(x, y)', '세로 울타리 바르게');
+must('gfx.js', "/* 붉은 융단: 칸마다 격자선이", '융단 이어 그리기');
+must('gfx.js', '/* 줄 맞춰 똑같이 찍힌 것처럼', '나무·바위 크기·위치 변화');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
