@@ -100,6 +100,7 @@ must('engine.js', 'let FX_SID = null;', '스킬 이펙트에 스킬 id 전달');
 must('assets.js', "const SH = {}, CEL = 192;", '스킬 이펙트 그림 시트');
 must('assets.js', 'if (!sheet(sn)) return _add(f);', '그림 못 받으면 기존 이펙트로');
 must('game.js', 'if (f.hide) continue;', '그림 이펙트로 대체된 기존 이펙트 숨김');
+must('gfx.js', "if (id === T.CASTLE) return 'castle'; if (id === T.LAVA) return 'lava';", '새 바닥 그림 9종(사막·설원·늪·화산·성·동굴·물·용암)');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

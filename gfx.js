@@ -52,9 +52,13 @@ function wallSlice(key, v, full) {
 const _tileImgEnv = tileImg;
 /* 새 바닥 그림(이음매 없는 큰 그림 한 장, 10칸 주기): 칸의 실제 위치로 잘라 써서 이음매·격자가 생기지 않음 */
 const TEXPOS = { x: 0, y: 0 }, GTEX = {}, GTP = 10;
-for (const n of ['grass', 'forest', 'dirt', 'cobble']) { const im = new Image(); im.onload = () => { im.ok = 1; tileCache.clear(); if (typeof gChunks !== 'undefined') gChunks.clear(); }; im.src = 'gfx/ground_' + n + '.webp?v=' + (window.BUILDV || 1); GTEX[n] = im; }
+const GPER = { castle: 20, lava: 20 }; /* 나머지는 10칸 주기 */
+for (const n of ['grass', 'forest', 'dirt', 'cobble', 'sand', 'snow', 'swamp', 'ash', 'cave', 'water', 'lava', 'castle']) { const im = new Image(); im.onload = () => { im.ok = 1; tileCache.clear(); if (typeof gChunks !== 'undefined') gChunks.clear(); }; im.src = 'gfx/ground_' + n + '.webp?v=' + (window.BUILDV || 1); GTEX[n] = im; }
 function texMat(id, under, castle) {
+  if (id === T.CASTLE) return 'castle'; if (id === T.LAVA) return 'lava'; if (id === T.WATER) return 'water'; if (id === T.CAVE) return 'cave';
   if (castle) return null;
+  if (id === T.SAND) return 'sand'; if (id === T.SNOW) return 'snow'; if (id === T.SWAMP) return 'swamp'; if (id === T.ASH) return 'ash';
+  if (id === T.TREE || id === T.FENCE || id === T.ROCK || id === T.PINE || id === T.CACTUS || id === T.DEADTREE) { const u = under || (id === T.PINE ? 's' : id === T.CACTUS ? 'd' : id === T.DEADTREE ? 'w' : id === T.ROCK ? '' : 'g'); const M = { g: 'grass', f: 'forest', d: 'sand', s: 'snow', w: 'swamp', v: 'ash' }; return M[u] || null; }
   if (id === T.GRASS || id === T.FLOWER) return 'grass'; if (id === T.FOREST) return 'forest'; if (id === T.ROAD) return 'dirt'; if (id === T.STONE) return 'cobble';
   if (id === T.TREE || id === T.FENCE || id === T.ROCK) { const u = under || (id === T.ROCK ? '' : 'g'); return u === 'g' ? 'grass' : u === 'f' ? 'forest' : null; }
   return null;
@@ -62,8 +66,10 @@ function texMat(id, under, castle) {
 tileImg = function (id, v, pal, castle, frame, under) {
   if (!GFX.ok) return _tileImgEnv(id, v, pal, castle, frame, under);
   { const mt = texMat(id, under, castle), tx = mt && GTEX[mt]; if (tx && tx.ok) {
-    const gx = ((TEXPOS.x % GTP) + GTP) % GTP, gy = ((TEXPOS.y % GTP) + GTP) % GTP, key = 'T|' + mt + '|' + gx + '|' + gy + '|' + (id === T.FENCE ? 'f' : '');
-    let c = tileCache.get(key); if (c) return c; c = mk(64, 64); const g = c.getContext('2d'); g.drawImage(tx, gx * 64, gy * 64, 64, 64, 0, 0, 64, 64);
+    const P = GPER[mt] || GTP, an = mt === 'water' || mt === 'lava' ? (frame | 0) : 0; /* 물·용암은 프레임마다 그림을 살짝 흘려 움직임 */
+    const gx = ((TEXPOS.x % P) + P) % P, gy = ((TEXPOS.y % P) + P) % P, key = 'T|' + mt + '|' + gx + '|' + gy + '|' + an + '|' + (id === T.FENCE ? 'f' : '') + (id === T.CAVE ? 'c' : '');
+    let c = tileCache.get(key); if (c) return c; c = mk(64, 64); const g = c.getContext('2d');
+    if (an) { const W = P * 64, ox = (gx * 64 + an * 6) % W, oy = (gy * 64 + an * 3) % W; for (const dx of [0, W]) for (const dy of [0, W]) g.drawImage(tx, dx - ox, dy - oy); } else g.drawImage(tx, gx * 64, gy * 64, 64, 64, 0, 0, 64, 64);
     if (id === T.FENCE) { const r = sprRect('fence'), S = GFX.SS; g.drawImage(GFX.spr, (r[0] + 20) * S, r[1] * S, 54 * S, r[3] * S, 0, 24, 64, 40); }
     tileCache.set(key, c); return c; } }
   const key = 'G|' + id + '|' + v + '|' + frame + '|' + under + '|' + castle + '|' + pal;
