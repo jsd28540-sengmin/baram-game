@@ -766,7 +766,7 @@
     g_taunt: ['w2', 0, 'area', 0, .55], g_quake: ['w2', 1, 'area', 0, .72], b_rage: ['w2', 2, 'area', 2.6, .8], b_combo: ['w2', 3, 'area', 2.4, .6],
     b_storm: ['w3', 0, 'area', 0, .78], pa_wall: ['w3', 1, 'area', 0, .8], pa_hammer: ['w3', 2, 'area', 0, .78], fo_iron: ['w3', 3, 'area', 2.8, .85],
     g_knight: ['w5', 0, 'area', 2.8, .85], g_king: ['w5', 1, 'area', 3, .85], b_knight: ['w5', 2, 'area', 2.8, .85], b_king: ['w5', 3, 'area', 3, .85],
-    fo_taunt: ['w2', 1, 'area', 0, .72], bm_dance: ['w2', 3, 'impact', 2, .6], de_crush: ['h6', 1, 'area', 0, .75], de_end: ['m1', 3, 'area', 0, .78],
+    fo_taunt: ['w4', 0, 'area', 0, .72], bm_dance: ['w4', 1, 'impact', 2.2, .55], de_crush: ['h6', 1, 'area', 0, .75], de_end: ['w4', 3, 'area', 0, .78], hx_soul: ['m6', 0, 'impact', 2.2, .55],
     m_fire: ['m1', 0, 'proj', 1.9, .6], m_frost: ['m1', 1, 'area', 0, .75], m_chain: ['m1', 2, 'impact', 2.2, .6], e_meteor: ['m1', 3, 'area', 0, .78],
     e_bliz: ['m2', 0, 'area', 0, .78], e_hell: ['m2', 1, 'area', 0, .75], e_aura: ['m2', 2, 'area', 2.8, .7], e_cata: ['m2', 3, 'area', 0, .72],
     s_wolf: ['m3', 0, 'area', 2.2, .75], s_golem: ['m3', 1, 'area', 2.6, .8], s_spirit: ['m3', 2, 'area', 2.4, .78], s_prison: ['m3', 3, 'area', 0, .82],
@@ -777,7 +777,7 @@
     p_great: ['h3', 0, 'area', 0, .78], p_bless: ['h3', 1, 'area', 0, .78], p_holy: ['h3', 2, 'area', 0, .6], p_revive: ['h3', 3, 'area', 0, .82],
     p_angel: ['h4', 0, 'area', 0, .82], sn_head: ['h4', 1, 'proj', 1.8, .5], sn_focus: ['h4', 2, 'area', 2.6, .65], aa_rain: ['h4', 3, 'area', 0, .82],
     aa_storm: ['h5', 0, 'once', 3, .78], st_light: ['h5', 1, 'area', 0, .72], st_miracle: ['h5', 2, 'area', 0, .82], iq_bolt: ['h5', 3, 'area', 0, .82],
-    iq_judge: ['h6', 0, 'area', 0, .8], bm_flash: ['h2', 0, 'line', 0, .5],
+    iq_judge: ['h6', 0, 'area', 0, .8], bm_flash: ['w4', 2, 'line', 0, .5],
   };
   const SH = {}, CEL = 192;
   const sheet = n => { let o = SH[n]; if (!o) { o = SH[n] = new Image(); o.src = 'gfx/sfx/' + n + '.webp'; } return o.complete && o.naturalWidth ? o : null; };
