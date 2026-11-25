@@ -11,7 +11,7 @@
     const K = 2, s = (T[ap.job] || T[cj] || 74) * (GD.JOBS[ap.job] && GD.JOBS[ap.job].tier === 2 ? 1.06 : 1) / A.m.down[3]; c = document.createElement('canvas'); c.width = 70 * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const bob = frame === 1 || frame === 3 ? 1.5 : 0, w = r[2] * s, h = r[3] * s;
     g.drawImage(CI, r[0], r[1], r[2], r[3], (35 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
-    c.dw = 70; c.dh = 100; cc.set(key, c); return c;
+    c.dw = 56; c.dh = 80; cc.set(key, c); return c; /* 탄 모습과 같은 크기(0.8배)로 맞춤 */
   };
 })();
 // ═══════ GPT 아이템·가구·텐트·이펙트·말·버튼 ═══════
