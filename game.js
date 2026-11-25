@@ -812,13 +812,13 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   drawText(`${p.n}`, x, y + 15, isMe ? '#ffe86a' : '#9fe8ff', 13);
   drawText(`Lv${p.lv} ${jn}`, x, y + 29, '#f0f2f5', 11, false);
   if (isMe && !p.dd) {
-    const by = y - 84 + (ap.mt ? -12 : 0), bw = 36; const yv = S.you;
+    const by = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 10) : y - 84, bw = 36; const yv = S.you;
     const hr = Math.max(0, Math.min(1, (yv.hp || 0) / (yv.mhp || 1))), mr = Math.max(0, Math.min(1, (yv.mp || 0) / (yv.mmp || 1)));
     ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x - bw / 2 - 1, by - 1, bw + 2, 9);
     ctx.fillStyle = '#3a1418'; ctx.fillRect(x - bw / 2, by, bw, 4); ctx.fillStyle = hr < 0.3 ? '#ff2a2a' : '#ef4444'; ctx.fillRect(x - bw / 2, by, bw * hr, 4);
     ctx.fillStyle = '#141e3a'; ctx.fillRect(x - bw / 2, by + 4, bw, 3); ctx.fillStyle = '#3b82f6'; ctx.fillRect(x - bw / 2, by + 4, bw * mr, 3);
   }
-  if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, y - 80 + (ap.mt ? -10 : 0), 32 * p.h / 100, 4); }
+  if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; const hy2 = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 8) : y - 80; ctx.fillRect(x - 16, hy2, 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, hy2, 32 * p.h / 100, 4); }
   });
 }
 function drawNpc(n, sx, sy, now) {

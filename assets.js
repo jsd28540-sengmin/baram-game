@@ -133,19 +133,20 @@
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
     const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
     const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], qilin: [0.40, 0.12], phoenix: [0.42, 0.10], skyWhale: [0.30, 0.06], obsidianDragon: [0.40, 0.10], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
-    c = mkc(220, 220); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
-    const HK = Math.min(1.75, 216 / r[2], 214 / r[3]); const hw = r[2] * HK, hh = r[3] * HK; const hx = 110 - hw / 2, hy = 218 - hh;
+    /* 캔버스를 키워(300) 탈것은 같은 크기, 캐릭터는 내렸을 때와 같은 크기(1:1)로 — 타면 작아지던 문제 */
+    c = mkc(300, 300); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
+    const HK = Math.min(1.75, 216 / r[2], 214 / r[3]); const hw = r[2] * HK, hh = r[3] * HK; const hx = 150 - hw / 2, hy = 298 - hh;
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
     if (MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'color'; hg.fillStyle = MD.tint; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); hg.globalCompositeOperation = 'source-over'; }
     if (ap.mt === 'whiteHorse' && !MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
-    const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 110 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
+    const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 150 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
     // 라이더: 실제 그림 영역(bbox)을 찾아 머리~허리(위 68%)만 잘라 안장 위에 앉힘
     const rb = riderBox(rider); const rH = rb.h * 0.68, RS = 1.0; const rw = rb.w * RS, rh = rH * RS;
     const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
     // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
     /* 등 위에 올라탄 모습: 탈것 그림에서 실제 등선(가운데 띠의 맨 윗부분)을 찾아 허리를 그 위에 둔다 */
-    const S2 = Math.min(1.05, 116 / Math.max(60, rb.h)), rw2 = rb.w * S2, up = rb.h * 0.64, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.8;
+    const S2 = 1, rw2 = rb.w * S2, up = rb.h * 0.64, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.8;
     const bt = mountBack(hor, d); const topY = hy + bt.top * HK, botY = hy + bt.bot * HK, cxM = hx + bt.cx * HK, span = botY - topY;
     const FR = (MOUNT_SEAT[MK] && MOUNT_SEAT[MK][d]) != null ? MOUNT_SEAT[MK][d] : (d === 'down' ? 0.1 : d === 'up' ? 0.14 : 0.06);
     if (d === 'left' || d === 'right') { // 옆모습: 엉덩이는 등선 위, 다리는 옆구리로
@@ -160,7 +161,7 @@
       g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게 (다리는 양옆으로 걸침)
       g.drawImage(hor, hx, hy, hw, hh);
     }
-    c.dw = 110; c.dh = 110; hc.set(key, c); return c;
+    c.dw = 150; c.dh = 150; try { const D = g.getImageData(0, 0, 300, 300).data; let t = 0; outer: for (let y = 0; y < 300; y++) for (let x = 60; x < 240; x++) if (D[(y * 300 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (300 - t) / 2; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
   };
 
   /* 탈것별 앉는 높이(등선~바닥 사이 비율) 미세 조정 */
