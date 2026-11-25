@@ -161,7 +161,7 @@
       g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게 (다리는 양옆으로 걸침)
       g.drawImage(hor, hx, hy, hw, hh);
     }
-    c.dw = 190; c.dh = 190; try { const D = g.getImageData(0, 0, 380, 380).data; let t = 0; outer: for (let y = 0; y < 380; y++) for (let x = 80; x < 300; x++) if (D[(y * 380 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (380 - t) / 2; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
+    c.dw = 152; c.dh = 152; /* 비율 유지, 전체 0.8배 */ try { const D = g.getImageData(0, 0, 380, 380).data; let t = 0; outer: for (let y = 0; y < 380; y++) for (let x = 80; x < 300; x++) if (D[(y * 380 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (380 - t) * 0.4; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
   };
 
   /* 탈것별 앉는 높이(등선~바닥 사이 비율) 미세 조정 */

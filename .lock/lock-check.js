@@ -119,7 +119,7 @@ must('gfx.js', 'function bldCovered(x, y)', '새 건물 아래 옛 지붕 숨김
 must('assets.js', '/* 상체 + 이어지는 하체(다리를 접어 앞으로)', '옆모습 탑승: 잘린 선 없이 앉은 자세');
 must('assets.js', 'c = mkc(380, 380);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
 must('assets.js', 'const S2 = 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때');
-must('assets.js', 'c.dw = 190; c.dh = 190;', '탈것 표시 크기');
+must('assets.js', 'c.dw = 152; c.dh = 152;', '탈것 표시 크기');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
