@@ -151,8 +151,10 @@
     if (d === 'left' || d === 'right') { // 옆모습: 엉덩이는 등선 위, 다리는 옆구리로
       const fw = d === 'left' ? -1 : 1, waist = Math.max(uh + 2, topY + span * FR + 6), sx0 = cxM - fw * hw * 0.04;
       g.drawImage(hor, hx, hy, hw, hh);
-      g.drawImage(rider, rb.x, rb.y + up, rb.w, lo, sx0 - rw2 * 0.38 + fw * rw2 * 0.1, waist - 8, rw2 * 0.76, lh);
-      g.drawImage(rider, rb.x, rb.y, rb.w, up, sx0 - rw2 / 2, waist - uh, rw2, uh);
+      /* 몸 전체를 한 번에 그림: 엉덩이는 안장 위, 다리는 옆구리로 늘어뜨림 (허리에서 잘려 보이던 문제) */
+      const cut = rb.h * 0.6, ux = sx0 - rw2 / 2; /* 상체 + 이어지는 하체(다리를 접어 앞으로) — 같은 폭·같은 경계로 이어 잘린 선이 없게 */
+      g.drawImage(rider, rb.x, rb.y + cut - 1, rb.w, rb.h - cut + 1, ux + fw * 4, waist - 1, rw2, (rb.h - cut) * S2 * 0.62);
+      g.drawImage(rider, rb.x, rb.y, rb.w, cut, ux, waist - cut * S2, rw2, cut * S2);
     } else { // 앞/뒤: 탈것 몸(머리·엉덩이)이 허리 아래를 가리고, 상체만 위로
       const waist = Math.max(uh + 2, topY + span * FR); /* 머리가 그림 밖으로 잘리지 않게 */
       g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게 (다리는 양옆으로 걸침)
