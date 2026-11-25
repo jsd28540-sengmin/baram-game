@@ -61,7 +61,7 @@ must('data.js', 'coin: Math.floor(3 + l * 2.1) };', '코인 경제 조정 유지
 must('data.js', 'D.skillMp = ', '레벨 비례 마나 소모 유지');
 must('game.js', "if (m.t === 'map' && !m.inner && !String(m.id).startsWith('tent_')", '손님 텐트 입장 오류 방지');
 must('engine.js', "if (p.house && !(MAPS[p.house.map] && MAPS[p.house.map].tents.includes(p.house))) p.house = null;", '집 짓기 먹통 방지');
-must('assets.js', 'const HK = Math.min(1.75, 216 / r[2], 214 / r[3]);', '큰 탈것 잘림 방지');
+must('assets.js', 'const HK = Math.min(2.45, 300 / r[2], 300 / r[3]);', '큰 탈것 잘림 방지 + 탈것 크게');
 must('engine.js', '// 코인은 바닥에 떨어뜨리지 않고 기여도(준 피해)만큼 나눠 바로 지갑으로', '코인 기여도 분배 유지');
 must('engine.js', '// 자동 줍기 없음: [줍기] 버튼(스페이스)으로만 가방에 들어옴', '자동 줍기 없음 유지');
 must('data.js', 'D.mountBonus = ', '탈것 전투 옵션 유지');
@@ -117,9 +117,9 @@ must('ui.js', "보스 드랍 전용", '희귀 탈것 NaN 가격 방지');
 must('gfx.js', 'function townWall(x, y)', '마을 성벽 이어 그리기');
 must('gfx.js', 'function bldCovered(x, y)', '새 건물 아래 옛 지붕 숨김');
 must('assets.js', '/* 상체 + 이어지는 하체(다리를 접어 앞으로)', '옆모습 탑승: 잘린 선 없이 앉은 자세');
-must('assets.js', 'c = mkc(300, 300);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
+must('assets.js', 'c = mkc(380, 380);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
 must('assets.js', 'const S2 = 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때');
-must('assets.js', 'c.dw = 150; c.dh = 150;', '탈것 표시 크기');
+must('assets.js', 'c.dw = 190; c.dh = 190;', '탈것 표시 크기');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
