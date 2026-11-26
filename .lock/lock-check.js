@@ -121,6 +121,7 @@ must('assets.js', 'c = mkc(380, 380);', '탈것 탑승 캔버스(캐릭터 크�
 must('assets.js', 'const S2 = 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때');
 must('assets.js', 'c.dw = 152; c.dh = 152;', '탈것 표시 크기');
 must('assets.js', 'c.dw = 56; c.dh = 80;', '안 탔을 때 캐릭터 크기 = 탔을 때');
+must('engine.js', '/* 관리자: 직업 변경 */', '서버 관리자 직업 변경');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

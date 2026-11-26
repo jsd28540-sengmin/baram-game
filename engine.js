@@ -1757,6 +1757,8 @@ const API = {
   announce: (t, c) => announce(t, c),
   adminGive(name, what) {
     const live = [...PLAYERS.values()].find(p => p.name === name); const p = live || SAVES[name]; if (!p) return '그런 이름의 캐릭터가 없어요.';
+    const jw = what.replace(/^job:/, ''), jid = D.JOBS[jw] ? jw : Object.keys(D.JOBS).find(k => D.JOBS[k].name === jw);
+    if (jid && (what.startsWith('job:') || !D.MOUNTS[what])) { /* 관리자: 직업 변경 */ p.job = jid; if (live) { calc(live); live.hp = live.st.maxHp; live.mp = live.st.maxMp; dirty(live); sysMsg(live, `관리자가 직업을 [${D.JOBS[jid].name}](으)로 바꿨어요.`, '#e0a8ff'); } else SAVES[name] = p; saveAll(); return `${name}의 직업을 ${D.JOBS[jid].name}(으)로 변경 완료` + (live ? '' : ' (다음 접속 때 적용)'); }
     if (/^coin:\d+$/.test(what)) { p.coins = (p.coins || 0) + parseInt(what.slice(5)); }
     else if (D.MOUNTS[what]) { if (!p.mount) p.mount = what; else if (!ownsMount(p, what)) giveMount(p, what); }
     else return '알 수 없는 항목이에요.';

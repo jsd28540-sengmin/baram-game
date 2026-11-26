@@ -579,11 +579,11 @@
   const _sd2 = showServerDash;
   showServerDash = function (code, restored) {
     _sd2(code, restored);
-    const b = document.createElement('button'); b.className = 'btn'; b.textContent = '관리자: 아이템·탈것 되돌려주기';
+    const b = document.createElement('button'); b.className = 'btn'; b.textContent = '관리자: 탈것·코인 지급 / 직업 변경';
     b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:72;height:36px;font-size:12px';
     b.onclick = () => {
       const name = prompt('플레이어 이름'); if (!name) return;
-      const what = prompt('지급할 것\n탈것: ' + Object.entries(GD.MOUNTS).map(([k, v]) => k + '(' + v.name + ')').join(', ') + '\n코인: coin:숫자'); if (!what) return;
+      const what = prompt('지급할 것\n탈것: ' + Object.entries(GD.MOUNTS).map(([k, v]) => k + '(' + v.name + ')').join(', ') + '\n코인: coin:숫자\n직업 변경: 직업 이름 (예: 시공술사)'); if (!what) return;
       const r = ENGINE.adminGive(name.trim(), what.trim()); alert(r);
     };
     document.body.appendChild(b);
