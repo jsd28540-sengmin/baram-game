@@ -6,12 +6,12 @@
   const _csC = charSprite, cc = new Map();
   charSprite = function (ap, dir, frame) {
     const cj = ap && (CA[ap.job] ? ap.job : GD.JOBS[ap.job] && GD.JOBS[ap.job].from); const A = ap && !ap.mt && CI.ok && cj && CA[cj]; if (!A) return _csC(ap, dir, frame);
-    const key = ap.job + ap.g + dir + '|' + frame; let c = cc.get(key); if (c) return c;
+    const WD = ap.wide ? 110 : 70; /* 탈것용: 넓은 캔버스(큰 무기·날개가 옆에서 잘리지 않게) */ const key = ap.job + ap.g + dir + '|' + frame + (ap.wide ? 'w' : ''); let c = cc.get(key); if (c) return c;
     const r = (A[ap.g === 'f' ? 'f' : 'm'] || A.m)[['down', 'left', 'right', 'up'][dir] || 'down'];
-    const K = 2, s = (T[ap.job] || T[cj] || 74) * (GD.JOBS[ap.job] && GD.JOBS[ap.job].tier === 2 ? 1.06 : 1) / A.m.down[3]; c = document.createElement('canvas'); c.width = 70 * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    const K = 2, s = (T[ap.job] || T[cj] || 74) * (GD.JOBS[ap.job] && GD.JOBS[ap.job].tier === 2 ? 1.06 : 1) / A.m.down[3]; c = document.createElement('canvas'); c.width = WD * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const bob = frame === 1 || frame === 3 ? 1.5 : 0, w = r[2] * s, h = r[3] * s;
-    g.drawImage(CI, r[0], r[1], r[2], r[3], (35 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
-    c.dw = 56; c.dh = 80; cc.set(key, c); return c; /* 탄 모습과 같은 크기(0.8배)로 맞춤 */
+    g.drawImage(CI, r[0], r[1], r[2], r[3], (WD / 2 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
+    c.dw = WD * 0.8; c.dh = 80; cc.set(key, c); return c; /* 탄 모습과 같은 크기(0.8배)로 맞춤 */
   };
 })();
 // ═══════ GPT 아이템·가구·텐트·이펙트·말·버튼 ═══════
@@ -131,7 +131,7 @@
   charSprite = function (ap, dir, frame) {
     const MD = GD.MOUNTS[ap.mt] || {}; const MK = HA[ap.mt] ? ap.mt : (ap.mt === 'whiteHorse' || MD.tint) ? 'horse' : ap.mt; if (!ap.mt || !HO.ok || !HA[MK]) return _cs(ap, dir, frame);
     const key = JSON.stringify(ap) + dir + frame; let c = hc.get(key); if (c) return c; if (hc.size > 300) hc.clear();
-    const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
+    const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null, wide: 1 }), dir, frame === 1 || frame === 3 ? 0 : frame);
     const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], qilin: [0.40, 0.12], phoenix: [0.42, 0.10], skyWhale: [0.30, 0.06], obsidianDragon: [0.40, 0.10], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
     /* 캔버스를 키워(300) 탈것은 같은 크기, 캐릭터는 내렸을 때와 같은 크기(1:1)로 — 타면 작아지던 문제 */
     c = mkc(380, 470); /* 위로 공간을 더 줘 큰 탈것 위 캐릭터 머리가 잘리지 않게 */ const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
@@ -159,7 +159,7 @@
     } else { // 앞/뒤: 탈것 몸(머리·엉덩이)이 허리 아래를 가리고, 상체만 위로
       /* 앞/뒤: 몸통 높이(안장)에 허리를 두고, 상체(머리~허리)를 탈것 위에 덧그려 '올라탄' 모습으로 — 탈것 머리 뒤에 몸이 숨어 얼굴만 떠 보이던 문제 */
       const sideY = hy + Math.min(bt.side, bt.top + (bt.bot - bt.top) * 0.45) * HK;
-      const waist = Math.max(uh + 2, d === 'up' ? Math.max(sideY + 2, topY + uh * 0.6) : topY + uh * 0.85);
+      const waist = Math.max(uh + 2, d === 'up' ? Math.max(sideY + 2, topY + uh * 0.6) : topY + uh * 0.42 /* 앞모습: 탈것 머리 바로 뒤에 허리 — 상체는 다 보이고 탈것 얼굴도 보임 */);
       g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 다리는 탈것 뒤
       g.drawImage(hor, hx, hy, hw, hh);
       { const tc = mkc(Math.ceil(rw2), Math.ceil(uh)), tg = tc.getContext('2d'); tg.drawImage(rider, rb.x, rb.y, rb.w, up, 0, 0, rw2, uh); tg.globalCompositeOperation = 'destination-in'; const gr = tg.createLinearGradient(0, uh * 0.9, 0, uh); gr.addColorStop(0, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)'); tg.fillStyle = gr; tg.fillRect(0, 0, rw2, uh);

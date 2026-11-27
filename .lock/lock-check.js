@@ -120,10 +120,12 @@ must('assets.js', '/* 상체 + 이어지는 하체(다리를 접어 앞으로)',
 must('assets.js', 'c = mkc(380, 470);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
 must('assets.js', 'const S2 = rider.dw ? rider.dw / rider.width / 0.4 : rider.width === 112 ? 1.25 : 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때(기본 직업 포함)');
 must('assets.js', 'c.dw = 152; c.dh = 188;', '탈것 표시 크기');
-must('assets.js', 'c.dw = 56; c.dh = 80;', '안 탔을 때 캐릭터 크기 = 탔을 때');
+must('assets.js', 'c.dw = WD * 0.8; c.dh = 80;', '안 탔을 때 캐릭터 크기 = 탔을 때');
 must('engine.js', '/* 관리자: 직업 변경 */', '서버 관리자 직업 변경');
 must('assets.js', '// 상체는 탈것 위 (허리 아래는 부드럽게 사라져', '탈것 앞/뒤: 상체가 탈것 위에 (얼굴만 뜸 방지)');
 must('assets.js', "rider.width === 112 ? 1.25 : 1", '기본 직업 탑승 크기');
+must('assets.js', 'const WD = ap.wide ? 110 : 70;', '탈것 위 큰 무기·날개 옆 잘림 방지');
+must('assets.js', 'topY + uh * 0.42', '탈것 앞모습: 상체 다 보이고 탈것 얼굴도 보임');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
