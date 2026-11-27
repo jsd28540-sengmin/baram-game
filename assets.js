@@ -134,8 +134,8 @@
     const rider = (window.formRider && window.formRider(ap, dir)) || _cs(Object.assign({}, ap, { mt: null }), dir, frame === 1 || frame === 3 ? 0 : frame);
     const d = ['down', 'left', 'right', 'up'][dir] || 'down'; const col = frame === 1 ? 1 : frame === 3 ? 2 : 0; const r = HA[MK][d][col]; const SEAT = ({ horse: [0.42, 0.12], camel: [0.36, 0.06], ostrich: [0.44, 0.0], battleBear: [0.40, 0.10], whiteHorse: [0.44, 0.14], qilin: [0.40, 0.12], phoenix: [0.42, 0.10], skyWhale: [0.30, 0.06], obsidianDragon: [0.40, 0.10], goldScorpion: [0.42, 0.24], frostWolf: [0.42, 0.14], boneDrake: [0.40, 0.14], nightmare: [0.42, 0.12] })[MK] || [0.42, 0.12];
     /* 캔버스를 키워(300) 탈것은 같은 크기, 캐릭터는 내렸을 때와 같은 크기(1:1)로 — 타면 작아지던 문제 */
-    c = mkc(380, 380); const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
-    const HK = Math.min(2.45, 300 / r[2], 300 / r[3]); const hw = r[2] * HK, hh = r[3] * HK; const hx = 190 - hw / 2, hy = 378 - hh; /* 탈것 약 1.4배 크게 */
+    c = mkc(380, 470); /* 위로 공간을 더 줘 큰 탈것 위 캐릭터 머리가 잘리지 않게 */ const g = c.getContext('2d'); g.imageSmoothingEnabled = true;
+    const HK = Math.min(2.45, 300 / r[2], 300 / r[3]); const hw = r[2] * HK, hh = r[3] * HK; const hx = 190 - hw / 2, hy = 468 - hh; /* 탈것 약 1.4배 크게 */
     let hor = mkc(r[2], r[3]); hor.getContext('2d').drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
     if (MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'color'; hg.fillStyle = MD.tint; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); hg.globalCompositeOperation = 'source-over'; }
     if (ap.mt === 'whiteHorse' && !MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
@@ -146,7 +146,7 @@
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
     // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
     /* 등 위에 올라탄 모습: 탈것 그림에서 실제 등선(가운데 띠의 맨 윗부분)을 찾아 허리를 그 위에 둔다 */
-    const S2 = 1, rw2 = rb.w * S2, up = rb.h * 0.64, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.8;
+    const S2 = rider.dw ? rider.dw / rider.width / 0.4 : rider.width === 112 ? 1.25 : 1, /* 기본 직업(옛 그림 112px)은 걸을 때 크기에 맞춰 1.25배 */ rw2 = rb.w * S2, up = rb.h * 0.64, lo = rb.h - up, uh = up * S2, lh = lo * S2 * 0.8;
     const bt = mountBack(hor, d); const topY = hy + bt.top * HK, botY = hy + bt.bot * HK, cxM = hx + bt.cx * HK, span = botY - topY;
     const FR = (MOUNT_SEAT[MK] && MOUNT_SEAT[MK][d]) != null ? MOUNT_SEAT[MK][d] : (d === 'down' ? 0.1 : d === 'up' ? 0.14 : 0.06);
     if (d === 'left' || d === 'right') { // 옆모습: 엉덩이는 등선 위, 다리는 옆구리로
@@ -157,21 +157,27 @@
       g.drawImage(rider, rb.x, rb.y + cut - 1, rb.w, rb.h - cut + 1, ux + fw * 4, waist - 1, rw2, (rb.h - cut) * S2 * 0.62);
       g.drawImage(rider, rb.x, rb.y, rb.w, cut, ux, waist - cut * S2, rw2, cut * S2);
     } else { // 앞/뒤: 탈것 몸(머리·엉덩이)이 허리 아래를 가리고, 상체만 위로
-      const waist = Math.max(uh + 2, topY + span * FR); /* 머리가 그림 밖으로 잘리지 않게 */
-      g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게 (다리는 양옆으로 걸침)
+      /* 앞/뒤: 몸통 높이(안장)에 허리를 두고, 상체(머리~허리)를 탈것 위에 덧그려 '올라탄' 모습으로 — 탈것 머리 뒤에 몸이 숨어 얼굴만 떠 보이던 문제 */
+      const sideY = hy + Math.min(bt.side, bt.top + (bt.bot - bt.top) * 0.45) * HK;
+      const waist = Math.max(uh + 2, d === 'up' ? Math.max(sideY + 2, topY + uh * 0.6) : topY + uh * 0.85);
+      g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 다리는 탈것 뒤
       g.drawImage(hor, hx, hy, hw, hh);
+      { const tc = mkc(Math.ceil(rw2), Math.ceil(uh)), tg = tc.getContext('2d'); tg.drawImage(rider, rb.x, rb.y, rb.w, up, 0, 0, rw2, uh); tg.globalCompositeOperation = 'destination-in'; const gr = tg.createLinearGradient(0, uh * 0.9, 0, uh); gr.addColorStop(0, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)'); tg.fillStyle = gr; tg.fillRect(0, 0, rw2, uh);
+        g.drawImage(tc, cxM - rw2 / 2, waist - uh); } // 상체는 탈것 위 (허리 아래는 부드럽게 사라져 잘린 선이 안 보임)
     }
-    c.dw = 152; c.dh = 152; /* 비율 유지, 전체 0.8배 */ try { const D = g.getImageData(0, 0, 380, 380).data; let t = 0; outer: for (let y = 0; y < 380; y++) for (let x = 80; x < 300; x++) if (D[(y * 380 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (380 - t) * 0.4; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
+    c.dw = 152; c.dh = 188; /* 비율 유지, 전체 0.8배 */ try { const D = g.getImageData(0, 0, 380, 470).data; let t = 0; outer: for (let y = 0; y < 470; y++) for (let x = 80; x < 300; x++) if (D[(y * 380 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (470 - t) * 0.4; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
   };
 
   /* 탈것별 앉는 높이(등선~바닥 사이 비율) 미세 조정 */
   const MOUNT_SEAT = { goldScorpion: { down: 0.3, up: 0.38, left: 0.33, right: 0.33 }, skyWhale: { down: 0.24, up: 0.22 }, phoenix: { down: 0.26, up: 0.28 }, obsidianDragon: { down: 0.24, up: 0.24 }, ostrich: { down: 0.04, left: 0.02, right: 0.02 } };
   const mbCache = new WeakMap();
-  function mountBack(cv, d) { let o = mbCache.get(cv); if (o) return o; const w = cv.width, h = cv.height; let top = h, bot = 0, cx = w / 2;
+  function mountBack(cv, d) { let o = mbCache.get(cv); if (o) return o; const w = cv.width, h = cv.height; let top = h, bot = 0, cx = w / 2, side = h * 0.4;
     try { const D = cv.getContext('2d').getImageData(0, 0, w, h).data; const a0 = Math.floor(w * (d === 'left' || d === 'right' ? 0.38 : 0.4)), a1 = Math.ceil(w * (d === 'left' || d === 'right' ? 0.6 : 0.6)); let sx = 0, n = 0;
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (D[(y * w + x) * 4 + 3] > 60) { if (y > bot) bot = y; if (x >= a0 && x <= a1 && y < top) top = y; if (y > h * 0.3 && y < h * 0.7) { sx += x; n++; } }
-      if (n) cx = sx / n; if (d === 'left' || d === 'right') cx = (a0 + a1) / 2; } catch (e) { top = h * 0.3; bot = h; }
-    o = { top, bot, cx }; mbCache.set(cv, o); return o; }
+      if (n) cx = sx / n; if (d === 'left' || d === 'right') cx = (a0 + a1) / 2;
+      /* 앞/뒤 모습: 머리·뿔이 아니라 몸통 양옆(어깨·안장 높이)을 등선으로 */ const colTop = (f0, f1) => { let t = h; for (let x = Math.floor(w * f0); x <= Math.ceil(w * f1); x++) for (let y = 0; y < t; y++) if (D[(y * w + x) * 4 + 3] > 60) { t = y; break; } return t; };
+      side = Math.max(colTop(0.27, 0.33), colTop(0.67, 0.73)); } catch (e) { top = h * 0.3; bot = h; }
+    o = { top, bot, cx, side }; mbCache.set(cv, o); return o; }
   const rbCache = new WeakMap();
   function riderBox(cv) { let b = rbCache.get(cv); if (b) return b; const w = cv.width, h = cv.height; let x0 = w, y0 = h, x1 = 0, y1 = 0; try { const d = cv.getContext('2d').getImageData(0, 0, w, h).data; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } } catch (e) { } if (x1 < x0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; } b = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }; rbCache.set(cv, b); return b; }
   // ── NPC (GPT 그림, 가까우면 플레이어 쪽을 봄) ──

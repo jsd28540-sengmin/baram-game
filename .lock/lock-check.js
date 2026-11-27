@@ -52,7 +52,7 @@ must('engine.js', 'function tentExit(t)', '텐트 출구 안전 위치');
 must('engine.js', 'function clearTentGround(m, t)', '텐트 자리 나무 정리');
 must('assets.js', 'window.formRider', '변신+탈것 외형 유지');
 must('data.js', 'D.PROMOS2 = {', '3차 전직 유지');
-must('assets.js', '// 몸 전체(다리 포함)를 탈것 뒤에 그려 잘린 선이 안 보이게', '탈것 정면 잘림 방지 유지');
+must('assets.js', "// 다리는 탈것 뒤", '탈것 정면: 다리는 뒤, 상체는 위 (잘림·얼굴만 뜸 방지)');
 must('data.js', 'D.bossGearLv = ', '50등급 이상 장비는 보스 전용');
 must('engine.js', 'D.bossGearLv(def.lv, R) : clamp(def.lv + ri(-2, 2) + (mon.mutant ? 2 : 0), 1, 49)', '일반 몬스터 장비 50 상한');
 must('ui.js', '// 몬스터 그림이 아직 안 불러와졌으면 불러와질 때까지 다시 그림', '보스 시간표 실제 그림 유지');
@@ -117,11 +117,13 @@ must('ui.js', "보스 드랍 전용", '희귀 탈것 NaN 가격 방지');
 must('gfx.js', 'function townWall(x, y)', '마을 성벽 이어 그리기');
 must('gfx.js', 'function bldCovered(x, y)', '새 건물 아래 옛 지붕 숨김');
 must('assets.js', '/* 상체 + 이어지는 하체(다리를 접어 앞으로)', '옆모습 탑승: 잘린 선 없이 앉은 자세');
-must('assets.js', 'c = mkc(380, 380);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
-must('assets.js', 'const S2 = 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때');
-must('assets.js', 'c.dw = 152; c.dh = 152;', '탈것 표시 크기');
+must('assets.js', 'c = mkc(380, 470);', '탈것 탑승 캔버스(캐릭터 크기 유지)');
+must('assets.js', 'const S2 = rider.dw ? rider.dw / rider.width / 0.4 : rider.width === 112 ? 1.25 : 1,', '탈것 탔을 때 캐릭터 크기 = 안 탔을 때(기본 직업 포함)');
+must('assets.js', 'c.dw = 152; c.dh = 188;', '탈것 표시 크기');
 must('assets.js', 'c.dw = 56; c.dh = 80;', '안 탔을 때 캐릭터 크기 = 탔을 때');
 must('engine.js', '/* 관리자: 직업 변경 */', '서버 관리자 직업 변경');
+must('assets.js', '// 상체는 탈것 위 (허리 아래는 부드럽게 사라져', '탈것 앞/뒤: 상체가 탈것 위에 (얼굴만 뜸 방지)');
+must('assets.js', "rider.width === 112 ? 1.25 : 1", '기본 직업 탑승 크기');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');
