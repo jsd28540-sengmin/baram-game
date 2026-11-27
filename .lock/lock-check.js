@@ -126,6 +126,8 @@ must('assets.js', '// 상체는 탈것 위 (허리 아래는 부드럽게 사라
 must('assets.js', "rider.width === 112 ? 1.25 : 1", '기본 직업 탑승 크기');
 must('assets.js', 'const WD = ap.wide ? 110 : 70;', '탈것 위 큰 무기·날개 옆 잘림 방지');
 must('assets.js', 'topY + uh * 0.42', '탈것 앞모습: 상체 다 보이고 탈것 얼굴도 보임');
+must('assets.js', 'const T = { warrior: 75, mage: 76, healer: 75,', '초기 직업 새 그림 크기');
+must('assets.js', 'topY + span * FR + 13', '옆모습 안장 깊이');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

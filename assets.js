@@ -2,7 +2,7 @@
 (function () {
   const CA = window.CLASS_ATLAS; if (!CA) return;
   const CI = new Image(); CI.onload = () => { CI.ok = true; cc.clear(); }; CI.src = 'gfx/classes.png?v=' + (window.BUILDV || 1);
-  const T = { guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74, paladin: 76, fortress: 76, blademaster: 76, destroyer: 78, archmage: 80, chronomancer: 80, lichking: 80, hexer: 78, sniper: 76, arcaneArcher: 76, saint: 80, inquisitor: 78 };
+  const T = { warrior: 75, mage: 76, healer: 75, guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74, paladin: 76, fortress: 76, blademaster: 76, destroyer: 78, archmage: 80, chronomancer: 80, lichking: 80, hexer: 78, sniper: 76, arcaneArcher: 76, saint: 80, inquisitor: 78 };
   const _csC = charSprite, cc = new Map();
   charSprite = function (ap, dir, frame) {
     const cj = ap && (CA[ap.job] ? ap.job : GD.JOBS[ap.job] && GD.JOBS[ap.job].from); const A = ap && !ap.mt && CI.ok && cj && CA[cj]; if (!A) return _csC(ap, dir, frame);
@@ -150,11 +150,11 @@
     const bt = mountBack(hor, d); const topY = hy + bt.top * HK, botY = hy + bt.bot * HK, cxM = hx + bt.cx * HK, span = botY - topY;
     const FR = (MOUNT_SEAT[MK] && MOUNT_SEAT[MK][d]) != null ? MOUNT_SEAT[MK][d] : (d === 'down' ? 0.1 : d === 'up' ? 0.14 : 0.06);
     if (d === 'left' || d === 'right') { // 옆모습: 엉덩이는 등선 위, 다리는 옆구리로
-      const fw = d === 'left' ? -1 : 1, waist = Math.max(uh + 2, topY + span * FR + 6), sx0 = cxM - fw * hw * 0.04;
+      const fw = d === 'left' ? -1 : 1, waist = Math.max(uh + 2, topY + span * FR + 13), sx0 = cxM - fw * hw * 0.04;
       g.drawImage(hor, hx, hy, hw, hh);
       /* 몸 전체를 한 번에 그림: 엉덩이는 안장 위, 다리는 옆구리로 늘어뜨림 (허리에서 잘려 보이던 문제) */
       const cut = rb.h * 0.6, ux = sx0 - rw2 / 2; /* 상체 + 이어지는 하체(다리를 접어 앞으로) — 같은 폭·같은 경계로 이어 잘린 선이 없게 */
-      g.drawImage(rider, rb.x, rb.y + cut - 1, rb.w, rb.h - cut + 1, ux + fw * 4, waist - 1, rw2, (rb.h - cut) * S2 * 0.62);
+      g.drawImage(rider, rb.x, rb.y + cut - 1, rb.w, rb.h - cut + 1, ux + fw * 4, waist - 1, rw2, (rb.h - cut) * S2 * 0.52);
       g.drawImage(rider, rb.x, rb.y, rb.w, cut, ux, waist - cut * S2, rw2, cut * S2);
     } else { // 앞/뒤: 탈것 몸(머리·엉덩이)이 허리 아래를 가리고, 상체만 위로
       /* 앞/뒤: 몸통 높이(안장)에 허리를 두고, 상체(머리~허리)를 탈것 위에 덧그려 '올라탄' 모습으로 — 탈것 머리 뒤에 몸이 숨어 얼굴만 떠 보이던 문제 */
