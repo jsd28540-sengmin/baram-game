@@ -4,14 +4,33 @@
   const CI = new Image(); CI.onload = () => { CI.ok = true; cc.clear(); }; CI.src = 'gfx/classes.png?v=' + (window.BUILDV || 1);
   const T = { warrior: 75, mage: 76, healer: 75, guardian: 70, berserker: 78, elementalist: 78, summoner: 73, ranger: 70, priest: 74, paladin: 76, fortress: 76, blademaster: 76, destroyer: 78, archmage: 80, chronomancer: 80, lichking: 80, hexer: 78, sniper: 76, arcaneArcher: 76, saint: 80, inquisitor: 78 };
   const _csC = charSprite, cc = new Map();
+  /* 초기 직업 머리색: 머리 꼭대기에서 시작해 비슷한 색으로 이어진 머리카락만 골라 명암은 살리고 색만 바꿈 */
+  function hairTint(im, W, H, t, hc, dir) {
+    const D = im.data, hex = HAIRC[hc] || HAIRC[0], tr = parseInt(hex.slice(1, 3), 16), tg = parseInt(hex.slice(3, 5), 16), tb = parseInt(hex.slice(5, 7), 16), tl = 0.3 * tr + 0.59 * tg + 0.11 * tb;
+    let bot = t; for (let y = H - 1; y > t; y--) { let any = false; for (let x = 0; x < W; x++) if (D[(y * W + x) * 4 + 3] > 90) { any = true; break; } if (any) { bot = y; break; } }
+    const lim = t + (bot - t) * (dir === 3 ? 0.5 : 0.42); let sr = 0, sg = 0, sb = 0, n = 0; const seeds = [];
+    for (let y = t; y < t + (bot - t) * 0.1 && n < 60; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (D[i + 3] < 120) continue; const R = D[i], G = D[i + 1], B = D[i + 2]; if (R > 170 && G > 130 && B < 90) continue; if (0.3 * R + 0.59 * G + 0.11 * B < 40) continue; /* 테두리(검은 선)는 씨앗에서 뺌 */ sr += R; sg += G; sb += B; n++; seeds.push(y * W + x); }
+    if (!n) return; sr /= n; sg /= n; sb /= n; const rl = Math.max(20, 0.3 * sr + 0.59 * sg + 0.11 * sb);
+    const D0 = new Uint8ClampedArray(D), seen = new Uint8Array(W * H);
+    /* 머리띠·끈으로 끊긴 머리카락도 잡도록: 머리 윗부분(25%)에서 머리색과 아주 비슷한 픽셀도 씨앗으로 */
+    for (let y = t; y < t + (bot - t) * 0.25; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (D[i + 3] < 120) continue; const R = D[i], G = D[i + 1], B = D[i + 2]; if (0.3 * R + 0.59 * G + 0.11 * B < 40) continue; if (Math.abs(R - sr) + Math.abs(G - sg) + Math.abs(B - sb) < 50) seeds.push(y * W + x); }
+    const q = seeds.slice(); for (const p of q) seen[p] = 1;
+    const ok = p => { const i = p * 4; if (D0[i + 3] < 60) return false; const R = D0[i], G = D0[i + 1], B = D0[i + 2]; if (R > 170 && G > 130 && B < 90) return false; const L = 0.3 * R + 0.59 * G + 0.11 * B; if (L < 28) return true; return Math.abs(R - sr) + Math.abs(G - sg) + Math.abs(B - sb) < 125 && !(R > 190 && G > 150) && !(R > 200 && G > 140 && B > 100); /* 피부색 제외 */ };
+    while (q.length) { const p = q.pop(), x = p % W, y = (p / W) | 0; const i = p * 4; const L = 0.3 * D0[i] + 0.59 * D0[i + 1] + 0.11 * D0[i + 2]; if (L >= 28) { const k = Math.min(1.9, L / rl); D[i] = Math.min(255, tr * k + (k > 1 ? (k - 1) * 60 : 0)); D[i + 1] = Math.min(255, tg * k + (k > 1 ? (k - 1) * 60 : 0)); D[i + 2] = Math.min(255, tb * k + (k > 1 ? (k - 1) * 60 : 0)); }
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < t || nx >= W || ny > lim) continue; const np = ny * W + nx; if (seen[np]) continue; const j = np * 4; if (L >= 28 && 0.3 * D[j] + 0.59 * D[j + 1] + 0.11 * D[j + 2] >= 28 && Math.abs(D[j] - D0[i]) + Math.abs(D[j + 1] - D0[i + 1]) + Math.abs(D[j + 2] - D0[i + 2]) > 75) continue; /* 이웃끼리 색이 확 바뀌면 머리 경계 */ seen[np] = 1; if (ok(np) && (0.3 * D0[j] + 0.59 * D0[j + 1] + 0.11 * D0[j + 2] >= 28 || L >= 28)) q.push(np); } }
+  }
   charSprite = function (ap, dir, frame) {
     const cj = ap && (CA[ap.job] ? ap.job : GD.JOBS[ap.job] && GD.JOBS[ap.job].from); const A = ap && !ap.mt && CI.ok && cj && CA[cj]; if (!A) return _csC(ap, dir, frame);
-    const WD = ap.wide ? 110 : 70; /* 탈것용: 넓은 캔버스(큰 무기·날개가 옆에서 잘리지 않게) */ const key = ap.job + ap.g + dir + '|' + frame + (ap.wide ? 'w' : ''); let c = cc.get(key); if (c) return c;
+    const WD = ap.wide ? 110 : 70; /* 탈것용: 넓은 캔버스(큰 무기·날개가 옆에서 잘리지 않게) */ const BASEJ = !GD.JOBS[ap.job] || !GD.JOBS[ap.job].tier, HC = BASEJ ? (ap.hc | 0) : 0; const key = ap.job + ap.g + dir + '|' + frame + (ap.wide ? 'w' : '') + '|' + HC; let c = cc.get(key); if (c) return c;
     const r = (A[ap.g === 'f' ? 'f' : 'm'] || A.m)[['down', 'left', 'right', 'up'][dir] || 'down'];
     const K = 2, s = (T[ap.job] || T[cj] || 74) * (GD.JOBS[ap.job] && GD.JOBS[ap.job].tier === 2 ? 1.06 : 1) / A.m.down[3]; c = document.createElement('canvas'); c.width = WD * K; c.height = 100 * K; const g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const bob = frame === 1 || frame === 3 ? 1.5 : 0, w = r[2] * s, h = r[3] * s;
     g.drawImage(CI, r[0], r[1], r[2], r[3], (WD / 2 - r[4] * s) * K, (94 - h - bob) * K, w * K, h * K);
-    c.dw = WD * 0.8; c.dh = 80; cc.set(key, c); return c; /* 탄 모습과 같은 크기(0.8배)로 맞춤 */
+    c.dw = WD * 0.8; c.dh = 80; /* 탄 모습과 같은 크기(0.8배)로 맞춤 */
+    try { const W = c.width, H = c.height, im = g.getImageData(0, 0, W, H), D = im.data; let t = 0; outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (D[(y * W + x) * 4 + 3] > 90) { t = y; break outer; }
+      c.headT = t * c.dh / H; /* 머리 꼭대기 위치 → 체력바를 캐릭터 키에 맞춤 */
+      if (HC > 0) hairTint(im, W, H, t, HC, dir); g.putImageData(im, 0, 0); } catch (e) { }
+    cc.set(key, c); return c;
   };
 })();
 // ═══════ GPT 아이템·가구·텐트·이펙트·말·버튼 ═══════

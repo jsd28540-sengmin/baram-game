@@ -337,9 +337,7 @@ function opts(el, list, key) {
 }
 function buildCreate() {
   opts($('gsel'), [{ v: 'm', html: '<b>남자</b>' }, { v: 'f', html: '<b>여자</b>' }], 'g');
-  opts($('hsel'), ['기본', '삐죽', '긴머리', '묶음'].map((n, i) => ({ v: i, html: n })), 'h');
-  opts($('hcsel'), HAIRC.map((c, i) => ({ v: i, html: `<span style="display:inline-block;width:16px;height:16px;background:${c};border:1px solid #000"></span>` })), 'hc');
-  opts($('sksel'), SKIN.map((c, i) => ({ v: i, html: `<span style="display:inline-block;width:16px;height:16px;background:${c};border:1px solid #000"></span>` })), 'sk');
+  opts($('hcsel'), HAIRC.map((c, i) => ({ v: i, html: i === 0 ? '<b>기본</b>' : `<span style="display:inline-block;width:16px;height:16px;background:${c};border:1px solid #000"></span>` })), 'hc'); /* 머리 모양·피부 선택은 없앰 (새 그림) */
   opts($('jsel'), ['warrior', 'mage', 'healer'].map(j => ({ v: j, html: `<b>${GD.JOBS[j].name}</b><small>${j === 'warrior' ? '근접·탱커' : j === 'mage' ? '마법·광역' : '치유·원거리'}</small>` })), 'job');
   const J = GD.JOBS[CR.job];
   $('jdesc').innerHTML = `<b>${J.name}</b> — ${J.desc}<br><br>Lv${GD.PROMO_LEVEL} 전직: ` + GD.PROMOS[CR.job].map(p => `<b style="color:#c4b5fd">${GD.JOBS[p].name}</b> (${GD.JOBS[p].desc})`).join(' / ');
@@ -812,13 +810,13 @@ function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   drawText(`${p.n}`, x, y + 15, isMe ? '#ffe86a' : '#9fe8ff', 13);
   drawText(`Lv${p.lv} ${jn}`, x, y + 29, '#f0f2f5', 11, false);
   if (isMe && !p.dd) {
-    const by = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 10) : (img.dh === 80 ? y - 70 : y - 84), bw = 36; const yv = S.you;
+    const by = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 10) : img.headT != null ? Math.round(y - img.dh + 6 + img.headT - 10) : (img.dh === 80 ? y - 70 : y - 84), bw = 36; const yv = S.you;
     const hr = Math.max(0, Math.min(1, (yv.hp || 0) / (yv.mhp || 1))), mr = Math.max(0, Math.min(1, (yv.mp || 0) / (yv.mmp || 1)));
     ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x - bw / 2 - 1, by - 1, bw + 2, 9);
     ctx.fillStyle = '#3a1418'; ctx.fillRect(x - bw / 2, by, bw, 4); ctx.fillStyle = hr < 0.3 ? '#ff2a2a' : '#ef4444'; ctx.fillRect(x - bw / 2, by, bw * hr, 4);
     ctx.fillStyle = '#141e3a'; ctx.fillRect(x - bw / 2, by + 4, bw, 3); ctx.fillStyle = '#3b82f6'; ctx.fillRect(x - bw / 2, by + 4, bw * mr, 3);
   }
-  if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; const hy2 = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 8) : (img.dh === 80 ? y - 66 : y - 80); ctx.fillRect(x - 16, hy2, 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, hy2, 32 * p.h / 100, 4); }
+  if (!isMe && p.h < 100) { ctx.fillStyle = '#000'; const hy2 = ap.mt && img.topOff ? Math.round(y + 6 - img.topOff - 8) : img.headT != null ? Math.round(y - img.dh + 6 + img.headT - 8) : (img.dh === 80 ? y - 66 : y - 80); ctx.fillRect(x - 16, hy2, 32, 4); ctx.fillStyle = '#4aff6a'; ctx.fillRect(x - 16, hy2, 32 * p.h / 100, 4); }
   });
 }
 function drawNpc(n, sx, sy, now) {

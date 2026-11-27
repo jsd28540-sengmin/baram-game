@@ -132,9 +132,7 @@ function opts(el, list, key) {
 }
 function buildCreate() {
   opts($('gsel'), [{ v: 'm', html: '남자' }, { v: 'f', html: '여자' }], 'g');
-  opts($('hsel'), ['기본', '삐죽', '긴머리', '묶음'].map((n, i) => ({ v: i, html: n })), 'h');
-  opts($('hcsel'), HAIRC.map((c, i) => ({ v: i, html: `<span class="sw" style="background:${c}"></span>` })), 'hc');
-  opts($('sksel'), SKIN.map((c, i) => ({ v: i, html: `<span class="sw" style="background:${c}"></span>` })), 'sk');
+  opts($('hcsel'), HAIRC.map((c, i) => ({ v: i, html: i === 0 ? '기본' : `<span class="sw" style="background:${c}"></span>` })), 'hc'); /* 0 = 그림 원래 머리색 */
   const J3 = [['warrior', 'sword', '근접 · 탱커'], ['mage', 'staff', '마법 · 광역'], ['healer', 'bow', '치유 · 원거리']];
   $('jsel').innerHTML = J3.map(([j, i, s]) => `<div class="job ${CR.job === j ? 'on' : ''}" data-j="${j}">${ic(i)}<b>${GD.JOBS[j].name}</b><small>${s}</small></div>`).join('');
   $('jsel').querySelectorAll('.job').forEach(d => d.onclick = () => { CR.job = d.dataset.j; buildCreate(); });
