@@ -86,7 +86,7 @@ input:focus{outline:none;border-color:var(--acc)}
 #log{max-height:96px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;text-shadow:0 1px 2px #000,0 0 3px #000;pointer-events:none;line-height:1.35}
 #chatin{width:100%;margin-top:3px;height:26px;font-size:12px}
 #announce{position:absolute;left:50%;top:52px;transform:translateX(-50%);font-size:14px;font-weight:800;text-align:center;text-shadow:0 1px 3px #000,0 0 6px #000;pointer-events:none;width:560px}
-#deathbox{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);text-align:center;padding:14px 22px}
+#deathbox{position:absolute;left:50%;top:24%;pointer-events:none;transform:translate(-50%,-50%);text-align:center;padding:14px 22px}
 #deathbox h2{margin:0 0 6px;font-size:16px}
 #expline{position:fixed;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.5);z-index:8;pointer-events:none}
 #expline i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .3s}
@@ -291,7 +291,7 @@ html,body{height:var(--vhp,100%)}
   <div id="qs" class="win"></div>
   <div id="chat"><div id="log"></div><input id="chatin" class="hidden" maxlength="80" placeholder="채팅 입력 후 Enter"></div>
   <div id="announce"></div>
-  <div id="deathbox" class="win hidden"><h2>쓰러졌습니다</h2><div class="mut" style="margin-bottom:10px">가까운 마을에서 부활합니다 (경험치 -5%)</div><button class="btn pri" id="respawn">마을에서 부활</button></div>
+  <div id="deathbox" class="win hidden"><h2>쓰러졌습니다</h2><div style="font-size:22px;font-weight:800;color:#ffd27a;margin:2px 0" id="deadcnt">8</div><div class="mut" style="margin-bottom:4px">초 뒤 가까운 마을에서 부활합니다 (경험치 -5%)</div><div class="mut" style="font-size:11px;color:#fffbd0">그 전에 동료가 ✨부활의 기도로 이 자리에서 살릴 수 있어요</div><button class="btn pri hidden" id="respawn">마을에서 부활</button></div>
 </div>
 <div id="expline"><i></i></div>
 <div id="touch" class="hidden"><div id="dpad"></div><div id="acts"></div><div id="util"></div></div>
@@ -299,26 +299,26 @@ html,body{height:var(--vhp,100%)}
 <div id="panel2" class="panel small win hidden"><div class="pn-head"><div class="t" id="ptitle2"></div><button class="xbtn" id="px2"></button></div><div id="pbody2" style="padding:10px 12px"></div></div>
 <div id="tip" class="win hidden"></div>
 <div id="rotate"><span id="rotic"></span><div style="font-size:18px;font-weight:800">가로로 돌려주세요</div><div style="font-size:12px;opacity:.7">바람의 대륙은 가로 화면 전용이에요</div></div>
-<script>window.BUILD="web";window.BUILDV="1795823720";</script>
-<script src="mqtt.min.js?v=1795823720"></script>
-<script src="data.js?v=1795823720"></script>
-<script src="engine.js?v=1795823720"></script>
-<script src="sprites.js?v=1795823720"></script>
-<script src="env.js?v=1795823720"></script>
-<script src="gfx/chars.js?v=1795823720"></script>
-<script src="chars.js?v=1795823720"></script>
-<script src="gfx/atlas.js?v=1795823720"></script>
-<script src="gfx.js?v=1795823720"></script>
-<script src="tent.js?v=1795823720"></script>
-<script src="game.js?v=1795823720"></script>
-<script src="net-rtc.js?v=1795823720"></script>
-<script src="smooth.js?v=1795823720"></script>
-<script src="gfx/mons.js?v=1795823720"></script>
-<script src="monsters.js?v=1795823720"></script>
-<script src="ui.js?v=1795823720"></script>
-<script src="gfx/items.js?v=1795823720"></script>
-<script src="gfx/forms.js?v=1795823720"></script>
-<script src="gfx/classes.js?v=1795823720"></script>
-<script src="assets.js?v=1795823720"></script>
+<script>window.BUILD="web";window.BUILDV="1795833599";</script>
+<script src="mqtt.min.js?v=1795833599"></script>
+<script src="data.js?v=1795833599"></script>
+<script src="engine.js?v=1795833599"></script>
+<script src="sprites.js?v=1795833599"></script>
+<script src="env.js?v=1795833599"></script>
+<script src="gfx/chars.js?v=1795833599"></script>
+<script src="chars.js?v=1795833599"></script>
+<script src="gfx/atlas.js?v=1795833599"></script>
+<script src="gfx.js?v=1795833599"></script>
+<script src="tent.js?v=1795833599"></script>
+<script src="game.js?v=1795833599"></script>
+<script src="net-rtc.js?v=1795833599"></script>
+<script src="smooth.js?v=1795833599"></script>
+<script src="gfx/mons.js?v=1795833599"></script>
+<script src="monsters.js?v=1795833599"></script>
+<script src="ui.js?v=1795833599"></script>
+<script src="gfx/items.js?v=1795833599"></script>
+<script src="gfx/forms.js?v=1795833599"></script>
+<script src="gfx/classes.js?v=1795833599"></script>
+<script src="assets.js?v=1795833599"></script>
 </body>
 </html>

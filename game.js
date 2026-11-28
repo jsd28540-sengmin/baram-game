@@ -795,10 +795,10 @@ requestAnimationFrame(frame);
 const NAMEQ = [];
 function drawPlayer(p, rx, ry, dir, walking, sx, sy, now, isMe) {
   const x = rx * TS + 16 - sx, y = ry * TS + 32 - sy;
-  if (p.dd) { ctx.globalAlpha = 0.5; }
+  if (p.dd) { ctx.globalAlpha = 0.9; } /* 쓰러진 모습이 잘 보이게 */
   const fr = walking ? 1 + ((now / 130 | 0) % 4) : 0;
   const ap = p.a; let img = charSprite(ap, p.sl ? 0 : dir, p.sl ? 0 : fr === 4 ? 0 : fr === 2 ? 0 : fr);
-  if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 10); ctx.rotate(-Math.PI / 2); ctx.drawImage(img, -40, -28, 56, 80); ctx.restore(); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
+  if (p.sl || p.dd) { ctx.save(); ctx.translate(x, y - 22); ctx.rotate(-Math.PI / 2); if (p.dd) ctx.filter = 'grayscale(0.55) brightness(0.85)'; ctx.drawImage(img, -28, -40, 56, 80); ctx.filter = 'none'; ctx.restore(); if (p.dd) drawText('💀', x, y - 58 - Math.sin(now / 300) * 3, '#fff', 14); if (p.sl) drawText('Z z z', x + 14, y - 34 - Math.sin(now / 300) * 4, '#c8d8ff', 12); }
   else {
     const lunge = p.atkT && now - p.atkT < 150 ? 4 : 0; const [dx, dy] = DIRS[dir];
     shadowAt(x, y, ap.mt ? 18 : 12); if (img.dw) ctx.drawImage(img, Math.round(x - img.dw / 2 + dx * lunge), Math.round(y - img.dh + 6 + dy * lunge), img.dw, img.dh); else ctx.drawImage(img, Math.round(x - 28 + dx * lunge), Math.round(y - 76 + dy * lunge), 56, 80);
@@ -973,7 +973,7 @@ function refreshHud(full) {
   $('expline').firstElementChild.style.width = (me.lv >= GD.MAX_LEVEL ? 100 : 100 * me.exp / me.need) + '%';
   $('buffs2').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
   $('buffs').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
-  $('deathbox').classList.toggle('hidden', !y.dead);
+  $('deathbox').classList.toggle('hidden', !y.dead); if (y.dead) { const e = $('deadcnt'); if (e) e.textContent = Math.max(1, Math.ceil((y.dl || 0) / 1000)); }
   const di = S.nl; $('clock').textContent = (S.map && S.map.dark ? '🕯 어두운 던전' : di > 0.5 ? '🌙 밤 (몬스터 강화)' : di > 0 ? '🌆 해질녘' : '☀ 낮') + `  (${pos.x},${pos.y})`;
   // 타겟
   const tg = S.target && S.M.get(S.target);

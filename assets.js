@@ -160,7 +160,7 @@
     if (ap.mt === 'whiteHorse' && !MD.tint && !HA[ap.mt]) { const hg = hor.getContext('2d'); hg.globalCompositeOperation = 'saturation'; hg.fillStyle = '#888'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'screen'; hg.fillStyle = 'rgba(150,150,160,1)'; hg.fillRect(0, 0, r[2], r[3]); hg.globalCompositeOperation = 'destination-in'; hg.drawImage(HO, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); }
     const seatY = hy + hh * (d === 'left' || d === 'right' ? SEAT[0] : SEAT[0] - 0.04), seatX = 190 + (d === 'left' ? hw * 0.08 : d === 'right' ? -hw * 0.08 : 0);
     // 라이더: 실제 그림 영역(bbox)을 찾아 머리~허리(위 68%)만 잘라 안장 위에 앉힘
-    const rb = riderBox(rider); const rH = rb.h * 0.68, RS = 1.0; const rw = rb.w * RS, rh = rH * RS;
+    const rb = riderBox(rider); /* 몸 중심 = 그림 가운데(발 기준으로 맞춰 그려짐). 무기·지팡이가 한쪽으로 튀어나와도 몸이 탈것 가운데 오도록 */ const rH = rb.h * 0.68, RS = 1.0; const rw = rb.w * RS, rh = rH * RS;
     const drawRiderAt = (cx, by) => g.drawImage(rider, rb.x, rb.y, rb.w, rH, cx - rw / 2, by - rh, rw, rh);
     const drawRider = () => drawRiderAt(seatX, seatY + 10);
     // 앉은 자세: 옆모습은 상체(위 60%) + 무릎을 굽힌 다리(아래 40%를 짧게·앞으로), 앞/뒤는 탈것 몸통 뒤에 앉아 상체만 보이게
@@ -172,17 +172,17 @@
       const fw = d === 'left' ? -1 : 1, waist = Math.max(uh + 2, topY + span * FR + 13), sx0 = cxM - fw * hw * 0.04;
       g.drawImage(hor, hx, hy, hw, hh);
       /* 몸 전체를 한 번에 그림: 엉덩이는 안장 위, 다리는 옆구리로 늘어뜨림 (허리에서 잘려 보이던 문제) */
-      const cut = rb.h * 0.6, ux = sx0 - rw2 / 2; /* 상체 + 이어지는 하체(다리를 접어 앞으로) — 같은 폭·같은 경계로 이어 잘린 선이 없게 */
+      const cut = rb.h * 0.6, ux = sx0 - (rider.width / 2 - rb.x) * S2; /* 상체 + 이어지는 하체(다리를 접어 앞으로) — 같은 폭·같은 경계로 이어 잘린 선이 없게 */
       g.drawImage(rider, rb.x, rb.y + cut - 1, rb.w, rb.h - cut + 1, ux + fw * 4, waist - 1, rw2, (rb.h - cut) * S2 * 0.52);
       g.drawImage(rider, rb.x, rb.y, rb.w, cut, ux, waist - cut * S2, rw2, cut * S2);
     } else { // 앞/뒤: 탈것 몸(머리·엉덩이)이 허리 아래를 가리고, 상체만 위로
       /* 앞/뒤: 몸통 높이(안장)에 허리를 두고, 상체(머리~허리)를 탈것 위에 덧그려 '올라탄' 모습으로 — 탈것 머리 뒤에 몸이 숨어 얼굴만 떠 보이던 문제 */
       const sideY = hy + Math.min(bt.side, bt.top + (bt.bot - bt.top) * 0.45) * HK;
       const waist = Math.max(uh + 2, d === 'up' ? Math.max(sideY + 2, topY + uh * 0.6) : topY + uh * 0.42 /* 앞모습: 탈것 머리 바로 뒤에 허리 — 상체는 다 보이고 탈것 얼굴도 보임 */);
-      g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - rw2 / 2, waist - uh, rw2, rb.h * S2 * 0.82); // 다리는 탈것 뒤
+      g.drawImage(rider, rb.x, rb.y, rb.w, rb.h, cxM - (rider.width / 2 - rb.x) * S2, waist - uh, rw2, rb.h * S2 * 0.82); // 다리는 탈것 뒤
       g.drawImage(hor, hx, hy, hw, hh);
       { const tc = mkc(Math.ceil(rw2), Math.ceil(uh)), tg = tc.getContext('2d'); tg.drawImage(rider, rb.x, rb.y, rb.w, up, 0, 0, rw2, uh); tg.globalCompositeOperation = 'destination-in'; const gr = tg.createLinearGradient(0, uh * 0.9, 0, uh); gr.addColorStop(0, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)'); tg.fillStyle = gr; tg.fillRect(0, 0, rw2, uh);
-        g.drawImage(tc, cxM - rw2 / 2, waist - uh); } // 상체는 탈것 위 (허리 아래는 부드럽게 사라져 잘린 선이 안 보임)
+        g.drawImage(tc, cxM - (rider.width / 2 - rb.x) * S2, waist - uh); } // 상체는 탈것 위 (허리 아래는 부드럽게 사라져 잘린 선이 안 보임)
     }
     c.dw = 152; c.dh = 188; /* 비율 유지, 전체 0.8배 */ try { const D = g.getImageData(0, 0, 380, 470).data; let t = 0; outer: for (let y = 0; y < 470; y++) for (let x = 80; x < 300; x++) if (D[(y * 380 + x) * 4 + 3] > 80) { t = y; break outer; } c.topOff = (470 - t) * 0.4; } catch (e) { } hc.set(key, c); return c; /* 머리 위치 → 체력바 위치 */
   };
@@ -819,8 +819,9 @@
   // 처음 화면에 들어올 때 내 직업 시트를 미리 받아둠
   setTimeout(() => { try { const used = new Set(Object.values(M).map(v => v[0])); for (const n of used) sheet(n); } catch (e) { } }, 6000);
   const L = []; const lastOnce = {};
-  const _add = addFx;
+  const _add = addFx; const RING = [];
   addFx = function (f) {
+    { const sk = f && f.s && GD.SKILL[f.s]; if (sk && f.k === 'skill' && (sk.kind === 'heal' || sk.kind === 'partyBuff') && sk.r) RING.push({ x: f.x, y: f.y, r: sk.r, c: sk.col || '#7dff9a', t0: performance.now() }); } /* 치유 범위 표시 */
     const mp = f && f.s && M[f.s];
     if (mp && (f.k === 'skill' || f.k === 'proj')) {
       const [sn, row, mode, size, by] = mp; const now = performance.now();
@@ -837,8 +838,14 @@
   };
   const _dfx = drawFx;
   drawFx = function (now, sx, sy, layer) {
-    _dfx(now, sx, sy, layer); if (layer === 'top' || !L.length) return;
+    _dfx(now, sx, sy, layer); if (layer === 'top') return;
     const g = ctx;
+    for (let i = RING.length - 1; i >= 0; i--) { const e = RING[i], k = (now - e.t0) / 1100; if (k >= 1) { RING.splice(i, 1); continue; } /* 바닥에 치유 범위 원: 퍼지며 나타났다 서서히 사라짐 */
+      const cx = e.x * TS + TS / 2 - sx, cy = e.y * TS + TS / 2 - sy, R0 = (e.r + 0.5) * TS * Math.min(1, 0.35 + k * 2.2), a = k < 0.6 ? 1 : (1 - k) / 0.4;
+      g.save(); g.globalAlpha = 0.22 * a; g.fillStyle = e.c; g.beginPath(); g.ellipse(cx, cy + 8, R0, R0 * 0.62, 0, 0, 7); g.fill();
+      g.globalAlpha = 0.9 * a; g.strokeStyle = e.c; g.lineWidth = 3; g.setLineDash([10, 6]); g.lineDashOffset = -now / 40; g.beginPath(); g.ellipse(cx, cy + 8, R0, R0 * 0.62, 0, 0, 7); g.stroke();
+      g.setLineDash([]); g.globalAlpha = 0.5 * a; g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(cx, cy + 8, R0 - 4, R0 * 0.62 - 3, 0, 0, 7); g.stroke(); g.restore(); }
+    if (!L.length) return;
     for (let i = L.length - 1; i >= 0; i--) { const e = L[i]; const k = (now - e.t0) / e.dur; if (k >= 1) { L.splice(i, 1); continue; } if (k < 0) continue;
       const im = sheet(e.sn); if (!im) continue;
       const fr = Math.min(e.f1, e.f0 + Math.floor(k * (e.f1 - e.f0 + 1)));

@@ -1026,7 +1026,7 @@ function hurt(m, tg, raw, src) {
   if (p.sleeping) { p.sleeping = false; }
   p.hp -= d; fx(m, { k: 'dmg', x: p.x, y: p.y, v: d, p: 1 });
   if (p.hp <= 0) {
-    p.hp = 0; p.dead = true; p.riding = false; dirty(p);
+    p.hp = 0; p.dead = true; p.deadAt = Date.now(); p.riding = false; dirty(p); /* 8초 동안 쓰러진 채로 → 부활의 기도로 살릴 수 있음, 지나면 마을에서 부활 */
     sysMsg(p, `💀 ${src && D.MONS[src.type] ? D.MONS[src.type].name : '적'}에게 쓰러졌습니다...`, '#ff6a6a');
     for (const mon of m.mons.values()) if (mon.target === p.id) mon.target = null;
   }
@@ -1127,6 +1127,9 @@ function midBossTick(m, z, now) {
     return;
   }
 }
+const DEAD_WAIT = 8000;
+function doRespawn(p) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, p.map === 'world2' ? 'world2' : 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); }
+function deathTick() { const now = Date.now(); for (const p of PLAYERS.values()) if (p.dead && now - (p.deadAt || 0) >= DEAD_WAIT) { try { doRespawn(p); } catch (e) { } } } /* 자동 마을 부활 */
 function spawnTick() {
   const now = Date.now();
   try { surpriseTick(now); } catch (e) { console.error('surprise', e); }
@@ -1417,7 +1420,7 @@ function handle(p, msg) {
       const pt = m.portals[x + ',' + y]; if (pt && pt.minLv && p.lv < pt.minLv) { if (!p._gateT || Date.now() - p._gateT > 3000) { p._gateT = Date.now(); sysMsg(p, `⚠ 이 길 너머는 심연입니다. Lv${pt.minLv} 이상만 갈 수 있어요.`, '#ff8a8a'); } } else if (pt) { teleport(p, pt.to, pt.x, pt.y, pt.near); if (pt.to === 'world2') sysMsg(p, '⚠ 심연에 들어왔습니다. 몬스터가 훨씬 강해요! (+30레벨)', '#ff8a8a'); } else tentDoorCheck(p);
       break;
     }
-    case 'dbg': if (!ENV.DEBUG) return; if (msg.mount && D.MOUNTS[msg.mount] && !p.mounts.includes(msg.mount)) { p.mounts.push(msg.mount); dirty(p); } if (msg.job && D.JOBS[msg.job]) { p.job = msg.job; calc(p); } if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
+    case 'dbg': if (!ENV.DEBUG) return; if (msg.kill) { p.hp = 0; p.dead = true; p.deadAt = Date.now(); dirty(p); } if (msg.mount && D.MOUNTS[msg.mount] && !p.mounts.includes(msg.mount)) { p.mounts.push(msg.mount); dirty(p); } if (msg.job && D.JOBS[msg.job]) { p.job = msg.job; calc(p); } if (msg.sboss) { SB.next = 0; if (SB.live) SB.live.end = Date.now() + (msg.sbEnd || SB_TIME); surpriseTick(Date.now()); } if (msg.spawnMon && D.MONS[msg.spawnMon]) { const q = nearFreeMon(m, p.x + ri(-3, 3), p.y + ri(-3, 3)); const mo = spawnMon(m, msg.spawnMon, q.x, q.y); if (mo) mo.target = p.id; } if (msg.lv) { p.lv = msg.lv; calc(p); p.hp = p.st.maxHp; p.mp = p.st.maxMp; } if (msg.coins) p.coins += msg.coins; if (msg.item) addItem(p, msg.item); if (msg.give) for (const [k, v] of Object.entries(msg.give)) addItem(p, { k: 'mat', id: k, n: v }); if (msg.boss) { const b = BOSSES.find(b => b.mon === msg.boss); const bm = MAPS[b.map]; const q = nearFreeMon(bm, b.x, b.y); const mo = spawnMon(bm, b.mon, q.x, q.y); b.live = mo.id; } if (msg.map && MAPS[msg.map]) teleport(p, msg.map, msg.x, msg.y, 1); calc(p); dirty(p); break;
     case 'face': p.dir = clamp(msg.d | 0, 0, 3); break;
     case 'atk': basicAttack(p); break;
     case 'skill': useSkill(p, msg.id); break;
@@ -1493,7 +1496,8 @@ function handle(p, msg) {
       dirty(p); break;
     }
     case 'sleep': p.sleeping = !p.sleeping && !p.dead; break;
-    case 'respawn': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, p.map === 'world2' ? 'world2' : 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
+    case 'respawn': if (p.dead && Date.now() - (p.deadAt || 0) >= DEAD_WAIT) doRespawn(p); break;
+    case '_respawn_old': if (p.dead) { const t = nearestTown(p); p.dead = false; calc(p); p.hp = Math.round(p.st.maxHp * 0.5); p.mp = Math.round(p.st.maxMp * 0.5); p.exp = Math.max(0, p.exp - Math.floor(D.expNeed(p.lv) * 0.05)); teleport(p, p.map === 'world2' ? 'world2' : 'world', t.spawn.x, t.spawn.y, 1); dirty(p); sysMsg(p, `${t.name}에서 부활했습니다. (경험치 -5%)`, '#ffb4b4'); } break;
     case 'hot': p.hot = Array.isArray(msg.hot) ? msg.hot.slice(0, 5).map(x => typeof x === 'string' && D.CONSUMES[x] ? x : null) : []; dirty(p); break;
     case 'boss': p.ws.send({ t: 'boss', list: bossSchedule(), sb: sbInfo() }); break;
     // 교환
@@ -1737,7 +1741,7 @@ function tick() {
     for (const d of m.drops.values()) if (Math.abs(d.x - p.x) <= VX && Math.abs(d.y - p.y) <= VY) { const it = d.item; Dr.push({ i: d.id, x: d.x, y: d.y, k: it.k, id: it.id, tr: it.tier, c: it.k === 'gear' ? D.TIER_COLOR[it.tier] : it.k === 'use' ? D.CONSUMES[it.id].col : it.k === 'mat' ? (D.MATS[it.id] || {}).c : '#ffd700', r: it.rar || 0, sl: it.slot, wt: it.wt, n: it.k === 'gear' ? it.name : it.k === 'coin' ? it.n + '코인' : (it.k === 'use' ? D.CONSUMES[it.id].name : it.id) + (it.n > 1 ? ' x' + it.n : '') }); }
     const fxs = m.fx.filter(f => Math.abs((f.x ?? f.fx) - p.x) <= VX + 2 && Math.abs((f.y ?? f.fy) - p.y) <= VY + 2);
     { const fb = (p.buffs || []).find(b => b.form && b.until > now); const f = fb ? fb.form : 0; if (f !== (p._fm || 0)) { p._fm = f; calc(p); if (p.hp > p.st.maxHp) p.hp = p.st.maxHp; dirty(p); if (!f) sysMsg(p, '변신이 풀렸습니다.', '#bbb'); } }
-    const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, x: q.x, y: q.y, m: q.map, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
+    const ptI = partyOf(p); p.ws.send({ t: 's', tm: now, nl, P, M, D: Dr, fx: fxs, pt: ptI ? [...ptI.members].map(id => PLAYERS.get(id)).filter(Boolean).map(q => ({ i: q.id, n: q.name, lv: q.lv, j: q.job, h: Math.round(100 * q.hp / (q.st ? q.st.maxHp : 1)), L: ptI.leader === q.id ? 1 : 0, x: q.x, y: q.y, m: q.map, far: q.map !== p.map || dist(q, p) > 12 ? 1 : 0 })) : null, you: { hp: p.hp, mp: p.mp, mhp: p.st.maxHp, mmp: p.st.maxMp, dead: p.dead ? 1 : 0, dl: p.dead ? Math.max(0, DEAD_WAIT - (now - (p.deadAt || now))) : 0, sl: p.sleeping ? 1 : 0, buffs: (p.buffs || []).map(b => ({ n: b.name, r: b.until - now, d: b.dur })), tg: p.target } });
   }
   for (const id of activeMaps) MAPS[id].fx = [];
 }
@@ -1748,7 +1752,7 @@ const API = {
   start(saves, io) {
     if (started) return; started = true;
     if (io) IO = io; loadSaves(saves);
-    setInterval(tick, 100); setInterval(nightHunt, 12000); setInterval(spawnTick, 1500); setInterval(bossTick, 1000); setInterval(saveAll, 30000);
+    setInterval(tick, 100); setInterval(nightHunt, 12000); setInterval(spawnTick, 1500); setInterval(deathTick, 250); setInterval(bossTick, 1000); setInterval(saveAll, 30000);
     spawnTick(); spawnTick(); spawnTick();
   },
   connect: onConnect, saveAll,
