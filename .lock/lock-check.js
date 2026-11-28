@@ -137,6 +137,7 @@ must('engine.js', 'const DEAD_WAIT = 8000;', '쓰러진 뒤 8초 대기 → 자�
 must('engine.js', 'setInterval(deathTick, 250);', '자동 부활 타이머');
 must('assets.js', '/* 치유 범위 표시 */', '치유 스킬 범위 원 표시');
 must('game.js', "if (p.dd) { ctx.globalAlpha = 0.9; }", '쓰러진 모습 잘 보이게');
+must('game.js', '/* 쓰러짐 카운트다운: 화면 갱신과 상관없이 0.25초마다 직접 셈', '쓰러짐 카운트다운 멈춤 방지');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

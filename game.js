@@ -973,7 +973,7 @@ function refreshHud(full) {
   $('expline').firstElementChild.style.width = (me.lv >= GD.MAX_LEVEL ? 100 : 100 * me.exp / me.need) + '%';
   $('buffs2').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
   $('buffs').innerHTML = (y.buffs || []).map(b => `<span class="buff">${esc(b.n)} ${Math.ceil(b.r / 1000)}s</span>`).join('');
-  $('deathbox').classList.toggle('hidden', !y.dead); if (y.dead) { const e = $('deadcnt'); if (e) e.textContent = Math.max(1, Math.ceil((y.dl || 0) / 1000)); }
+  $('deathbox').classList.toggle('hidden', !y.dead);
   const di = S.nl; $('clock').textContent = (S.map && S.map.dark ? '🕯 어두운 던전' : di > 0.5 ? '🌙 밤 (몬스터 강화)' : di > 0 ? '🌆 해질녘' : '☀ 낮') + `  (${pos.x},${pos.y})`;
   // 타겟
   const tg = S.target && S.M.get(S.target);
@@ -1256,3 +1256,9 @@ function atlasInfo() {
   if (sel.d) { const d = sel.d; return `<h3>${d.type === 'cave' ? '▲' : '♜'} ${d.name} <small>Lv${d.lv} · ${d.floors.length}층</small></h3>` + d.floors.map((f, i) => `<div style="color:#fbbf24;margin-top:6px">${i + 1}층</div>` + f.map(monEntry).join('')).join('') + `<div style="color:#f87171;margin-top:8px">☠ ${d.floors.length}층 보스 — ${minutesStr(d.every, d.off)} 출현</div>` + monEntry(d.boss); }
   if (sel.b) { const b = sel.b; return `<h3>☠ 필드 보스 — ${b.where}</h3><div>${minutesStr(b.every, b.off)} 출현</div>` + monEntry(b.mon); }
 }
+
+/* 쓰러짐 카운트다운: 화면 갱신과 상관없이 0.25초마다 직접 셈 (숫자가 멈춰 있던 문제) */
+setInterval(() => { try { const y = S.you; if (!y) return; 
+  if (y.dead) { const now = Date.now(); if (!S.deadT0) S.deadT0 = now - (y.dl != null ? 8000 - y.dl : 0); const left = Math.max(0, 8000 - (now - S.deadT0)); const e = $('deadcnt'); if (e) e.textContent = Math.ceil(left / 1000);
+    if (left <= 0 && (!S.deadReq || now - S.deadReq > 1500)) { S.deadReq = now; send({ t: 'respawn' }); } }
+  else { S.deadT0 = 0; S.deadReq = 0; } $('deathbox').classList.toggle('hidden', !y.dead); } catch (e) { } }, 250);
