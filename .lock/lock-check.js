@@ -141,6 +141,7 @@ must('game.js', '/* 쓰러짐 카운트다운: 화면 갱신과 상관없이 0.2
 must('engine.js', '/* 상자마다·사람마다 다르게', '보물상자 내용 무작위');
 must('engine.js', '(p.dead && !sk.revive)', '쓰러진 사제도 부활의 기도로 자신 부활');
 must('ui.js', '🗺 지도 맞추기', '보물지도 조각 사용 버튼');
+must('engine.js', "const job = R() < 0.6 ? myBase : pick(['warrior', 'mage', 'healer']);", '보물상자: 연 사람 직업 장비 우선');
 // 7) 실제 그림 검사: 왼쪽 줄 캐릭터의 얼굴이 왼쪽을 보는지 (피부색 픽셀이 머리 중심보다 왼쪽에 많아야 함)
 try {
   const { execSync } = require('child_process');

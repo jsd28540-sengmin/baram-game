@@ -431,7 +431,8 @@ function openChest(p, c) {
   POOL.slice(0, ri(2, 3 + (t >> 1))).forEach(f => f());
   if (R() < 0.12 + t * 0.06) give({ k: 'mat', id: '보물지도 조각', n: 1 });
   const nGear = t >= 4 ? (R() < 0.35 ? 2 : 1) : R() < 0.22 + t * 0.08 ? 1 : 0;
-  for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 49), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
+  const myBase = (D.JOBS[p.job] || {}).base || 'warrior';
+  for (let i = 0; i < nGear; i++) { const job = R() < 0.6 ? myBase : pick(['warrior', 'mage', 'healer']); /* 상자를 연 사람의 직업 장비가 더 잘 나오게 (60%) */ const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 49), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
   if (c.legend) { const L = makeLegend(c.legend); if (L) { give(L); announce(`✨ ${p.name}님이 전설의 보물상자에서 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); } }
   else if (t >= 4 && R() < 0.0015 * (1 + luck / 100)) { const lid = pick(Object.keys(D.LEGENDS)); const L = makeLegend(lid); give(L); announce(`✨ ${p.name}님이 보물상자에서 전설의 [${L.name}]을(를) 발견했습니다!`, '#ff7a4a'); }
   fx(m, { k: 'coin', x: c.x, y: c.y, v: coins }); fx(m, { k: 'chest', x: c.x, y: c.y, t });
