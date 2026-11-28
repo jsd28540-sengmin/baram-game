@@ -569,6 +569,7 @@ function invClick(i, ev, mode) {
   else if (mode === 'chest') btns = `<button class="btn sm pri" data-a="store" data-i="${i}">보관상자에 넣기</button>`;
   else if (mode === 'trade') btns = S.trade && S.trade.myIdx.includes(i) ? `<button class="btn sm red" data-a="untrade" data-i="${i}">교환에서 빼기</button>` : `<button class="btn sm pri" data-a="trade" data-i="${i}">${ic('swap')}교환에 올리기</button>`;
   else {
+    if (it.k === 'mat' && it.id === '보물지도 조각') btns += `<button class="btn sm pri" data-a="use" data-i="${i}">🗺 지도 맞추기 (${haveN('보물지도 조각')}/4)</button> `; /* 조각 4개 → 보물지도 */
     if (it.k !== 'mat') btns += `<button class="btn sm pri" data-a="use" data-i="${i}">${it.k === 'gear' ? '착용' : it.k === 'mount' ? '장착' : '사용'}</button> `;
     if (it.k === 'use') btns += hotList().includes(it.id) ? `<button class="btn sm" data-qrm="${it.id}">퀵슬롯 해제</button> ` : `<button class="btn sm" data-qadd="${it.id}">${ic('plus')}퀵슬롯 등록</button> `;
     if (it.k !== 'mount') btns += `<button class="btn sm red" data-a="drop" data-i="${i}">${ic('trash')}</button>`;

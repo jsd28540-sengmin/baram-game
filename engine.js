@@ -422,11 +422,13 @@ function openChest(p, c) {
   const t = c.tier, luck = (p.st && p.st.luck) || 0, got = [];
   const give = it => { if (!addItem(p, it)) dropAt(m, p.x, p.y, it, p); got.push(it.k === 'gear' ? it.name : `${it.k === 'use' ? D.CONSUMES[it.id].name : it.id} x${it.n}`); };
   const coins = Math.floor(ri(60, 160) * Math.pow(t, 2.3) * (1 + luck / 100)); p.coins += coins; got.push(`${coins} 코인`);
-  const ores = ['철광석', '은광석', '마력석', '용의비늘']; give({ k: 'mat', id: ores[Math.min(3, Math.max(0, t - 2))] || '철광석', n: ri(2, 3 + t * 2) });
-  if (t >= 4 && R() < 0.5) give({ k: 'mat', id: '용의비늘', n: ri(1, t - 2) });
-  give({ k: 'mat', id: pick(['나무', '돌', '양털', '솜', '횃불']), n: ri(3, 8) });
-  const ings = ['약초', '버섯', '사과', '꿀', '향신료', '얼음꽃', '용암고추', '달걀', '밀가루']; for (let i = 0; i < 1 + (t >> 1); i++) give({ k: 'mat', id: pick(ings), n: ri(1, 3) });
-  give({ k: 'use', id: pick(t >= 5 ? ['hp3', 'mp3', 'hp2', 'mp2', 'buffAtk', 'buffDef'] : t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1']), n: ri(2, 5) });
+  /* 상자마다·사람마다 다르게: 들어있는 종류와 개수를 매번 무작위로 섞음 */
+  const ores = ['철광석', '은광석', '마력석', '용의비늘'], oi = Math.min(3, Math.max(0, t - 2 + ri(-1, 1)));
+  const ings = ['약초', '버섯', '사과', '꿀', '향신료', '얼음꽃', '용암고추', '달걀', '밀가루'];
+  const pots = t >= 5 ? ['hp3', 'mp3', 'hp2', 'mp2', 'buffAtk', 'buffDef'] : t >= 3 ? ['hp2', 'mp2', 'buffAtk', 'buffDef', 'recall', 'back'] : ['hp1', 'mp1', 'recall', 'hp1', 'mp1'];
+  const POOL = [() => give({ k: 'mat', id: ores[oi], n: ri(1, 2 + t * 2) }), () => give({ k: 'mat', id: pick(['나무', '돌', '양털', '솜', '횃불']), n: ri(2, 9) }), () => give({ k: 'mat', id: pick(ings), n: ri(1, 3) }), () => give({ k: 'mat', id: pick(ings), n: ri(1, 3) }), () => give({ k: 'use', id: pick(pots), n: ri(1, 5) }), () => { if (t >= 3) give({ k: 'mat', id: '용의비늘', n: ri(1, Math.max(1, t - 2)) }); else give({ k: 'use', id: pick(pots), n: ri(1, 3) }); }];
+  for (let i = POOL.length - 1; i > 0; i--) { const j = ri(0, i); [POOL[i], POOL[j]] = [POOL[j], POOL[i]]; }
+  POOL.slice(0, ri(2, 3 + (t >> 1))).forEach(f => f());
   if (R() < 0.12 + t * 0.06) give({ k: 'mat', id: '보물지도 조각', n: 1 });
   const nGear = t >= 4 ? (R() < 0.35 ? 2 : 1) : R() < 0.22 + t * 0.08 ? 1 : 0;
   for (let i = 0; i < nGear; i++) { const job = pick(['warrior', 'mage', 'healer']); const slots = job === 'warrior' ? D.SLOTS : D.SLOTS.filter(s => s !== 'shield'); give(makeGear(job, pick(slots), clamp(t * 11 + ri(-4, 6), 1, 49), { luck, bonus: t * 3, minRar: t >= 4 ? 1 : 0 })); }
@@ -1225,7 +1227,7 @@ function basicAttack(p) {
 }
 function useSkill(p, sid) {
   const sk = D.SKILL[sid]; const m = MAPS[p.map]; const now = Date.now();
-  if (!sk || p.dead || !D.canSkill(sk, p.job) || p.lv < sk.lv) return;
+  if (!sk || (p.dead && !sk.revive) || !D.canSkill(sk, p.job) || p.lv < sk.lv) return; /* 부활의 기도는 쓰러진 상태에서도 사용 → 자기 자신도 부활 */
   if (inTown(m, p.x, p.y) && !['heal', 'buff', 'partyBuff'].includes(sk.kind)) return sysMsg(p, '마을 안에서는 공격 스킬을 쓸 수 없습니다.');
   p.cds = p.cds || {};
   if ((p.cds[sid] || 0) > now) return;
@@ -1757,7 +1759,7 @@ const API = {
   },
   connect: onConnect, saveAll,
   online: () => [...PLAYERS.values()].map(p => p.name),
-  _p: n => [...PLAYERS.values()].find(p => p.name === n), PLOTS, _kill: (map, id, n) => { const m = MAPS[map], mon = m && m.mons.get(id); if (mon) killMon(m, mon, [...PLAYERS.values()].find(p => p.name === n)); }, _SB: SB, _tp: (n, map, x, y) => { const p = [...PLAYERS.values()].find(p => p.name === n); if (p && MAPS[map]) teleport(p, map, x, y, 1); },
+  _p: n => [...PLAYERS.values()].find(p => p.name === n), PLOTS, _CH: CHESTS, _kill: (map, id, n) => { const m = MAPS[map], mon = m && m.mons.get(id); if (mon) killMon(m, mon, [...PLAYERS.values()].find(p => p.name === n)); }, _SB: SB, _tp: (n, map, x, y) => { const p = [...PLAYERS.values()].find(p => p.name === n); if (p && MAPS[map]) teleport(p, map, x, y, 1); },
   announce: (t, c) => announce(t, c),
   adminGive(name, what) {
     const live = [...PLAYERS.values()].find(p => p.name === name); const p = live || SAVES[name]; if (!p) return '그런 이름의 캐릭터가 없어요.';
